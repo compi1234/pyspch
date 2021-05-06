@@ -17,8 +17,16 @@ setup(
     # a dictionary refering to required data not in .py files
     package_data = {},
     
-    install_requires=['numpy','pandas','matplotlib'],
-
+    install_requires=[
+        'numpy >= 1.15.0',
+        'scipy >= 1.0.0',
+        #'scikit-learn >= 0.14.0, != 0.19.0',
+        'numba >= 0.43.0 <= 0.48.0',
+        'soundfile >= 0.9.0',
+    ],
+    
+    python_requires='>=3.6',
+    
     classifiers=['Development Status: Alpha, Unstable',
                  'Programming Language :: Python :: 3.7',
                  'Programming Language :: Python :: 3.8'],
@@ -26,3 +34,4 @@ setup(
     include_package_data=True
 
 )
+
