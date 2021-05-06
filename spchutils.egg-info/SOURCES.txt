@@ -1,0 +1,9 @@
+setup.py
+spchutils/__init__.py
+spchutils/audio.py
+spchutils/spectrogram.py
+spchutils.egg-info/PKG-INFO
+spchutils.egg-info/SOURCES.txt
+spchutils.egg-info/dependency_links.txt
+spchutils.egg-info/requires.txt
+spchutils.egg-info/top_level.txt

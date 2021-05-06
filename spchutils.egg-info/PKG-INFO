@@ -1,0 +1,13 @@
+Metadata-Version: 1.1
+Name: spchutils
+Version: 0.0.1.dev0
+Summary: A loose collection of speech processing utilities
+Home-page: UNKNOWN
+Author: Dirk Van Compernolle
+Author-email: compi@esat.kuleuven.be
+License: free
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status: Alpha, Unstable
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
