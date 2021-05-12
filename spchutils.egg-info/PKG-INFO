@@ -1,6 +1,6 @@
-Metadata-Version: 1.1
+Metadata-Version: 1.2
 Name: spchutils
-Version: 0.0.1.dev0
+Version: 0.1.dev0
 Summary: A loose collection of speech processing utilities
 Home-page: UNKNOWN
 Author: Dirk Van Compernolle
@@ -11,3 +11,4 @@ Platform: UNKNOWN
 Classifier: Development Status: Alpha, Unstable
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.6
