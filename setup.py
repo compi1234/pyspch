@@ -1,9 +1,10 @@
 from setuptools import setup, find_packages   
-from spch_version import __version__   
+from spch_version import __magic__   
 
 setup(
     name="spchutils",
-    version=__version__,
+    magic=__magic__,
+    version="0.00001"
     url="",
 
     author="Dirk Van Compernolle",
@@ -13,6 +14,8 @@ setup(
     license = "free",
     
     packages = ['spchutils'],
+    # add spch_version to the required install modules
+    py_modules = ['spchutils','spch_version'],
     # a dictionary refering to required data not in .py files
     package_data = {},
     
