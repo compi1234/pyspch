@@ -1,5 +1,5 @@
-from setuptools import setup, find_packages
-from spch_version import __version__
+from setuptools import setup, find_packages   
+from spch_version import __version__   
 
 setup(
     name="spchutils",
@@ -13,14 +13,15 @@ setup(
     license = "free",
     
     packages = ['spchutils'],
+    # add spch_version to the required install modules
+    py_modules = ['spch_version'],
     # a dictionary refering to required data not in .py files
     package_data = {},
     
     install_requires=[
         'numpy >= 1.15.0',
         'scipy >= 1.0.0',
-        #'scikit-learn >= 0.14.0, != 0.19.0',
-        'numba >= 0.43.0 <= 0.48.0',
+        'numba >= 0.43.0,<= 0.48.0',
         'soundfile >= 0.9.0',
     ],
     
