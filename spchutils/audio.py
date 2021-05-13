@@ -21,17 +21,13 @@
 #   - (Google Colab): soundfile and pydub may need to be installed before you can use this
 #
 import os,sys,io 
-import scipy.signal
-
 from urllib.request import urlopen
 from urllib.parse import urlparse
-from IPython.display import display, Audio, HTML, Javascript
-import IPython
-import soundfile as sf    
+from IPython.display import display, Audio,  Javascript
+import IPython   
 import math
 import numpy as np
 from base64 import b64decode
-import matplotlib.pyplot as plt
 
 import librosa
 
@@ -49,15 +45,17 @@ try:
 except:
     IN_COLAB = False
     IO_DEVICE = "sd"
-try:
-    import sounddevice as sd
-except:
-    if IN_COLAB == False:
-        print("sounddevice module not found, pls. install if you need local audio")
-    IO_DEVICE = "js"
-import soundfile as sf
-from pydub import AudioSegment 
+    try:
+        import sounddevice as sd
+    except:
+        print("sounddevice module not found, pls. install if you need local audio\n  Trying to work with audio via the browser and javascript")
+        IO_DEVICE = "js"
 
+try:    
+    import soundfile as sf
+    from pydub import AudioSegment 
+except:
+    print("ERROR: Using spchutils.audio requires soundfile and pydub packages to be installed.   You should fix this first")
 
 def get_fobj(resource):
     '''
