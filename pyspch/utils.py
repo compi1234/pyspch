@@ -12,7 +12,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec 
 
-from spchutils.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
+from pyspch.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 
 
 ##################################################################################################
