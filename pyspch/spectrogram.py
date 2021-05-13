@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import librosa
-from spchutils.constants import EPS_FLOAT
+from pyspch.constants import EPS_FLOAT
 
 def spectrogram(y,sample_rate=16000,frame_shift=10.,frame_length=30.,preemp=0.97,n_fft=512,window='hamm',output='dB',n_mels=None):
     '''
