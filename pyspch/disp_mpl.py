@@ -2,7 +2,9 @@
 #
 #
 import os,sys,io 
+import scipy.signal
 
+from urllib.request import urlopen
 from IPython.display import display, Audio, HTML, clear_output
 
 import math
@@ -12,93 +14,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec 
 
-from spchutils.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
-
-
-##################################################################################################
-# PART I:  MATH UTILITIES
-##################################################################################################
-def normalize(x, axis=0):
-    """Normalizes a multidimensional input array so that the values sums to 1 along the specified axis
-    Typically applied to some multinomal distribution
-
-    x       numpy array
-            of not normalized data
-    axis    int
-            dimension along which the normalization should be done
-
-    """
-
-    xs = x.sum(axis,keepdims=True)
-    xs[xs<EPS_FLOAT]=1.
-    shape = list(x.shape)
-    shape[axis] = 1
-    xs.shape = shape
-    return(x / xs)
-
-def floor(x,FLOOR=EPS_FLOAT):
-    """ array floor:  returns  max(x,FLOOR)  """
-    return(np.maximum(x,FLOOR))
-
-def logf(x,eps=EPS_FLOAT):
-    """ array log with flooring """
-    return(np.log(np.maximum(x,eps)))
-    
-def log10f(x,eps=EPS_FLOAT):
-    """ array log10 with flooring """
-    return(np.log10(np.maximum(x,eps)))
-    
-def convertf(x,iscale="lin",oscale="log",eps=EPS_FLOAT):
-    """ array conversions between lin, log and log10 with flooring protection """
-    if iscale == oscale: 
-        return x
-    
-    if iscale == "lin":
-        if oscale == "log":
-            return logf(x,eps)
-        elif oscale == "log10":
-            return log10f(x,eps)
-    elif iscale == "log":
-        if oscale == "lin":
-            return np.exp(x)
-        elif oscale == "log10":
-            return x/LOG10
-    elif iscale == "log10":
-        if oscale == "lin":
-            return np.power(10.0,x)
-        elif oscale == "log":
-            return x*LOG10
-        
-
-
-##################################################################################################
-# PART II:  General Purpose utilities, handy in time-frequency processing
-##################################################################################################
-# time to index conversions; 
-# for synchronization between different shifts, we place points at
-#     ti = (i+offs) * dt    with offs=0.5 by default
-# inputs can be scalars, lists or numpy arrays  outputs are always numpy arrays
-def t2indx(t,dt=1.,align='center'):
-    """ time-to-index conversion:  ; see indx2t() for details"""
-    offs = 0.5 if align=='center' else 0.0
-    return np.round((np.array(t).astype(float)/float(dt)-offs)).astype(int)
-def indx2t(i,dt=1.,align='center'):
-    """ index-to-time conversion: 
-        time[i] = (i+offs) * dt  ; offs=0.5 when 'center'(default)
-        
-    dt : sampling period
-    align : default(='center') """
-    offs = 0.5 if align=='center' else 0.0
-    return (np.array(i).astype(float) + offs )*dt
-def time_range(n,dt=1.,align='center'):
-    """ indx2t() for n samples 0 ... n-1 """
-    offs = 0.5 if align=='center' else 0.0
-    return (np.arange(n,dtype='float32')+offs)*dt 
-
+import librosa
+from pyspch.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
+import pyspch.spectrogram as specg
 
     
 #######################################################################################
-# PART III:  (a) TOP LEVEL PLOTTING ROUTINES
+# (a) TOP LEVEL PLOTTING ROUTINES
 #######################################################################################
 def plot_waveform(waveform, sample_rate, title=None, **kwargs):
     '''
@@ -169,7 +91,7 @@ def plot_spg(spg,ax=None,wav=None,sample_rate=None,shift=0.01,frames=None,segwav
         dt = 1./sample_rate
         nshift = int(shift*sample_rate)
         wav_xlabel = 'Time(secs)'
-        xfr = indx2t(_frames,shift)
+        xfr = specg.indx2t(_frames,shift)
         dx_segspg = None
     
     if(ax is not None): 
@@ -210,10 +132,8 @@ def plot_spg(spg,ax=None,wav=None,sample_rate=None,shift=0.01,frames=None,segwav
     return fig, ax        
         
         
-       
-        
 #######################################################################################
-# PART III: (b) Low level plotting utilities for multirow plotting
+# (b) Low level plotting utilities for multirow plotting
 #######################################################################################
 
 def make_row_grid(height_ratios=[1.,1.],**kwargs):
@@ -264,8 +184,7 @@ def add_line_plot(ax,y,x=None,dx=1.,xlim='tight',ylim='tight',grid='False',title
     """
     
     if x is None: 
-        # x = np.arange(len(y)) * dx
-        x = time_range(len(y),dx)
+        x = np.arange(len(y)) * dx
     ax.plot(x,y,**kwargs)
     if xlim is None: pass
     elif xlim == 'tight': 
@@ -368,4 +287,4 @@ def add_seg_plot(ax,df,xlim=None,ylim=None,dx=None,ylbl=0.5,Lines=True,
             if ylbl is not None:
                 xlbl = float(t0+(t1-t0)/2.0)
                 ax.text(xlbl,ylbl,lbl,**_lblargs)          
-
+   

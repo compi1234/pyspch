@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
-Name: spchutils
-Version: 0.1.dev0
+Name: pyspch
+Version: 0.1.dev1
 Summary: A loose collection of speech processing utilities
 Home-page: UNKNOWN
 Author: Dirk Van Compernolle

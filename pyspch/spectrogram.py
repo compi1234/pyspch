@@ -55,3 +55,28 @@ def spectrogram(y,sample_rate=16000,frame_shift=10.,frame_length=30.,preemp=0.97
     else:                 return(spg)
 
 
+
+##################################################################################################
+# General Purpose utilities, handy in time-frequency processing
+##################################################################################################
+# time to index conversions; 
+# for synchronization between different shifts, we place points at
+#     ti = (i+offs) * dt    with offs=0.5 by default
+# inputs can be scalars, lists or numpy arrays  outputs are always numpy arrays
+def t2indx(t,dt=1.,align='center'):
+    """ time-to-index conversion:  ; see indx2t() for details"""
+    offs = 0.5 if align=='center' else 0.0
+    return np.round((np.array(t).astype(float)/float(dt)-offs)).astype(int)
+def indx2t(i,dt=1.,align='center'):
+    """ index-to-time conversion: 
+        time[i] = (i+offs) * dt  ; offs=0.5 when 'center'(default)
+        
+    dt : sampling period
+    align : default(='center') """
+    offs = 0.5 if align=='center' else 0.0
+    return (np.array(i).astype(float) + offs )*dt
+def time_range(n,dt=1.,align='center'):
+    """ indx2t() for n samples 0 ... n-1 """
+    offs = 0.5 if align=='center' else 0.0
+    return (np.arange(n,dtype='float32')+offs)*dt 
+
