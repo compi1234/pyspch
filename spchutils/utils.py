@@ -6,8 +6,8 @@ import scipy.signal
 
 from urllib.request import urlopen
 from IPython.display import display, Audio, HTML, clear_output
-import soundfile as sf
-import sounddevice as sd
+#import soundfile as sf
+#import sounddevice as sd
 
 import math
 import numpy as np
