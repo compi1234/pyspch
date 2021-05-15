@@ -3,10 +3,10 @@ import numpy as np
 import librosa
 from pyspch.constants import EPS_FLOAT
 
-def spectrogram(y,sample_rate=16000,frame_shift=10.,frame_length=30.,preemp=0.97,n_fft=512,window='hamm',output='dB',n_mels=None):
+def spectrogram(y,sample_rate=16000,f_shift=0.01,f_length=0.03,preemp=0.97,n_fft=512,window='hamm',output='dB',n_mels=None):
     '''
     spectrogram is a wrapper making use of the librosa() stft library 
-    + with arguments for frame_shift and frame_length in msec 
+    + with arguments for f_shift and f_length in secs 
     + and with  some adjustments on frame positioning similar to Kaldi / SPRAAK
         - (a) frame positioning : centered at: k*n_shift + n_shift/2
         - (b) #frames:  n_samples // n_shift (first and last frame partially filled with mirrored data)
@@ -18,8 +18,8 @@ def spectrogram(y,sample_rate=16000,frame_shift=10.,frame_length=30.,preemp=0.97
 
     optional arguments:
       sample_rate  sample rate in Hz, default=16000
-      frame_shift  frame shift in msecs, default= 10.0 msecs
-      frame_length frame length in msecs, default= 30.0 msecs
+      f_shift      frame shift in secs, default= 0.010 secs
+      f_length     frame length in secs, default= 0.030 secs
       preemp       preemphasis coefficient, default=0.95
       window       window type, default='hamm'
       n_fft        number of fft coefficients, default=512
@@ -31,8 +31,8 @@ def spectrogram(y,sample_rate=16000,frame_shift=10.,frame_length=30.,preemp=0.97
          
     '''
     
-    n_shift = int(float(sample_rate)*frame_shift/1000.0)
-    n_length = int(float(sample_rate)*frame_length/1000.0)
+    n_shift = int(float(sample_rate)*f_shift)
+    n_length = int(float(sample_rate)*f_length)
     if n_fft < n_length :
         print('Warning(Spectrogram): n_fft raised to %d'%n_length)
         n_fft = n_length

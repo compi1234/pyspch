@@ -20,6 +20,9 @@
 #   - numba>= 0.43.0,<= 0.48.0
 #   - (Google Colab): soundfile and pydub may need to be installed before you can use this
 #
+# Credits:
+# https://gist.github.com/korakot/record.py  for the javascript recording code
+#
 import os,sys,io 
 from urllib.request import urlopen
 from urllib.parse import urlparse
@@ -187,7 +190,7 @@ def record(seconds=2.,sample_rate=16000,n_channels=1, io_device = IO_DEVICE ):
     if io_device =='sd':
         data = _record_sd(seconds,sample_rate,n_channels=n_channels)
     elif io_device == 'js':
-        data = _record_js(seconds,sample_rate,num_channels = n_channels)
+        data = _record_js(seconds,sample_rate,n_channels = n_channels)
     
     # return 1D data for mono, 
     data = data.T
@@ -227,7 +230,7 @@ var record = time => new Promise(async resolve => {
 })
 """
 
-def _record_js(seconds,sample_rate, num_channels: int = None,): 
+def _record_js(seconds,sample_rate, n_channels: int = None,): 
 #  Based on: https://gist.github.com/korakot/c21c3476c024ad6d56d5f48b0bca92be
 #  and on: https://github.com/magenta/ddsp/blob/master/ddsp/colab/colab_utils.py
       """Record using JavaScript in the browser 
@@ -236,7 +239,7 @@ def _record_js(seconds,sample_rate, num_channels: int = None,):
       Args:
         secs: seconds to record
         sample_rate: Resample recorded audio to this sample rate.
-        num_channels: If not specified, output shape will be based on the contents
+        n_channels: If not specified, output shape will be based on the contents
           of wav_data. Otherwise, will force to be 1 or 2 channels.
         normalize_db: Normalize the audio to this many decibels. Set to None to skip
           normalization step.
@@ -259,8 +262,8 @@ def _record_js(seconds,sample_rate, num_channels: int = None,):
     
       # Convert to numpy array.
       channel_asegs = aseg.split_to_mono()
-      if num_channels:
-        aseg = aseg.set_channels(num_channels)
+      if n_channels:
+        aseg = aseg.set_channels(n_channels)
       samples = [s.get_array_of_samples() for s in channel_asegs]
       fp_arr = np.array(samples).astype(np.float32)
       fp_arr /= np.iinfo(samples[0].typecode).max
