@@ -24,15 +24,21 @@ from plotly.subplots import make_subplots
 ########## HIHG LEVEL API
 ###########################
 
-def plot_waveform(waveform, sample_rate=16000, title=None, seg=None,ypos=0.8, figsize=(8,3),dpi=100,showgrid=False, **kwargs):
+def plot_waveform(waveform, sample_rate=16000, title=None, seg=None,ypos=0.8, figsize=(8,3),dpi=100,showgrid=False,xlabel="Time(sec)", **kwargs):
     '''
-    Single channel waveform plotting
+    Multichannel waveform plotting
     
     '''   
-    fig = make_subplots(rows=1, cols=1, row_heights=[1.],
+    if waveform.size == waveform.shape[0]:
+        n_channels = 1
+        waveform = waveform.reshape(-1,waveform.size)
+
+    n_channels,n_samples = waveform.shape
+    
+    fig = make_subplots(rows=n_channels, cols=1, row_heights=[1.]*n_channels,
                    shared_xaxes=True,
                    vertical_spacing=0.02,
-                   start_cell='bottom-left')
+                   start_cell='top-left')
     top_margin = 25 if title is None else 50
     fig.update_layout( 
             width=figsize[0]*dpi, height=figsize[1]*dpi,
@@ -40,9 +46,11 @@ def plot_waveform(waveform, sample_rate=16000, title=None, seg=None,ypos=0.8, fi
             paper_bgcolor="White",
         )
     
-    add_line_plot(fig,waveform,dx=1./sample_rate, title=title, xlabel="Time(sec)")
-    fig.update_yaxes(fixedrange=True,zeroline=False,showgrid=showgrid)  
-    fig.update_xaxes(zeroline=False,showgrid=showgrid)     
+    for c in range(n_channels):
+        add_line_plot(fig,waveform[c],row=c+1,dx=1./sample_rate, title=title, xlabel=xlabel)
+        fig.update_yaxes(fixedrange=True,zeroline=False,showgrid=showgrid)  
+        fig.update_xaxes(zeroline=False,showgrid=showgrid) 
+        
     if seg is not None:
         add_seg_plot(fig,seg,row=1,ypos=ypos)
         
@@ -52,14 +60,19 @@ def plot_waveform(waveform, sample_rate=16000, title=None, seg=None,ypos=0.8, fi
 
 def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,segwav=None,segspg=None,title="Spectrogram",figsize=(10,6),dpi=100):
 
-    if wav is None:
-        nrows = 1
-        heights = [1.]
-    else:
-        nrows = 2
-        heights = [.3,.7]
-
-    if fig == None:
+    
+    if type(spg) is not list: spg = [spg]
+    (nparam,nfr) = spg[0].shape
+    if frames is None: frames = [0,nfr]          
+    _frames = np.arange(frames[0],frames[1])
+    
+    if wav is None: row_wav = 0
+    else:           row_wav = 1
+    heights = [1.]*row_wav + [3.]*len(spg)
+    nrows = row_wav+len(spg)
+    row_spg = row_wav+1
+        
+    if fig is None:
         fig = make_subplots(rows=nrows, cols=1, row_heights=heights,
                    shared_xaxes=True,
                    vertical_spacing=0.02,
@@ -74,26 +87,23 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,se
     else:
         fig.data = []  # clear all the data traces
         
-    (nparam,nfr)=spg.shape
     if frames is None: frames = [0,nfr]
     n_shift = int(sample_rate*f_shift)
     
-    row_wav = 1
-    if wav is not None:
+    if wav is not None: 
         x = np.arange(frames[0]*n_shift,frames[1]*n_shift)/sample_rate
         wavrange = [frames[0]*n_shift,frames[1]*n_shift]
-        add_line_plot(fig,wav[wavrange[0]:wavrange[1]],x=x,row=row_wav,dx=1./sample_rate)
+        add_line_plot(fig,wav[wavrange[0]:wavrange[1]],x=x,row=row_wav,dx=1./sample_rate,xlabel=None)
         fig.update_yaxes(row=row_wav,zeroline=False,showgrid=False) 
-        row_spg = 2
-        row_wav = 1          
-    else:
-        row_spg = 1
-
-    if segwav is not None:
-        add_seg_plot(fig,segwav,row=row_wav,ypos=0.8)
+      
+        if segwav is not None:
+            add_seg_plot(fig,segwav,row=row_wav,ypos=0.8)
   
-    add_img_plot(fig,spg[:,frames[0]:frames[1]],dx=f_shift,x0=(frames[0]+0.5)*f_shift,dy=sample_rate/(2.*(nparam-1)),row=row_spg)
-    
+    for i in range(len(spg)):
+        xlabel = 'Time(sec)' if ( i == (len(spg)-1) ) else None
+        add_img_plot(fig,spg[i][:,frames[0]:frames[1]],dx=f_shift,x0=(frames[0]+0.5)*f_shift,row=row_spg+i,xlabel=xlabel)
+        # yaxis for normal spectrogram would be: dy=sample_rate/(2.*(nparam-1))
+        
     if segspg is not None:
         add_seg_plot(fig,segspg,row=row_spg,ypos=.9,textfont={'color':'black','size':16})
     
@@ -124,8 +134,8 @@ def add_line_plot(fig,y,x=None,dx=None,xrange='tight',yrange='tight',grid='False
 
     # it is best to add these ranges EXPLICITLY in the figure object
     # as you can not querry this later unless via JavaScript
-    fig.update_xaxes(title_text=xlabel,range=xrange)
-    fig.update_yaxes(title_text=ylabel,fixedrange=True,range=yrange)
+    fig.update_xaxes(row=row,title_text=xlabel,range=xrange)
+    fig.update_yaxes(row=row,title_text=ylabel,fixedrange=True,range=yrange)
     fig.update_layout(title_text=title)
     
 # makes a graphics object (Scatter) of a text transcription
@@ -159,7 +169,7 @@ def add_seg_plot(fig,segdf,ypos=0.8,textfont={'color':'red','size':18},Lines=Tru
             fig.add_vline(row=row,x=segdf['t1'][iseg], line_dash='dot',line_color='green')
 
 
-def add_img_plot(fig,data,dx=None,x0=0,dy=1,row=1,col=1):
+def add_img_plot(fig,data,dx=None,x0=0,dy=1,row=1,col=1,xlabel=None,ylabel=None):
 #    hm_go = go.Heatmap(z=data,dx=f_shift,x0=f_shift/2.,dy=sr/(2*(nparam-1)),    
     fig.add_trace( go.Heatmap(z=data,dx=dx,x0=x0,dy=dy,
                  colorscale='Jet',
@@ -170,7 +180,7 @@ def add_img_plot(fig,data,dx=None,x0=0,dy=1,row=1,col=1):
                  text=data) , row, col )
     (ny,nx)=data.shape
     yrange = [0.,(ny-1)*dy]
-    fig.update_yaxes(row=row,range=yrange,fixedrange=True,title_text='Frequency(hz)')
+    fig.update_yaxes(row=row,range=yrange,fixedrange=True,title_text=ylabel)
     xrange = [x0,x0+(nx-1) * dx]
-    fig.update_xaxes(range=xrange)
+    fig.update_xaxes(row=row,range=xrange,title_text=xlabel)
               
