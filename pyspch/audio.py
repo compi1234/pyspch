@@ -206,6 +206,13 @@ def _record_sd(seconds,sample_rate,n_channels=1):
         return(data) 
         
 
+# need to insert multichannel request here somehow
+# see e.g. https://w3c.github.io/mediacapture-main/getusermedia.html#mediastreamconstraints
+#    audio: {
+#      deviceId: localStorage.micId,
+#      channelCount: 2
+#    }
+
 _RECORD_JS = """
 const sleep  = time => new Promise(resolve => setTimeout(resolve, time))
 const b2text = blob => new Promise(resolve => {
