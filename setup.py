@@ -26,7 +26,7 @@ setup(
         'numba >= 0.43.0,<= 0.48.0',
         'soundfile >= 0.9.0',
         'matplotlib >= 3.1',
-        'ipython = 7.21'
+        'ipython >= 7.21'
         'ipywidgets >= 7.5.1',
         'plotly >= 4.12',
         'pydub'
