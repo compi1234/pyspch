@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Play Audio File: from file or url</h2>
+<p>
+<label for="file">Select a File : </label>
+<input id="audio_file" type="file" accept="audio/*" />
+</p>
+<p>
+<label for="url">Complete the URL : </label>
+<input id="audio_url" type="url" name="url" 
+       value="https://homes.esat.kuleuven.be/~spchlab/data/misc/"
+       pattern="https://.*" size="60"
+       required>
+</p>
+<p>
+<audio controls id="audio_player"></audio>
+</p>
+
+<script>
+
+audio_file.onchange = function(){
+    var files = this.files;
+    var file = URL.createObjectURL(files[0]); 
+    audio_player.src = file; 
+};
+
+audio_url.onchange = function(){
+    var url = this.value; 
+    audio_player.src = url; 
+};
+
+</script>
+</body>
+</html> 

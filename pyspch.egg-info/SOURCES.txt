@@ -2,9 +2,11 @@ README.md
 setup.py
 spch_version.py
 pyspch/__init__.py
+pyspch/audio-dev.py
 pyspch/audio.py
 pyspch/constants.py
-pyspch/disp_mpl.py
+pyspch/display.py
+pyspch/display_ly.py
 pyspch/spectrogram.py
 pyspch/utils.py
 pyspch.egg-info/PKG-INFO

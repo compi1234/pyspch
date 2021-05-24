@@ -34,31 +34,33 @@ from base64 import b64decode
 
 import librosa
 
-# we acknowledge 2 IO modes, specified with IO_DEVICE
+# we currently acknowledge 2 IO METHODS, 
 # 1. "sd" : use the sounddevice on the local machine
 #   -> do I/O via sounddevice
-# 2. "js" or "IPython" : use javascript in the browser for audio I/O when server based as in Google COLAB
-#   -> recording is done via javascript in Browser (dedicated code in this module)
-#   -> playing: use Ipython.display.Audio() with underlying javascript#
-try:
-    import google.colab
-    IN_COLAB = True
-    IO_DEVICE = "js"
+# 2. "colab" : use javascript in the browser for audio I/O when server based as in Google COLAB
+#   -> recording is done via javascript in Browser with google.colab.output() for
+#          returning the data 
+#   -> playing: 
+#          an Ipython.display.Audio() is generated
+#
+
+_IO_ENV_ = None
+if ('google.colab' in str(get_ipython())):
+    _IO_ENV_ = "colab"
     from google.colab import output
-except:
-    IN_COLAB = False
-    IO_DEVICE = "sd"
+else:
     try:
         import sounddevice as sd
+        _IO_ENV_ = "sd"
     except:
-        print("sounddevice module not found, pls. install if you need local audio\n  Trying to work with audio via the browser and javascript")
-        IO_DEVICE = "js"
-
+        print("ERROR(audio): sounddevice module not found, pls. install if you need local audio\n  Alternatively you can run your notebook in colab")
+        
 try:    
     import soundfile as sf
     from pydub import AudioSegment 
 except:
     print("ERROR: Using spchutils.audio requires soundfile and pydub packages to be installed.   You should fix this first")
+
 
 def get_fobj(resource):
     '''
@@ -114,10 +116,13 @@ def save(filename,wavdata,sample_rate,**kwargs):
         sf.write(filename, data.T, sample_rate, **kwargs)        
 
     
-def play(wavdata,sample_rate=16000, channels=None, io_device=IO_DEVICE, wait=False):
+def play(wavdata,sample_rate=16000, channels=None, wait=False):
     """
     Play an audio waveform either via the local sounddevice or display a HTML/js object
     
+    This routine checks the global variable _IO_ENV_, which is defined on loading
+    the audio module, to know where to put output / get input    
+
     
     Parameters
     ----------
@@ -127,15 +132,13 @@ def play(wavdata,sample_rate=16000, channels=None, io_device=IO_DEVICE, wait=Fal
             sampling rate (default=16000)
         channels : array of int's (default = None)
             channels to be played, if None all channels are played 
-        io_device : string
-            device from which to record (default='sd')
-            currently supporting 'sd' or 'js' (or 'IPython')
         wait : boolean (default=False)
             wait to return till play is finished (only applicable to sounddevice)
-    """
 
-    if io_device == 'IPython': io_device = 'js'
-        
+
+"""
+    global _IO_ENV_
+    
     if wavdata.ndim == 1:  # you only have mono, reshape to 2D and neglect the channels argument    
         play_data = wavdata.reshape(1,-1)
         n_channels = 1
@@ -145,8 +148,11 @@ def play(wavdata,sample_rate=16000, channels=None, io_device=IO_DEVICE, wait=Fal
         n_channels = len(channels)        
         play_data = wavdata[channels]
         
-    # use IPython display.Audio
-    if io_device == 'js':
+    # render audio directly on device or via IPython.display.Audio object
+    if _IO_ENV_ == 'sd':
+        sd.play(play_data.T,sample_rate)
+        if(wait): sd.wait()
+    else:   
         if IPython.version_info[0] >= 6:
             kwargs = {'normalize':False}
         else:
@@ -159,16 +165,15 @@ def play(wavdata,sample_rate=16000, channels=None, io_device=IO_DEVICE, wait=Fal
         else:
             print("Warning(play): Too many channels requested, I will play the first channel only")
             display(Audio(data=play_data[0],rate=sample_rate))
-    elif io_device == 'sd':
-        sd.play(play_data.T,sample_rate)
-        if(wait): sd.wait()
-    else:
-        print('No known method/device to play sound')
+
 
   
     
-def record(seconds=2.,sample_rate=16000,n_channels=1, io_device = IO_DEVICE ):
+def record(seconds=2.,sample_rate=16000,n_channels=1):
     """
+    This routine checks the global variable _IO_ENV_, which is defined on loading
+    the audio module, to know where to put output / get input  
+    
     Parameters
     ----------
         seconds : float
@@ -177,9 +182,7 @@ def record(seconds=2.,sample_rate=16000,n_channels=1, io_device = IO_DEVICE ):
             sampling rate (default=16000)
         n_channels : int
             number of channels to record (default=1)
-        io_device : string
-            device from which to record (default='sd')
-            currently supporting 'sd' or 'js'
+
             
     Returns
     -------
@@ -187,11 +190,12 @@ def record(seconds=2.,sample_rate=16000,n_channels=1, io_device = IO_DEVICE ):
             the waveform data scaled to [-1., 1.]
 
     """
-    if io_device =='sd':
+    if _IO_ENV_ =='sd':
         data = _record_sd(seconds,sample_rate,n_channels=n_channels)
-    elif io_device == 'js':
-        data = _record_js(seconds,sample_rate,n_channels = n_channels)
-    
+    elif _IO_ENV_ == 'colab':
+        data = _record_colab(seconds,sample_rate,n_channels = n_channels)
+    else:
+        print("ERROR(record): unknown _IO_ENV_ to record from ")
     # return 1D data for mono, 
     data = data.T
     if(data.shape[0]==1): return(data.ravel())
@@ -237,7 +241,7 @@ var record = time => new Promise(async resolve => {
 })
 """
 
-def _record_js(seconds,sample_rate, n_channels: int = None,): 
+def _record_colab(seconds,sample_rate, n_channels: int = None,): 
 #  Based on: https://gist.github.com/korakot/c21c3476c024ad6d56d5f48b0bca92be
 #  and on: https://github.com/magenta/ddsp/blob/master/ddsp/colab/colab_utils.py
       """Record using JavaScript in the browser 
@@ -258,6 +262,7 @@ def _record_js(seconds,sample_rate, n_channels: int = None,):
 
       print('Starting recording for {} seconds...'.format(seconds))
       display(Javascript(_RECORD_JS))
+      # using Google Colab's eval_js to return the data !!
       s = output.eval_js('record(%d)' % (seconds*1000.))
       print('Finished recording!')
       audio_bytes = b64decode(s.split(',')[1])
