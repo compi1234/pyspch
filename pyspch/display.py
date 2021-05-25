@@ -156,7 +156,9 @@ def make_subplots(row_heights=[1.,1.],**kwargs):
     **kwargs :        kwargs to be passed to plt.figure()
                       defaults:  figsize=(12,6), dpi=72, constrained_layout=True
                       
-    
+    Returns
+    -------
+    fig :           Figure
     """
     
     fig_kwargs={'clear':True,'constrained_layout':True,'figsize':(12,6),'dpi':72}
