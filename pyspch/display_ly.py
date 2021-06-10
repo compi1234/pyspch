@@ -10,13 +10,11 @@ from IPython.display import display, Audio, HTML, clear_output
 import math
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec 
 
 import librosa
 from pyspch.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 import pyspch.spectrogram as specg
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -58,7 +56,7 @@ def plot_waveform(waveform, sample_rate=16000, title=None, seg=None,ypos=0.8, fi
 
 #########
 
-def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,segwav=None,segspg=None,title="Spectrogram",figsize=(10,6),dpi=100):
+def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,segwav=None,ftr_axis=False,ftr_height=1.,segspg=None,title="Spectrogram",figsize=(10,6),dpi=100):
 
     
     if type(spg) is not list: spg = [spg]
@@ -69,7 +67,8 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,se
     if wav is None: row_wav = 0
     else:           row_wav = 1
     heights = [1.]*row_wav + [3.]*len(spg)
-    nrows = row_wav+len(spg)
+    if ftr_axis : heights = heights + [ftr_height]
+    nrows = len(heights)
     row_spg = row_wav+1
         
     if fig is None:
@@ -115,7 +114,26 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=16000,f_shift=0.01,frames=None,se
 ######### LOW LEVEL API
 #################################
 
-def add_line_plot(fig,y,x=None,dx=None,xrange='tight',yrange='tight',grid='False',title=None,xlabel=None,ylabel=None,row=1,**kwargs):
+def add_line_plot(fig,y,x=None,dx=1.,xrange='tight',yrange='tight',grid='False',title=None,xlabel=None,ylabel=None,row=1,**kwargs):
+    """
+    Add a line plot to an existing axis
+    
+    Parameters
+    ----------
+    fig :      target figure handle
+    y :        data as (1-D) numpy array
+    x :        x-axis as (1-D) numpy array (default=None, use sample indices)
+    dx :       sample spacing, default = 1.0 ; use dx=1/sample_rate for actual time on the x-axis
+    xrange :   'tight'(default) or xrange-values 
+    yrange :   'tight'(default) or yrange-values. 'tight' on the Y-axis creates 20% headroom
+    grid :     False (default)
+    xlabel :   default=None
+    ylabel :   default=None
+    row :      default=1  (Numbering: 1=top row)
+    **kwargs : kwargs to be passed to mpl.plot()
+    
+    """    
+    
     fig.add_trace(go.Scatter(y=y, x=x, dx=dx,
                       showlegend=False,
                       hoverinfo="x+y",
@@ -169,7 +187,7 @@ def add_seg_plot(fig,segdf,ypos=0.8,textfont={'color':'red','size':18},Lines=Tru
             fig.add_vline(row=row,x=segdf['t1'][iseg], line_dash='dot',line_color='green')
 
 
-def add_img_plot(fig,data,dx=None,x0=0,dy=1,row=1,col=1,xlabel=None,ylabel=None):
+def add_img_plot(fig,data,dx=1,x0=0,dy=1,row=1,col=1,xlabel=None,ylabel=None):
 #    hm_go = go.Heatmap(z=data,dx=f_shift,x0=f_shift/2.,dy=sr/(2*(nparam-1)),    
     fig.add_trace( go.Heatmap(z=data,dx=dx,x0=x0,dy=dy,
                  colorscale='Jet',

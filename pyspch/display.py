@@ -1,5 +1,10 @@
-#  Utilities
+#  Display Utilities
 #
+#  Change Log
+##############
+#  9/6/2021 : Breaking change in arguments of low level API
+#     - first argument is 'fig' instead of 'ax'
+#     - additional argument 'row' to determine axis selection, counting starts at 1 (=top)
 #
 import os,sys,io 
 import scipy.signal
@@ -10,14 +15,14 @@ from IPython.display import display, Audio, HTML, clear_output
 import math
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec 
 
 import librosa
 from pyspch.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 import pyspch.spectrogram as specg
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec 
     
 #######################################################################################
 # (a) TOP LEVEL PLOTTING ROUTINES
@@ -36,12 +41,9 @@ def plot_waveform(waveform, sample_rate, title=None, showfig=False,xlabel="Time(
     time_axis = np.arange(0, n_samples) / sample_rate
 
     fig = make_subplots(row_heights=[1.]*n_channels,**kwargs)
-    ax=fig.axes
 
     for c in range(n_channels):
-        #add_line_plot(ax[c],waveform[c],x=time_axis,ylabel="Channel"+str(c))
-        add_line_plot(ax[c],waveform[c],x=time_axis,ylabel=ylabel,xlabel=xlabel)
-    ax[n_channels-1].set_xlabel("Time (sec)")
+        add_line_plot(fig,waveform[c],row=(c+1),x=time_axis,ylabel=ylabel,xlabel=xlabel)
 
     if title is not None:
         fig.suptitle(title)
@@ -50,7 +52,7 @@ def plot_waveform(waveform, sample_rate, title=None, showfig=False,xlabel="Time(
     return(fig)
 
 # frames must be specified as [start,end(+1)]
-def plot_spg(spg,fig=None,wav=None,sample_rate=None,f_shift=0.01,frames=None,segwav=None,segspg=None,yax=None,title=None,ylabel=None,showfig=False,**kwargs):   
+def plot_spg(spg,fig=None,wav=None,sample_rate=None,f_shift=0.01,frames=None,segwav=None,ftr_axis=False,ftr_height=1.,segspg=None,yax=None,title=None,ylabel=None,showfig=False,**kwargs):   
     '''Plotting routine for standard spectrogram visualization
     
     The screen will consists of 2 parts
@@ -68,7 +70,10 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=None,f_shift=0.01,frames=None,seg
     sample_rate: sampling rate (default=None)
                     if None, x-axis is by index; if given, x-axis is by time
     segwav:      segmentation to be added to the waveform plot (optional)
+    ftr_axis:    boolean, if true a feature axis is added to the spectrogram plot
+    ftr_height   height of feature axis, 1 is is same scaling as wav-axis
     segspg:      segmentation to be added to the spectrogram plot (optional)
+                    if ftr_axis True then plotted in the feature axis otherwise overlaying with a spectrogram
     frames:      (int) array [start, end], frame range to show  (optional)
     yax:           (float) array, values for spectrogram frequency axis
     ylabel:      label for spectrogram frequency axis
@@ -98,22 +103,28 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=None,f_shift=0.01,frames=None,seg
         xfr = specg.indx2t(_frames,f_shift)
         dx_segspg = None
     
+            
+    heights = [3.]*len(spg)
+    if ftr_axis : heights = heights +[ftr_height]
+    if wav is not None: heights = [1] + heights
+    nsubplots = len(heights)
+
     if(fig is not None): 
         ax = fig.axes
         for axi in ax: axi.cla()
-    heights = [3.]*len(spg)
+
+    if (fig is None) or (nsubplots != len(ax)):  # also create a new figure when request is incompatible with existing axis
+        fig = make_subplots(row_heights=heights,**kwargs)
+        ax = fig.axes
+        
     if wav is not None:
-        heights = [1] + heights
-        if fig is None:
-            fig = make_subplots(row_heights=heights,**kwargs)
-            ax = fig.axes
         if(sample_rate is None): 
             _samples = np.arange(0,len(wav))
             xtime = None
         else:                  
             _samples = np.arange(frames[0]*n_shift,frames[1]*n_shift)
             xtime = _samples/sample_rate
-        add_line_plot(ax[0],wav[_samples],x=xtime,xlabel=wav_xlabel)
+        add_line_plot(fig,wav[_samples],row=1,x=xtime,xlabel=wav_xlabel)
         iax_spg = 1
         iax_segspg = 1
     else:
@@ -123,16 +134,19 @@ def plot_spg(spg,fig=None,wav=None,sample_rate=None,f_shift=0.01,frames=None,seg
         iax_spg=0
         iax_segspg = 0
     for _spg in spg:
-        add_img_plot(ax[iax_spg],_spg[:,_frames],x=xfr,ylabel=ylabel,y=yax)
+        add_img_plot(fig,_spg[:,_frames],row=iax_spg+1,x=xfr,ylabel=ylabel,y=yax)
         iax_spg+=1
     if segwav is not None:
-        add_seg_plot(ax[0],segwav,ypos=0.8,
+        add_seg_plot(fig,segwav,row=1,ypos=0.8,
                 lineargs={'colors':'k','color':'blue'},
                 txtargs={'color':'blue','fontsize':14}) 
     if segspg is not None:
-        add_seg_plot(ax[iax_segspg],segspg,dx=dx_segspg,ypos=0.9,
+        if ftr_axis: iax = nsubplots-1
+        else: iax = iax_segspg
+        add_seg_plot(fig,segspg,row=iax+1,dx=dx_segspg,ypos=0.9,
                 lineargs={'linestyles':'dotted','color':'white'},
                 txtargs={'color':'white','fontsize':14,'fontweight':'bold','backgroundcolor':'darkblue','rotation':'horizontal','ma':'center'}) 
+
     if title is not None: fig.suptitle(title,fontsize=16);
     fig.align_ylabels(ax[:])
     if not showfig: plt.close()
@@ -171,14 +185,16 @@ def make_subplots(row_heights=[1.,1.],**kwargs):
         fig.add_subplot(gs[i,0])
     return(fig)
 
-def add_line_plot(ax,y,x=None,dx=1.,xrange='tight',yrange='tight',grid='False',title=None,xlabel=None,ylabel=None,**kwargs):
+def add_line_plot(fig,y,row=1,x=None,dx=1.,xrange='tight',yrange='tight',grid='False',title=None,xlabel=None,ylabel=None,**kwargs):
     """
     Add a line plot to an existing axis
     
     Parameters
     ----------
-    ax :       axis where to plot
+    fig :      target figure handle
     y :        data as (1-D) numpy array
+
+    row :      default=1  (Numbering: 1=top row)
     x :        x-axis as (1-D) numpy array (default=None, use sample indices)
     dx :       sample spacing, default = 1.0 ; use dx=1/sample_rate for actual time on the x-axis
     xrange :   'tight'(default) or xrange-values 
@@ -186,10 +202,12 @@ def add_line_plot(ax,y,x=None,dx=1.,xrange='tight',yrange='tight',grid='False',t
     grid :     False (default)
     xlabel :   default=None
     ylabel :   default=None
+
     **kwargs : kwargs to be passed to mpl.plot()
     
     """
     
+    ax = fig.axes[row-1]
     if x is None: 
         x = np.arange(len(y)) * dx
     ax.plot(x,y,**kwargs)
@@ -212,28 +230,36 @@ def add_line_plot(ax,y,x=None,dx=1.,xrange='tight',yrange='tight',grid='False',t
     if ylabel is not None: ax.set_ylabel(ylabel)
         
 
-def add_img_plot(ax,img,x=None,y=None,xticks=True,xlabel=None,ylabel=None,**kwargs):
+def add_img_plot(fig,img,row=1,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,**kwargs):
     ''' Add an image plot (spectrogram style)
     
     Parameters
     ----------
-    ax :     axis
+    fig :    target figure
     img :    image
-    x,y:     coordinates for X and Y axis points, default = index
+    x,y:     coordinates for X and Y axis points, if None dx,dy are used
+    dx, dy : int/float (default = 1) 
 
     xticks : (boolean) - label the x-axis ticks
+    xlabel : string (default=None)
+    ylable : string (default=None)
+    row :    int (default=1)  [Numbering: row=1=top row]
+    
     **kwargs: extra arguments to pass / override defaults in plt.imshow()
     
     '''
     
+    ax = fig.axes[row-1]
     (nr,nc)= img.shape
 
     params={'cmap':'jet','shading':'auto'}
     params.update(kwargs)
 
     # Use x & y center coordinates with same dimensions and centered positions
-    if x is None: x = np.arange(nc)
-    if y is None: y=  np.arange(nr)
+    if x is None: 
+        x = np.arange(nc) * dx
+    if y is None: 
+        y=  np.arange(nr) * dy
         
     ax.pcolormesh(x,y,img,**params)
     
@@ -243,7 +269,7 @@ def add_img_plot(ax,img,x=None,y=None,xticks=True,xlabel=None,ylabel=None,**kwar
     if ylabel is not None: ax.set_ylabel(ylabel)
         
 
-def add_seg_plot(ax,segdf,xrange=None,yrange=None,dx=None,ypos=0.5,Lines=True,
+def add_seg_plot(fig,seg,row=1,xrange=None,yrange=None,dx=None,ypos=0.5,Lines=True,
                  txtargs={},lineargs={}):
     
     '''adds a segmentation to an axis
@@ -251,10 +277,14 @@ def add_seg_plot(ax,segdf,xrange=None,yrange=None,dx=None,ypos=0.5,Lines=True,
     This can be an axis without prior info; in this case at least xrange should be given to scale the x-axis correctly
     Alternatively the segmentation can be overlayed on an existing plot.  In this case the x and y lim's can be inherited from the previous plot This can be 
 
-    Parameters
-    ----------
-    ax:         matplotlib axis
-    segdf:      segmentation DataFrame
+    Required Parameters
+    -------------------
+    fig:        target figure
+    seg:        segmentation DataFrame
+
+    Optional Parameters
+    -------------------
+    row:        default=1 =: top row
     xrange:     X-axis range, if None keep existing 
     yrange:     Y-axis range, if None keep existing 
     dx:         scale to convert spectrogram frame numbers to segmentation units
@@ -269,6 +299,7 @@ def add_seg_plot(ax,segdf,xrange=None,yrange=None,dx=None,ypos=0.5,Lines=True,
     
     ''' 
 
+    ax = fig.axes[row-1]
     if xrange is not None: ax.set_xlim(xrange)
     else: xrange = ax.get_xlim()
     if yrange is not None: ax.set_ylim(yrange)
@@ -281,10 +312,10 @@ def add_seg_plot(ax,segdf,xrange=None,yrange=None,dx=None,ypos=0.5,Lines=True,
     _txtargs={'horizontalalignment':'center','fontsize':12,'color':'k'}
     _txtargs.update(txtargs)
 
-    for iseg in range(0,len(segdf)):
-        t0= segdf['t0'][iseg]
-        t1= segdf['t1'][iseg]
-        txt = segdf['seg'][iseg]
+    for iseg in range(0,len(seg)):
+        t0= seg['t0'][iseg]
+        t1= seg['t1'][iseg]
+        txt = seg['seg'][iseg]
         if dx is not None:
             t0 = t0/dx-0.5
             t1 = t1/dx-0.5
