@@ -32,7 +32,7 @@ setup(
     
     python_requires='>=3.6',
     
-    classifiers=['Development Status: Alpha, Unstable',
+    classifiers=['Development Status: Beta, Unstable',
                  'Programming Language :: Python :: 3.7',
                  'Programming Language :: Python :: 3.8'],
                  

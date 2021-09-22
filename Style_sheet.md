@@ -22,10 +22,13 @@ window :        string, window type (default='hamm')
 nparam :        int, number of parameters in a frame
 nfr :           int, number of frames
 frames :        (int,int), frame range
+spgdata :       numpy float 32, spectrogram like data; size (nparam, nfr)
 
 dx :            float, sample spacing on x-axis
 dy :            float, sample spacing on y-axis
 dt :            float, sample period in seconds
+x0 :            float, starting position on x-axis
+y0 :            float, starting position on y-axis
 xrange :        (float,float) , x-axis range. None stands for reuse, 'tight' stands for tight x-axis
 yrange :        (float,float) , y-axis range. None stands reuse, 'tight' stands for 20% headroom on y-axis
 xax :           float array, values for x-axis (overriding dx)
@@ -48,7 +51,6 @@ lineargs :      dict, plot arguments for lines (typically passed to ax.vlines())
 
 
 fig :           Figure object
-ax :            array of axis objects
-row :           int, axis row, numbering starting at 1 with the top row (default=1)
-col :           int, axis column (in spectrogram plotting by default=1)
-heights :       float array, relative height ratios for a row grid
+iax :           axis index (for row grids only) or indices (for row+column grids), numbering from 0
+row_heights :   float array, relative height ratios for a row grid, defaults to [1]
+col_widths :    float array, relative width ratios for columns, defaults to [1]

@@ -111,9 +111,9 @@ def load(resource,sample_rate=None,**kwargs):
 def save(filename,wavdata,sample_rate,**kwargs):
     """ Save a one or multi-d waveform data using soundfile """
     if wavdata.ndim == 1:
-        sf.write(filename, data, sample_rate, **kwargs)
+        sf.write(filename, wavdata, sample_rate, **kwargs)
     else:
-        sf.write(filename, data.T, sample_rate, **kwargs)        
+        sf.write(filename, wavdata.T, sample_rate, **kwargs)        
 
     
 def play(wavdata,sample_rate=16000, channels=None, wait=False):
@@ -166,7 +166,12 @@ def play(wavdata,sample_rate=16000, channels=None, wait=False):
             print("Warning(play): Too many channels requested, I will play the first channel only")
             display(Audio(data=play_data[0],rate=sample_rate))
 
-
+def stop():
+    global _IO_ENV_
+    if _IO_ENV_ == 'sd':
+        sd.stop()
+    else:
+        print("STOP the PLAYER")
   
     
 def record(seconds=2.,sample_rate=16000,n_channels=1):
