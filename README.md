@@ -1,5 +1,12 @@
 # pyspch
 
+### Notes on v0.4 -- 29/09/2021
+
+- this should become the first more or less stable version to be used during the academic year 2021-2022
+- there was some restructuring in the sense that tests and demos have been moved out of the package, but are still in the project one level up
+- some of the demos - linked closely to my Speech Recognition course (H02A6) have been moved into the independent repository 'spchlab' which is linked to that course
+
+ 
 ### Notes on v.03
 
 - there were many breaking changes in going from 01->02->03
