@@ -1,25 +1,14 @@
-# Hillenbrand Database 
-#
-#The function load_hillenbrand() loads the database in a similar way as the databases supported by the sklearn load_datasets.
-#However, there are arguments that lets one select parts of the database for further use.
-#The subset selection is specified by the arguments  (genders, vowels, features, targets)
-#
-#The output is provided in a Bunch object with following parameters
-#- data: raw data for selected features
-#- target: classification labels (possibly multi-class)
-#- ...
-#
+# Hillenbrand Database: fetch the data and select parts of it 
+
 
 import pandas as pd
-from sklearn.datasets.base import Bunch
 
     
-def fetch_hillenbrand(genders='adults',vowels=[],features=['f0','F1','F2','F3'],targets=[],Debug=False,return_X_y=False):
+def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0','F1','F2','F3'],Debug=False):
 
     '''
-    The function load_hillenbrand() loads the Hillenbrand dataset in a similar way as the datasets in sklearn.
-    There are extra arguments that lets one select parts of the database for further use.
-    The subset selection is specified by the arguments  (genders, vowels, features, targets)
+    The function fetch_hillenbrand() loads the Hillenbrand dataset in a similar way as the datasets in sklearn.
+    There are extra arguments that lets one select parts of the database 
 
     The Hillenbrand dataset is a 1995 repeat and extension of the classic Peterson-Barney(1953) experiment
     in which Formants are established as compact and highly discriminative features for vowel recognition
@@ -36,31 +25,27 @@ def fetch_hillenbrand(genders='adults',vowels=[],features=['f0','F1','F2','F3'],
             (spkr)        151 (100 adults, 51 for children)
     Samples per class     12 vowels x 151 speakers
     Samples total         1668
-    Dimensionality         19   (dur,f0,F1,F2,F3,F4,F1-1,F2-1,F3-1,F1-2,F2-2,F3-2,F1-3,F2-3,F3-3,Start,End,Center1,Center2)
+    Index                 fid  is file-id which is = gid+spk#+vid
+    Dimensionality        22   
+                             3 categorical features (vid, gid, sid)  [for vowel-id,gender-id and speaker-id] (each combination is unique)
+                            19 numerical features: (dur,f0,F1,F2,F3,F4,F1-1,F2-1,F3-1,F1-2,F2-2,F3-2,F1-3,F2-3,F3-3,Start,End,Center1,Center2) 
     Features            real, positive  
     Missing Features    partial missing data is given as NaN, mainly F3 and F4 values
     =================   ==============
     
-    With this interface you can load the specific parts of the database (subset of speakers, vowels and features)
+    With this interface you can load specific parts of the database (subset of speakers, vowels and features)
     that you want to use
    
     Parameters
     ----------
-        genders:  list of selected genders  (default=all)
-        vowels:   list of selected vowels   (default=all)
-        features: list of selected features (default=['f0','F1','F2','F3'])
-        targets:  list of targets to be returned (default ['vid','gid'])
-        Return_X_y:   False(def == return as Bunch) , True (return as (X,y) tuple )
+        genders:  list of selected genders  (default=all, options are 'adults','children','male','female' or list of 'm','f','b','g')
+        vowels:   list of selected vowels   (default=all, options are 'vowels6', 'vowels3' or list)
+        columns:  list of selected columns  (default=['gid','vid','f0','F1','F2','F3'])
         Debug:    False(def) or True
         
     Returns
     -------
-        data : Bunch
-        Dictionary-like object, with attributes:
-            'data', the data to learn, 
-            'target', the classification labels,
-            'target_names', the meaning of the columns in target
-            'feature_names', the meaning of the features
+        pandas dataframe with selected data
     
     '''
     
@@ -73,19 +58,20 @@ def fetch_hillenbrand(genders='adults',vowels=[],features=['f0','F1','F2','F3'],
     # print(hildata.index)
     #
     hil_filepath = 'http://homes.esat.kuleuven.be/~spchlab/data/hillenbrand/vowdata.csv'    
-    hildata = pd.read_csv(hil_filepath,index_col=0)        
-
-    allgenders = list(hildata['gid'].unique())
-    allvowels = list(hildata['vid'].unique())
-    allfeatures = list(hildata.columns[3:].values)
-    alltargets = ['vid','gid','sid']
-    if(Debug):
-        print(hildata.head())
-        print('Genders(%3d) :' % len(allgenders),type(allgenders),allgenders)
-        print('Vowels(%3d)  :' % len(allvowels),type(allvowels),allvowels)
-        print('Features(%3d):' % len(allfeatures),type(allfeatures),allfeatures) 
+    hildata = pd.read_csv(hil_filepath,index_col=0)  
+    hildata.rename(columns={'vid':'vowel'},inplace=True)
+    hildata.rename(columns={'gid':'gender'},inplace=True)
+    hildata.rename(columns={'sid':'spkid'},inplace=True)
+    hildata.rename(index={'fid':'fileid'},inplace=True)
+    return(select_hillenbrand(hildata,genders=genders,vowels=vowels,columns=columns))
+    
+    
+def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
+    allgenders = list(df['gender'].unique())
+    allvowels = list(df['vowel'].unique())
+    allcolumns = list(df.columns.values)
         
-    # STEP 2: select the appropriate data records
+    # select the appropriate data records
     #############################################
     if type(genders) is str:
         if genders == 'adults':
@@ -98,55 +84,18 @@ def fetch_hillenbrand(genders='adults',vowels=[],features=['f0','F1','F2','F3'],
             genders = ['w','g']
         elif genders == 'all':
             genders = allgenders
-        else:
-            genders = []
-                
+    elif len(genders)== 0: genders = allgenders
+        
     if type(vowels) is str:
         if vowels == 'vowels6':
             vowels = ['aw','eh','er','ih','iy','uw']
         elif vowels == 'vowels3':
             vowels = ['aw','iy','uw']
-        elif vowels == 'all':
+        elif (vowels == 'all') :
             vowels = allvowels
-        else:
-            vowels = []
-            
-    if(len(genders) == 0):
-        genders = allgenders        
-    if not set(genders) <= set(allgenders):
-        print("load_hillenbrand(): GENDER List Error")
-        return
-    
-    if(len(vowels) == 0):
-        vowels = allvowels
-    if not set(vowels) <= set(allvowels):
-        print("load_hillenbrand(): VOWEL List Error")
-        return
-    
-    if(len(features) ==0):
-        features = allfeatures
-    if not set(features) <= set(allfeatures):
-        print("load_hillenbrand(): FEATURE List Error")
-        return
-    
-    if(len(targets) == 0):
-        targets = ['vid','gid']
-    if not set(targets) <= set(alltargets):
-        print("load_hillenbrand(): TARGET List Error")
-        return
-         
-    indx = hildata['gid'].isin(genders) & hildata['vid'].isin(vowels)
-    if(Debug):
-        print('Selected Genders(%3d):' % len(genders),genders)
-        print('Selected Vowels(%3d):' % len(vowels),vowels)
-        print(type(indx),type(indx.values))
-        print(indx.values)
+    elif len(vowels) == 0: vowels = allvowels
         
-    # STEP 4: Select data and unpack for desired output format
-    target = hildata.loc[indx,targets].values
-    data = hildata.loc[indx,features].values
+    if type(columns) is not list: columns = allcolumns
 
-    if return_X_y:
-        return (data,target)
-    else:
-        return Bunch(data=data,target=target, target_names=targets, feature_names=features)
+    df1 =  df.loc[ (df['gender'].isin(genders)) & (df['vowel'].isin(vowels)) ]
+    return( df1[ columns] )

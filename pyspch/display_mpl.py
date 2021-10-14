@@ -251,9 +251,10 @@ class SpchFig(Figure):
                         xpos = float(t0+(t1-t0)/2.0)
                         ax.text(xpos,ypos,txt,**_txtargs)  
 
-                if ( (xrange[0] < t0) and (t1 < xrange[1]) ) :
-                    if(Lines):
-                        ax.vlines([t0,t1],yrange[0],yrange[1],**_lineargs)
+                    if ( (xrange[0] < t0) and Lines ) :
+                            ax.vlines([t0],yrange[0],yrange[1],**_lineargs)
+                    if ( (t1 < xrange[1]) and Lines ) :
+                            ax.vlines([t1],yrange[0],yrange[1],**_lineargs)
         elif 'lbl' in seg.columns:
             # a label DataFrame with (t,lbl) entries
             for iseg in seg.index:
