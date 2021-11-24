@@ -80,7 +80,7 @@ def plot_model(self,prob_style=[],cmap=[],figsize=(14,4)):
     return(fig)
     
 
-def plot_trellis(self,X=None,plot_frameprobs=False,xticks=[],yticks=[],cmap=[],vmin=-10.,vmax=0.,fmt=".3f",figsize=(15,5),
+def plot_trellis(self,X=None,plot_frameprobs=False,xticks=[],yticks=[],cmap=[],vmin=-10.,vmax=0.,fmt=".3f",figsize=None,
                  plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False,fontsize_backptrs=10):
     """
     plot_trellis(): trellis plot with multiple single axis plots

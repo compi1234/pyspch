@@ -1,5 +1,19 @@
 # pyspch
 
+### Notes on v0.5 -- in dev
+
+bumped a few minimal requirements, especially
+pandas > 1.1      to avoid read_pickle() problems
+                  while this function isn't used inside, it seems a good idea 
+
+for the HMM part, usage of scikit-learn >= 1.0.1 is recommended, implying 
+Python (>= 3.7)
+NumPy (>= 1.14.6)
+SciPy (>= 1.1.0)
+joblib (>= 0.11)
+threadpoolctl (>= 2.0.0)
+
+
 ### Notes on v0.4 -- 29/09/2021
 
 - this should become the first more or less stable version to be used during the academic year 2021-2022

@@ -19,13 +19,13 @@ setup(
     package_data = {},
     
     install_requires=[
-        'numpy >= 1.15.0',
-        'scipy >= 1.0.0',
-        'pandas >= 1.0',
+        'numpy >= 1.19.0',
+        'scipy >= 1.4.0',
+        'pandas >= 1.1',
         'librosa >= 0.8.0',
         'numba',
-        'soundfile >= 0.9.0',
-        'matplotlib >= 3.1',
+        'soundfile >= 0.10.0',
+        'matplotlib >= 3.2',
         'ipywidgets >= 7.5.1',
         'pydub'
     ],

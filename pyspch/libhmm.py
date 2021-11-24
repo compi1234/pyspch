@@ -11,6 +11,13 @@ Modification History:
 11/02/2019 All list-like objects (states, labels, end_states, ... ) are now uniformly numpy arrays allowing for list indexing
 14/11/2019: changed 'backtrace' to 'alignment'
 19/11/2019: added routine backtrack() to class Trellis
+22/11/2021: 
+    The observation probabilities are now  computes by "an observation model" that is completely discoupled from the HMM 
+    thus collapsing to a single HMM class and eliminating the different styles
+    
+    The observation model should support at least two method:
+    obs_model.predict_log_proba(X):    computes log likelihoods for feature vector(s) X
+    obs_model.predict_proba(X):        computes likelihoods for feature vector(s) X
 
 libhmm details
 ==============
@@ -25,8 +32,12 @@ import numpy as np
 import pandas as pd
 from IPython.display import display, HTML
 from ipywidgets import widgets
-# put the spchlib library on the path
-# sys.path.append(os.path.join('C:\\users\\compi\\Nextcloud\\Jupyter'))
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec  
+import seaborn as sns
+
+
 from . import utils as u
 
 __all__ = ["DHMM","DirectHMM"]
@@ -35,37 +46,45 @@ COVARIANCE_TYPES = frozenset(( "diag", "spherical", "tied"))
 HMM_CLASSES = frozenset(("DHMM","DirectHMM"))
 PROB_FLOOR = u.EPS_FLOAT
 
+class Obs_Dummy():
+    """
+    A dummy =feed through= observation model, assuming (linear) probs in the model
+    methods:
+
+    """
+    def __init__(self):
+        self.type = "dummy"
+        self.prob_style = "lin"
+        
+    # log-likelihood
+    def predict_log_proba(self,X):
+        return(np.log(X))
+    
+    # likelihood
+    def predict_proba(self,X):
+        return(X)
+
 
 # HMM Master Class
-class _BaseHMM():
+class HMM():
     """ 
-    The _BaseHMM() class is the generic class for HMM models
-    Subclasses are created for different emission models and feature types
-    The base class contains the common framework for the state network
-    
-       + DirectHMM()   the input features are the observation probabilities
-       + DHMM()        is a discrete density with n_features=1 mandatory
-     
-     Important NOMENCLATURE used throughout:
-         - emission probabilities: probabilities in the model
-         - observation probabilities: probabilities of the observation stream for the respective states
-    
-    Attributes common to ALL instantiations of  _BaseHMM()
+    The HMM() class is the generic class for HMM models
+
+    Attributes common to ALL instantiations of  HMM()
     ======================================================
 
     n_states  : int
         Number of states
-    n_features: int
-        Number of feature streams
     transmat  : array, shape (from_states, to_states)
         Transition Probability Matrix between states, indexed 
         (from_state,to_state)
-    initmat : array, shape (n_states, )
+    initmat :   array, shape (n_states, )
         Initial probability distribution over the states.
+    states :    array, shape(n_states, )
+        Names for states
         
-    hmm_class  : string, any of HMM_CLASSES    
     prob_style : string, "lin", "log" or "log10"  (some backwards compatibility for "prob" and "logprob")
-        Do computations with probabilities or log-probabilities
+        Do computations with probabilities or log-probabilities   
     prob_floor: probability flooring, set by default to PROB_FLOOR
         flooring is used when converting to logprobs
     
@@ -73,7 +92,10 @@ class _BaseHMM():
     ================================
     
     X         : array, shape(n_samples, n_features)
-        Feature vector of length n_samples
+        Feature Vector
+        
+    obs_probs : array, shape(n_samples, n_states)
+        Observation Probabilities
 
     trellis   : array, shape(n_samples, n_states)
         Trellis containing cummulative probs up to (i_sample, j_state)
@@ -88,10 +110,7 @@ class _BaseHMM():
         
     set_probstyle()
         allows for choice between prob's and logprob's for computations
-        
-    compute_frameprobs()
-        compute the observation probabilities for a given stream of features
-    
+   
     viterbi_trellis()
         compute a full trellis using the Viterbi algorithm
     
@@ -104,26 +123,52 @@ class _BaseHMM():
     print_model()
         pretty prints HMM transition and observation model parameters
 
+
+    Deprecated (22/11/2021)
+    =========================
+    hmm_class  : string, any of HMM_CLASSES    
+    n_features: int
+        Number of feature streams
+        
+    compute_frameprobs()
+        compute the observation probabilities for a given stream of features
+        
+    Subclasses are created for different emission models and feature types
+    The base class contains the common framework for the state network
+    
+       + DirectHMM()   the input features are the observation probabilities
+       + DHMM()        is a discrete density with n_features=1 mandatory
+     
+         
+    ==========
     """
 
-    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,prob_style="lin",prob_floor=PROB_FLOOR):
+    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,end_states=None,obs_model=None,prob_style="lin",prob_floor=PROB_FLOOR):
 
-        self.hmm_class = ""
         self._Debug = False
+            
         # map old-fashioned synonyms  logprob -> log and prob -> lin
         if prob_style == "logprob": prob_style = "log"
         elif prob_style == "prob":  prob_style = "lin"
         
         self.prob_style = prob_style
         self.prob_floor = prob_floor
+        
+        # initialize the observation model
+        if obs_model is None:
+            self.obs_model = Obs_Dummy()
+        else:
+            self.obs_model = obs_model
             
-        # initialize everything at the state level
-        self.n_states = n_states
+        # initialize  the state model
+        # either the "states" array with state names should be given or "n_states" to set the number of states
         if (states is None):
-            self.states = ['S'+str(i) for i in range(0,self.n_states)]
+            self.n_states = n_states
+            self.states = np.array(['S'+str(i) for i in range(self.n_states)])
         else:
             self.states = states
-        self.end_states = [i for i in range(0,self.n_states)]
+            self.n_states = len(self.states)
+
         if (transmat is None):
             self.transmat = np.eye(self.n_states)
             if(self.prob_style == "log"):
@@ -149,6 +194,10 @@ class _BaseHMM():
                 exit(1)
             self.initmat = initmat   
 
+        if end_states is None:
+            self.end_states = np.arange(self.n_states)
+        else:
+            self.end_states = end_states
 
     def set_probstyle(self,prob_style):
         
@@ -160,9 +209,7 @@ class _BaseHMM():
         self.initmat = u.convertf(self.initmat,iscale=self.prob_style,oscale=prob_style)
         self.set_obs_probstyle(prob_style)       
         self.prob_style = prob_style
-           
-    def set_obs_probstyle(self,prob_style):
-        return
+
     
     def init_topology(self,type="lr",selfprob=0.5):
         if(type == "lr"):
@@ -183,99 +230,42 @@ class _BaseHMM():
         if(self.prob_style == "logprob"):
             self.transmat = np.log(u.floor(self.transmat,self.prob_floor))
         
-    
-    def to_df(self):
-        """
-        converts all model components to dataframes
-        """
-        return(self.init_to_df(),self.transition_to_df(),self.emission_to_df())
-    
-    def init_to_df(self):
-        dfinit = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states,
-            index=["Pinit(S.)"]) 
-        return(dfinit)
-    
-    def transition_to_df(self):
+
+    def print_model(self):
+        print("HMM STATE MODEL\n")
+        dfi = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states, index=["Pinit(S.)"])
+        display(dfi)
         dft = pd.DataFrame(self.transmat.T,columns=self.states,
             index= ['P('+self.states[i]+'|S.)' for i in range(0,self.n_states)])
-        return(dft)
-    
-    def emission_to_df(self):
-        """
-        return(None)
-        """
+        display(dft) 
+        print("OBSERVATION MODEL\n")
+        self.obs_model.print_model()
 
-    def print_model(self,mode="PRINT"):
-        [dfi,dft,dfe] = self.to_df()
-        
-        if mode == "PRINT":
-            print("STATE MODEL\n")
-            empty_line = pd.DataFrame(columns=self.states,index=[""]).fillna("")
-            display(pd.concat([dfi,empty_line,dft]))
-            #display(dfi)
-            #display(dft)
-            print("OBSERVATION MODEL\n")
-            display(dfe)
-            
-        elif mode == "COMPACT":
-            # create output widgets
-            widget1 = widgets.Output()
-            widget2 = widgets.Output()
-            with widget1:
-                print("STATE MODEL\n")
-                display(dfi)
-                display(dft)
-            with widget2:
-                print("OBSERVATION MODEL\n")
-                display(dfe)
-            # create HBox
-            hbox = widgets.HBox([widget1, widget2])
-            display(hbox)  
-        
-    def compute_frameprobs(self,X):
-        """Computes per-component log probability under the model.
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            Feature matrix of individual samples.
-        Returns
-        -------
-        prob : array, shape (n_samples, n_states)
-            probability of each sample in ``X`` for each of the model states.
+    def observation_prob(self,X):
         """
-
-    def trellis_init(self,X):
-        """ Initialization of a Trellis 
-        Parameters:
-        -----------
-        X :      first observation
-        
-        Returns:
-        --------
-        buffer:  first column of the Trellis
+        compute the observation probability for a feature vector
         """
-
-        frameprobs = self.compute_frameprobs(X)
-        if(self.prob_style == "log" or self.prob_style=="log10"):
-            buffer = self.initmat + frameprobs
+        if(self.prob_style == "log"):
+            obs_prob = self.obs_model.predict_log_proba(X)
         else:
-            buffer = self.initmat * frameprobs
-        backptr = np.arange(0,self.n_states)
-        return buffer,backptr
-        
-    def viterbi_step(self, X, prev_buffer):
+            obs_prob = self.obs_model.predict_proba(X)            
+        return(obs_prob)
+       
+    def viterbi_recursion(self, X, prev_buffer):
         """ Viterbi Processing over one single frame
+            internal loop for any Viterbi style decoder
+        
         Paramters:
         ----------
-        X : array-like, shape (n_features,)
-            single observation
-        prev_buffer :  current Viterbi buffer, shape(n_states,)
+        X :              shape(n_states,)   probabilities of single observation
+        prev_buffer :    shape(n_states,)     current Viterbi buffer 
         
         Returns:
         --------
-        buffer : updated Viterbi buffer
+        buffer :         shape(n_states,)     updated Viterbi buffer
+        backptr :        shape(n_sates,)      backpointers for current frame
         """
-        frameprob = self.compute_frameprobs(X)
+        
         if(self.prob_style == "log" or self.prob_style == "log10"):
             buffer = u.logf(np.zeros(prev_buffer.shape))
             backptr = np.zeros(self.n_states,dtype=int)-1
@@ -285,7 +275,7 @@ class _BaseHMM():
                     if( new > buffer[to_state] ):
                         buffer[to_state] = new
                         backptr[to_state] = from_state
-                buffer[to_state] = buffer[to_state] + frameprob[to_state]
+                buffer[to_state] = buffer[to_state] + X[to_state]
         else:
             buffer = np.zeros(prev_buffer.shape)
             backptr = np.zeros(self.n_states,dtype=int)-1
@@ -295,298 +285,257 @@ class _BaseHMM():
                     if( new > buffer[to_state] ):
                         buffer[to_state] = new
                         backptr[to_state] = from_state
-                buffer[to_state] = buffer[to_state] * frameprob[to_state]
+                buffer[to_state] = buffer[to_state] * X[to_state]
         return(buffer,backptr)
-        
     
-    def viterbi_trellis(self,X,col_norm=False):
-        """Compute full trellis with Viterbi Algorithm
-        col_norm when True normalizes column by column in the trellis 
-            to keep values close to 1.0
-
-            - when probstyle = lin: values are normalized with best power of 10
-            - when probstyle = log or log10: max value is set to 0.0
-            ++ returns an extra vector 'scale_vec'
-        """
-
-        # compute frameprobs
-        n_samples = len(X)
-        if self.prob_style == "log" or self.prob_style == "log10":
-            scale_vec = np.zeros(n_samples)
-        else:
-            scale_vec = np.ones(n_samples)
-        frameprobs = self.compute_frameprobs(X)
-
-        # assign working arrays for trellis and backptrs
-        trellis = np.ndarray((n_samples,self.n_states),dtype='float64')
-        backptrs = np.zeros(trellis.shape,dtype='int')-1
-        
-        # initialize at frame 0
-        if(self.prob_style == "log" or self.prob_style=="log10"):
-            trellis[0,:] = self.initmat + frameprobs[0,:]
-        else:
-            trellis[0,:] = self.initmat * frameprobs[0,:]
-        backptrs[0,:] = np.arange(0,self.n_states)
-
-        # forward pass
-        for i in range(0,n_samples):
-            if i>0:
-                (trellis[i,:], backptrs[i,:]) = self.viterbi_step(X[i],trellis[i-1,:])
-            if col_norm :
-                max_col = np.max(trellis[i,:])
-                if(self.prob_style == "log" or self.prob_style == "log10"):
-                    trellis[i,:] = trellis[i,:] - max_col
-                    scale_vec[i] = scale_vec[i-1] + max_col
-                else:
-                    #sc = pow(10,ceil(log10(max_col)))
-                    sc = max_col
-                    trellis[i,:] = trellis[i,:] / sc
-                    scale_vec[i] = scale_vec[i-1] * sc                    
-
-        # backtracking    
-        alignment = np.ndarray(n_samples,'int')
-        # determine best admissible endstate
-        endprobs = trellis[n_samples-1,:]
-        best_end_state = self.end_states[np.argmax( endprobs[self.end_states] )]
-        alignment[n_samples-1] = best_end_state
-        for i in range(n_samples-1,0,-1):
-            alignment[i-1]=backptrs[i,alignment[i]]
-
-        if col_norm:
-            return frameprobs, trellis, backptrs, alignment, scale_vec 
-        else:
-            return frameprobs, trellis, backptrs, alignment
-        
     
-class DirectHMM(_BaseHMM):
-    """Direct Hidden Markov Model,
-        i.e. observations are used as the emission probabilities 
-        
-    Parameters
-    ----------
-
-    n_features:  : number of features 
-
-    topology related parameters have their default definitions and initializations:
-        n_states, transmat, initmat 
-    
-    """       
-    def __init__(self,n_states=1,n_features=2,transmat=None,initmat=None,states=None,prob_style="lin",prob_floor=PROB_FLOOR):
-        _BaseHMM.__init__(self,n_states=n_states,transmat=transmat,initmat=initmat,states=states,prob_style=prob_style,prob_floor=prob_floor)
-        self.hmm_class = "DirectHMM"  
-
-        
-    def compute_frameprobs(self,X):
-        return X
-    
-        
-class DHMM(_BaseHMM):
-    """Discrete Density Hidden Markov Model,
-        i.e. with a single multinomial (discrete) emission
-        
-    Parameters
-    ----------
-
-    n_symbols    : int
-        Number of possible symbols emitted by the model (in the samples).
-        The symbol set for feature ii is [0, 1, ... ,n_symbols(ii)-1]
- 
-    emissionmat : array, shape (n_states, n_symbols)
-        Probability of emitting a given symbol when in each state.
-
-    labels:  array, shape(n_symbols)    
-
-    topology related parameters have their default definitions and initializations:
-        n_states, transmat, initmat 
-    
-    """
-
-
-    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,prob_style="lin",prob_floor=PROB_FLOOR,n_features=1,emissionmat=None,n_symbols=None,labels=None):
-        _BaseHMM.__init__(self,n_states=n_states,transmat=transmat,initmat=initmat,states=states,prob_style=prob_style,prob_floor=prob_floor)
-
-        self.hmm_class = "DHMM"
-        
-        # needs further adjustment for multi-stream input !!
-        self.n_features = n_features
-        if self.n_features > 1:
-            print("only supporting single stream ...")
-            exit(1)        
-        
-        if labels is not None:
-            self.labels = labels
-            self.n_symbols = len(labels)
-        else:
-            self.n_symbols = n_symbols
-            self.labels = ['L'+str(i) for i in range(0,self.n_symbols)]
-
-        if (emissionmat is None) :
-            self.emissionmat =   np.ones((self.n_states,self.n_symbols),dtype=float)
-            for j in range(self.n_states):
-                for k in range(self.n_symbols):
-                    self.emissionmat[j,k]= 1.0/float(self.n_symbols)
-            if(self.prob_style == "logprob"):
-                self.emissionmat = np.log(u.floor(self.emissionmat,self.prob_floor))
-        else:
-            self.emissionmat = emissionmat
-
-    def set_obs_probstyle(self,prob_style):  
-        # WARNING: set_obs_probstyle does not update self.prob_style !!
-        if prob_style == "logprob": prob_style = "log"
-        elif prob_style == "prob":  prob_style = "lin"
-        if(self.prob_style == prob_style):  return
-        self.emissionmat = u.convertf(self.emissionmat,iscale=self.prob_style,oscale=prob_style,eps=self.prob_floor)        
-
-       
-    def compute_frameprobs(self,X):
-        """
-        computes state observation likelihoods
-        for discrete desity model
-        X:  array of shape (n_samples)
-        returns: array of shape (n_samples,n_states)
-        """
-        return self.emissionmat[:,X].T
-
-    def emission_to_df(self,labels=None):
-        """
-        """
-        if (labels is None):
-            symbols = self.labels
-        else:
-            symbols = labels
-
-        edf = pd.DataFrame(self.emissionmat.T,columns=self.states,
-                 index= ['P('+symbols[i]+'|S.)' for i in range(0,self.n_symbols)])
-        return(edf)
-                                  
- 
+# Defining a Trellis Class
 class Trellis():
-        def __init__(self,trellis=None,n_samples=1,n_states=1,prob_style="lin"):
-            """
-            Create a trellis of size(n_samples, n_states) 
-            
-            Attributes of a trellis are:
-                prob_style      probability style     lin, log, log10
-                frameprobs      frame probabilities   float(n_samples,n_states)
-                probs           trellis cell values   float(n_samples,n_states)
-                cellcompute     cell computations     float(n_samples,n_states,n_states)
-                backptrs        back pointers         int(n_samples,n_states)
-                alignment       Viterbi Alignment     int(n_samples,)
-                scale_vec       suggested scaling value per sample        float(n_samples)
-                end_state       best admissible end state
-                end_prob        cumulated prob in end_state
-                method          method applied        None, Viterbi, Forward
-            """               
-                
-            self.prob_style = prob_style;
-            
-            self.n_samples = n_samples
-            self.n_states = n_states
-            self.reset()
-            self.method = "None"
-            self._Debug = False  
-            
-        def reset(self,probs=None,backptrs=None):
-            if probs is None:
-                siz = (self.n_samples,self.n_states)
-                self.frameprobs = np.zeros(siz,dtype='float')
-                self.probs = np.zeros(siz,dtype='float')
-                self.backptrs = np.zeros(siz,dtype='int') - 1
-                self.alignment = np.zeros(self.n_samples,dtype='int') - 1 
-                if self.prob_style == "lin":
-                    self.scale_vec = np.ones(self.n_samples,dtype='float')
-                else:
-                    self.scale_vec = np.zeros(self.n_samples,dtype='float')
-            else:
-                self.n_samples, self.n_states = probs.shape
-                self.probs = probs
-                if backptrs is not None:
-                    self.backptrs = backptrs
-                
-        def viterbi_pass(self,X,hmm):
+    """
+    The Trellis calls is a generic container class for a trellis and computations related to the trellis
 
-            self.method = "Viterbi"
-            self.frameprobs = hmm.compute_frameprobs(X)
-            
-            if (self._Debug):
-                print('Shape of Frameprobs:',self.frameprobs.shape)
-            # initialize at frame 0
-            if(self.prob_style == "lin"):
-                self.probs[0,:] = hmm.initmat * self.frameprobs[0,:]
-            else:
-                self.probs[0,:] = hmm.initmat + self.frameprobs[0,:]
-                
-            self.backptrs[0,:] = np.arange(0,self.n_states)
+    All objects of the same size of trellis (probs, obs_probs, backptrs) 
+    have the shape (n_samples,n_states), thus rows are added with each sample  (as in typical dataframes)
+    To print/plot all these arrays are transposed
     
-            # forward pass
-            for i in range(1,self.n_samples):
-                (self.probs[i,:], self.backptrs[i,:]) = hmm.viterbi_step(self.probs[i-1,:],self.frameprobs[i,:])
-                max_col = np.max(self.probs[i,:])
-                if(self.prob_style == "lin"):
-                    self.scale_vec[i] = pow(10,ceil(log10(max_col)))
-                else:
-                    self.scale_vec[i] = max_col
-                  
-            # terminate
-            endprobs = self.probs[self.n_samples-1,:]
-            self.end_state = hmm.end_states[np.argmax(endprobs[hmm.end_states])]
-            self.end_prob = self.probs[self.n_samples-1,self.end_state]
-            
-            # Find alignment via backtracking
-            self.alignment = self.backtrack(endstate=self.end_state)
-            
-            #self.alignment[self.n_samples-1] = self.end_state
-            #for i in range(self.n_samples-1,0,-1):
-            #    self.alignment[i-1]=self.backptrs[i,self.alignment[i]]
-            
+    Many of the attributes are dynamic (they grow as the trellis grows) and are optional (they are available 
+    depending on the methods that have been run)
+    Hence there can only be a limited amount of consistency checking and
+    keeping everything consistent is left to the responsibility of the user.
 
-        def backtrack(self,endstate=None):
-            ''' Compute the backtracking from a Viterbi Trellis
-            
-            Parameters:            
-                endstate: state to backtrack from 
-                            (default: last state in trellis)
-
-            Return:
-                the alignment     (n_samples,) * int
-                
-            '''
-            
-            if( endstate == None ): endstate = self.n_states-1
-            
-            # Find alignment via backtracking
-            alignment = np.zeros(self.n_samples,dtype='int') - 1 
-            alignment[self.n_samples-1] = endstate
-            for i in range(self.n_samples-1,0,-1):
-                alignment[i-1]=self.backptrs[i,alignment[i]]
-            return alignment
-            
-            
-        def print(self,Xlabels=[],Slabels=[],col_norm=False):
-            S_index = ['S'+str(i) for i in range(0,self.n_states)]
-            T_index = [i for i in range(0,self.n_samples)]
-            X_index = ['X'+str(i) for i in range(0,self.n_samples)]
-
-            if not list(Xlabels):
-                Xlabels = X_index
-            if not list(Slabels):
-                Slabels = S_index
+    Attributes of a trellis are:
+    ============================
+        hmm             reference to hmm used to compute the trellis (required)
+                        all attributes from the hmm are inherited by the trellis
         
-            print("FRAME PROBABILIITIES and TRELLIS")
-            display(pd.DataFrame(self.frameprobs.T,index=Slabels,columns=Xlabels))
-            
-            dftrellis = pd.DataFrame(self.probs.T,index=Slabels,columns=Xlabels)
-            if col_norm:
-                dfscale = pd.DataFrame(self.scale_vec.reshape(1,self.n_samples),index=["SCALE"],columns=Xlabels)
-                display(pd.concat([dftrellis,dfscale]))
+        probs           trellis cell values   array, shape(n_samples,n_states), dtype='float64'
+        obs_probs       obs. probs of frames  array, shape(n_samples,n_states), dtype='float64'
+        backptrs        back pointers         array, shape(n_samples,n_states), dtype='int'
+        alignment       Viterbi Alignment     array, shape(n_samples,), dtype='int'
+        observations    processed observatons array, shape(n_samples,) or (n_samples,n_features)
+        style           method applied        Viterbi (default), Forward (NIY)
+        Normalize       column normalization  Boolean (default=False)
+
+        scale_vec       suggested scaling value per sample        float(n_samples)
+        end_state       best admissible end state
+        end_prob        sequence probability in end_state
+
+        """
+    
+    def __init__(self,hmm,style='Viterbi',Normalize=False):
+        """
+        create and initialize trellis with reference to existing hmm
+        process first observation
+
+        """
+        self.hmm = hmm
+        self.style = style
+        self.Normalize = False
+     
+        self.n_samples = 0
+        self.obs_probs  = np.ndarray((0,self.hmm.n_states),dtype='float64')
+        self.probs  = np.ndarray((0,self.hmm.n_states),dtype='float64')
+        self.backptrs = np.zeros(self.probs.shape,dtype='int') - 1
+
+
+    
+    def viterbi_step(self,X):
+        """
+        this routine takes EXACTLY ONE observation as argument
+        """
+
+        obs_prob = self.hmm.observation_prob(X)
+        if self.n_samples == 0:
+            t_, b_ = self.step0(obs_prob) 
+        else:
+            t_ , b_ = self.hmm.viterbi_recursion(obs_prob,self.probs[self.n_samples-1,:])
+        self.obs_probs = np.r_[self.obs_probs,[obs_prob]]
+        self.probs = np.r_[self.probs,[t_]]
+        self.backptrs = np.r_[self.backptrs,[b_]]
+        self.n_samples += 1
+        
+    def forward_step(self,X):
+        """
+        this routine takes EXACTLY ONE observation as argument
+        """
+
+        obs_prob = self.hmm.observation_prob(X)
+        if self.n_samples == 0:
+            t_,_ = self.step0(obs_prob) 
+        else:
+            t_ = np.zeros(self.hmm.n_states)
+            prev_ = self.probs[self.n_samples-1,:]
+            for to_state in range(0,self.hmm.n_states):
+                for from_state in range(0,self.hmm.n_states):
+                    t_[to_state] += self.hmm.transmat[from_state,to_state] * prev_[from_state]
+                t_[to_state] = t_[to_state] * obs_prob[to_state]
+
+        self.obs_probs = np.r_[self.obs_probs,[obs_prob]]
+        self.probs = np.r_[self.probs,[t_]]
+        self.n_samples += 1    
+        
+    def step0(self,obs_probs):
+        if(self.hmm.prob_style == "log"):
+            t_ = self.hmm.initmat + obs_probs
+        else:
+            t_ = self.hmm.initmat * obs_probs
+        b_ = np.arange(self.hmm.n_states)
+        return t_, b_       
+    
+    def viterbi_pass(self,X):
+        """
+        this routine takes a SEQUENCE of OBSERVATIONS as argument 
+        """
+        for x in X:
+            self.viterbi_step(x)
+        self.finalize()
+        
+    def forward_pass(self,X):
+        """
+        this routine takes a SEQUENCE of OBSERVATIONS as argument 
+        """
+        for x in X:
+            self.forward_step(x)
+        self.finalize()
+
+    def finalize(self):
+        """
+        find sequence probability, subjective to admissible end states 
+        """
+        # determine best admissible endstate
+        endprobs = self.probs[self.n_samples-1,:]
+        self.end_state = self.hmm.end_states[np.argmax( endprobs[self.hmm.end_states] )]
+        self.end_prob = endprobs[self.end_state] 
+        
+    def backtrace(self):
+        if  self.style != 'Viterbi':
+            print("Trellis.backtrace: Backtracing is only possible on Viterbi style Trellis")
+            exit(-1)
+        alignment = np.zeros((self.n_samples,),dtype='int')
+        # be sure to finalize (might be duplicate)
+        self.finalize()
+        alignment[self.n_samples-1] = self.end_state
+        for i in range(self.n_samples-1,0,-1):
+            alignment[i-1]=self.backptrs[i,alignment[i]]
+        return(alignment)
+    
+    def print_trellis(self,what='all',X=None,Titles=True):
+        if what == 'all': 
+            if self.style == 'Viterbi':
+                what = ['obs_probs','probs','backpointers','alignment']
             else:
-                display(dftrellis)
-        #        display(HTML(dftrellis.to_html(float_format=float_format)))
+                what = ['obs_probs','probs']
+
+        if X is not None:
+            if(Titles): print("Observations\n")
+            if X.ndim ==1: 
+                Xd = X.reshape(self.n_samples,1)
+                indx = ['X']
+            else: 
+                Xd = X
+                indx = [ 'x['+str(i)+']' for i in range(Xd.shape[1]) ]
+            xdf = pd.DataFrame(Xd.T,index=['X'])
+            display(xdf)
+                
+        for w in what:
+            if w == "obs_probs":
+                fdf = pd.DataFrame(self.obs_probs.T,
+                           columns=np.arange(self.n_samples),
+                           index = ['S'+str(i) for i in range(self.hmm.n_states)])  
+                if(Titles): print("Observation Probabilities\n")
+                display(fdf)
+
+            elif w == "probs":
+                pdf = pd.DataFrame(self.probs.T,
+                           columns=np.arange(self.n_samples),
+                           index = ['S'+str(i) for i in range(self.hmm.n_states)])  
+                if(Titles):
+                    if self.style == "Viterbi": print("Trellis Probabilities (Viterbi)\n")
+                    else: print("Trellis Probabilities (Forward)\n")
+                display(pdf)
+
+            elif w== "backpointers":
+                bdf = pd.DataFrame(self.backptrs.T,
+                           columns=np.arange(self.n_samples),
+                           index = ['S'+str(i) for i in range(self.hmm.n_states)])  
+                if(Titles): print("Backpointers\n")
+                display(bdf)
+                
+            elif w == "alignment":
+                if(Titles): print("Alignment\n")
+                alignment = self.backtrace()
+                display( pd.DataFrame(alignment.reshape(1,-1)))
+                
+    def plot_trellis(self,xticks=None,yticks=None,cmap=None,cmapf=None,
+                     vmin=-10.,vmax=0.,fmt=".3f",fontsize=12,fontsize_backptrs=10,figsize=None,
+                     plot_obs_probs=False,plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False):
+        """
+        plot_trellis(): trellis plot with multiple single axis plots
+            observation probabilities are optionally added to the xticks
+        """
+
+        if xticks is None:
+            xticks = np.array([str(i) for i in range(self.n_samples)])
+        if yticks is None:
+            yticks = self.hmm.states
+
+        trellis = self.probs
+        if plot_norm:
+            trellis_n = trellis.copy()
+            if self.hmm.prob_style == "lin":
+                fmax = np.amax(trellis,1)
+                for j in range(self.n_samples):
+                    trellis_n[j,:] = trellis[j,:]/fmax[j]
+            else:
+                fmax = np.amax(trellis,1)
+                for j in range(self.n_samples):
+                    trellis_n[j,:] = trellis[j,:]-fmax[j]            
+        else:
+            trellis_n = trellis
+
             
-            print("BACKPOINTERS")
-            df1 = pd.DataFrame(self.backptrs.T,index=Slabels,columns=Xlabels)
-            display(df1)
-            print("ALIGNMENT")
-            bt = [Slabels[self.alignment[ii]] for ii in range(0,len(self.alignment))]
-            df2 = pd.DataFrame([list(Xlabels), list(bt)],index=["X","BT"],columns=T_index)
-            display(df2)
+        fig = plt.figure(figsize=figsize)
+        gs1 = gridspec.GridSpec(6, 1)
+        gs1.update( hspace=0.15)
+            
+        if plot_obs_probs:
+            axf = plt.subplot(gs1[0:2, 0])
+            axt = plt.subplot(gs1[2:6, 0]) 
+            sns.heatmap(self.obs_probs.T,ax=axf, vmin=vmin,vmax=vmax, 
+                    xticklabels=xticks,yticklabels=yticks,
+                    cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.0,
+                    annot=True,fmt=fmt,annot_kws={'fontsize':(fontsize-1),'color':'k'},
+                       )
+            axf.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
+            axt.tick_params(axis='x',labelrotation=0.0,labeltop=False,labelbottom=False,bottom=False)
+            axf.tick_params(axis='y',labelrotation=0.0,left=False)
+        else:
+            axt = plt.subplot(gs1[0:6, 0]) 
+            axt.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
+            axt.tick_params(axis='y',labelrotation=0.0,left=False)
+            
+        mask = self.probs < vmin
+        sns.heatmap(trellis_n.T,ax=axt,vmin=vmin,vmax=vmax, mask=mask.T,
+                    xticklabels=xticks,yticklabels=yticks,
+                    cmap=cmap,square=False,cbar=False, linewidth=1.2, linecolor='k',
+                    annot=trellis.T,fmt=fmt,annot_kws={'fontsize':12,'color':'k'},
+                    )
+        axt.tick_params(axis='y',labelrotation=0.0,left=False)
+
+        if(plot_backptrs):
+            alignment = self.backtrace()
+            for j in range(0,self.n_samples):
+                for s in range(0,self.hmm.n_states):
+
+                    if(not mask.T[s,j]):
+                        bplabel = self.hmm.states[self.backptrs.T[s,j]]
+                        if (alignment[j] == s) & plot_alignment:
+                            axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
+                                fontweight='heavy',fontsize=fontsize_backptrs,color="k",rotation=-15,
+                                     bbox={'boxstyle':'larrow,pad=.3', 'alpha':0.75, 'facecolor':'white'})                        
+                        else:
+                            axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
+                                fontweight='light',fontsize=fontsize_backptrs,color="k")
+
+        plt.close()
+        return(fig)

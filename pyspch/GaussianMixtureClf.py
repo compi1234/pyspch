@@ -155,16 +155,15 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         for k in range(0,self.n_classes):
             print("Class[%d] (%s) with prior=%.3f" % (k,self.classes[k],self.class_prior_[k]))
             print("-----------------------------------")
-
-
             if  self.gmm[k].means_.shape[1] == 1 :
                 df = pd.DataFrame(data={'weights':self.gmm[k].weights_.reshape(-1), 
                                     'mean':self.gmm[k].means_.reshape(-1), 
                                     'std_dev':np.sqrt(self.gmm[k].covariances_).reshape(-1)})
                 print(df)
             else:
-               print(self.gmm[k].weights_,self.gmm[k].means_,
-                 np.sqrt(self.gmm[k].covariances_))        
+                for kk in range(self.n_components):
+                    print( self.gmm[k].weights_[kk], self.gmm[k].means_[kk],np.sqrt(self.gmm[k].covariances_[kk]) ) 
+            print("")
     
     def plot_prob(self):
         """ 

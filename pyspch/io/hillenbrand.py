@@ -67,8 +67,7 @@ def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0',
     
     
 def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
-    allgenders = list(df['gender'].unique())
-    allvowels = list(df['vowel'].unique())
+
     allcolumns = list(df.columns.values)
         
     # select the appropriate data records
@@ -83,8 +82,7 @@ def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
         elif genders == 'female':
             genders = ['w','g']
         elif genders == 'all':
-            genders = allgenders
-    elif len(genders)== 0: genders = allgenders
+            genders = list(df['gender'].unique())
         
     if type(vowels) is str:
         if vowels == 'vowels6':
@@ -92,10 +90,18 @@ def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
         elif vowels == 'vowels3':
             vowels = ['aw','iy','uw']
         elif (vowels == 'all') :
-            vowels = allvowels
-    elif len(vowels) == 0: vowels = allvowels
+            vowels = list(df['vowel'].unique())
         
     if type(columns) is not list: columns = allcolumns
 
-    df1 =  df.loc[ (df['gender'].isin(genders)) & (df['vowel'].isin(vowels)) ]
-    return( df1[ columns] )
+    if len(genders) == 0 : # don't select on gender
+        df1 = df
+    else:
+        df1 =  df.loc[ (df['gender'].isin(genders)) ]
+        
+    if len(vowels) == 0 : # don't select on vowel
+        df2 = df1
+    else:
+        df2 =  df1.loc[ df1['vowel'].isin(vowels) ]           
+    
+    return( df2[ columns] )
