@@ -244,7 +244,20 @@ class HMM():
     def observation_prob(self,X):
         """
         compute the observation probability for a feature vector
+        X can be of size (n_samples,n_features) or (n_features,) or (n_samples,)
+        
+        The result will ALWAYS be (n_samples,n_features) !!!
         """
+        if X.ndim==1: # recast to 2d - best guess - if needed
+            n = 1
+            if hasattr(self.obs_model,'n_features_in_'):
+                n=self.obs_model.n_features_in_
+            elif hasattr(hmm1.obs_model,'n_features_'):
+                n=self.obs_model.n_features_
+            elif hasattr(hmm1.obs_model,'n_features'):
+                n=self.obs_model.n_features  
+            X = X.reshape(-1,n)
+
         if(self.prob_style == "log"):
             obs_prob = self.obs_model.predict_log_proba(X)
         else:
@@ -342,9 +355,10 @@ class Trellis():
     def viterbi_step(self,X):
         """
         this routine takes EXACTLY ONE observation as argument
+        and should have dimensions (n_features,)
         """
 
-        obs_prob = self.hmm.observation_prob(X)
+        obs_prob = self.hmm.observation_prob(X.reshape(1,-1)).flatten()
         if self.n_samples == 0:
             t_, b_ = self.step0(obs_prob) 
         else:
@@ -358,8 +372,8 @@ class Trellis():
         """
         this routine takes EXACTLY ONE observation as argument
         """
-
-        obs_prob = self.hmm.observation_prob(X)
+        # reshaping is done as observation_prob expects (n_samples,n_features)
+        obs_prob = self.hmm.observation_prob(X.reshape(1,-1)).flatten()
         if self.n_samples == 0:
             t_,_ = self.step0(obs_prob) 
         else:
@@ -384,9 +398,10 @@ class Trellis():
     
     def viterbi_pass(self,X):
         """
-        this routine takes a SEQUENCE of OBSERVATIONS as argument 
+        X must be of dimension (s_samples,n_features)
         """
-        for x in X:
+        for i in range(X.shape[0]):
+            x = X[i:i+1,:]
             self.viterbi_step(x)
         self.finalize()
         
@@ -394,7 +409,8 @@ class Trellis():
         """
         this routine takes a SEQUENCE of OBSERVATIONS as argument 
         """
-        for x in X:
+        for i in range(X.shape[0]):
+            x = X[i:i+1,:]
             self.forward_step(x)
         self.finalize()
 
@@ -504,7 +520,7 @@ class Trellis():
             sns.heatmap(self.obs_probs.T,ax=axf, vmin=vmin,vmax=vmax, 
                     xticklabels=xticks,yticklabels=yticks,
                     cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.0,
-                    annot=True,fmt=fmt,annot_kws={'fontsize':(fontsize-1),'color':'k'},
+                    annot=plot_values,fmt=fmt,annot_kws={'fontsize':(fontsize-1),'color':'k'},
                        )
             axf.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
             axt.tick_params(axis='x',labelrotation=0.0,labeltop=False,labelbottom=False,bottom=False)
@@ -515,10 +531,12 @@ class Trellis():
             axt.tick_params(axis='y',labelrotation=0.0,left=False)
             
         mask = self.probs < vmin
+        if plot_values: annot = trellis.T
+        else: annot=False
         sns.heatmap(trellis_n.T,ax=axt,vmin=vmin,vmax=vmax, mask=mask.T,
                     xticklabels=xticks,yticklabels=yticks,
-                    cmap=cmap,square=False,cbar=False, linewidth=1.2, linecolor='k',
-                    annot=trellis.T,fmt=fmt,annot_kws={'fontsize':12,'color':'k'},
+                    cmap=cmap,square=False,cbar=False, linewidth=0.2, linecolor='k',
+                    annot=annot,fmt=fmt,annot_kws={'fontsize':12,'color':'k'},
                     )
         axt.tick_params(axis='y',labelrotation=0.0,left=False)
 

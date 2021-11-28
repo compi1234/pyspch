@@ -1,12 +1,12 @@
 # pyspch
 
-### Notes on v0.5 -- in dev
+### Notes on v0.5 -- in dev  (24/11/2021)
 
 bumped a few minimal requirements, especially
 pandas > 1.1      to avoid read_pickle() problems
                   while this function isn't used inside, it seems a good idea 
 
-for the HMM part, usage of scikit-learn >= 1.0.1 is recommended, implying 
+and for the HMM part, usage of scikit-learn >= 1.0.1 is required, also implying 
 Python (>= 3.7)
 NumPy (>= 1.14.6)
 SciPy (>= 1.1.0)

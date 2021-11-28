@@ -27,10 +27,11 @@ setup(
         'soundfile >= 0.10.0',
         'matplotlib >= 3.2',
         'ipywidgets >= 7.5.1',
+        'scikitlearn >= 1.0.1',
         'pydub'
     ],
     
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     
     classifiers=['Development Status: Beta, Unstable',
                  'Programming Language :: Python :: 3.7',
