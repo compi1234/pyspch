@@ -27,7 +27,7 @@ setup(
         'soundfile >= 0.10.0',
         'matplotlib >= 3.2',
         'ipywidgets >= 7.5.1',
-        'scikitlearn >= 1.0.1',
+        'scikit-learn >= 1.0.0',
         'pydub'
     ],
     
