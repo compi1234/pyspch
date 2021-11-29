@@ -11,9 +11,29 @@ import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
-#from scipy.special import logsumexp
+from scipy.special import logsumexp
 
-
+class Direct():
+    '''
+    A dummy interface for a probability density with likelihoods as input features
+    At creation you can specify if input is in probabilities or log-probs
+    '''
+    def __init__(self,prob_style="lin",feature_probs=None,labels=None,classes=None,n_categories=None,n_features=None):
+        self.Distribution = "Direct"
+        self.prob_style = prob_style
+        
+    def predict_proba(self,X):
+        if self.prob_style == "lin": return(X)
+        else:
+            return np.exp(X)
+        
+    def predict_log_proba(self,X):
+        if self.prob_style == "log": return(X)
+        else:
+            return spchu.logf(X)      
+        
+        
+        
 class DiscreteDens():
     '''
     Probability Model for discrete densities for multiple classes, supporting multiple features
@@ -33,7 +53,7 @@ class DiscreteDens():
         
     '''
     
-    def __init__(self,feature_probs=None,labels=None,classes=None,n_categories=None,n_features=None):
+    def __init__(self,feature_probs=None,labels=None,classes=None,n_categories=None,n_features=None,priors=None):
                
         self.n_features = n_features
             
@@ -46,7 +66,12 @@ class DiscreteDens():
         self.n_categories = np.zeros((self.n_features,),'int32')
         self.n_classes = self.feature_probs[0].shape[0]
         for i in range(self.n_features):
-            self.n_categories[i] = self.feature_probs[i].shape[1]           
+            self.n_categories[i] = self.feature_probs[i].shape[1]   
+            
+        if priors is None:
+            self.class_prior_ = np.ones(self.n_classes,dtype='float64')/(self.n_classes) 
+        else: 
+            self.class_prior_ = priors
         
         if labels is None:
             self.labels=[]
@@ -82,32 +107,41 @@ class DiscreteDens():
             return(Xindx.flatten())
         else:
             return(Xindx)            
-    
-    def predict_log_proba(self,X):
+
+        
+    def predict_log_prob(self,X):
         """
+        computes state observation likelihoods for discrete desity model
         !!! X should be an array of samples (also if single sample)
         !!! always returns a 2D array
-        computes state observation likelihoods for discrete desity model
         
         X:  array of shape (n_features,) or (n_samples,n_features)
         returns: array of shape (n_states,) or (n_samples,n_states)
         """
-        return spchu.logf(self.predict_proba(X))
+        return spchu.logf(self.predict_prob(X))
             
-    def predict_proba(self,X):
+    def predict_prob(self,X):
         return_1D = False
         if X.ndim == 1: return_1D = True
         X = X.reshape(-1,self.n_features)
         n_samples = X.shape[0]
-        proba = np.ones((n_samples,self.n_classes))
+        prob = np.ones((n_samples,self.n_classes))
         for j in range(self.n_features):
             featprobs = self.feature_probs[j][:,X[:,j]].T
-            proba = proba * featprobs
-        return proba
-        
+            prob = prob * featprobs
+        return prob
+
+    def predict_proba(self,X):
+        likeh = self.predict_prob(X)
+        proba = likeh * self.class_prior_
+        return( proba / np.sum(proba,axis=1,keepdims=True) )
+
+    def predict_log_proba(self,X):
+        return spchu.logf(self.predict_prob(X))        
+    
     def print_model(self,labels=None):
         for j in range(self.n_features):
-            print(" ++ Feature (%d) ++"%j)
+            print("\n ++ Feature (%d) ++"%j)
             labels = self.labels[j]
             
             featprob_df = pd.DataFrame(self.feature_probs[j].T,columns=self.classes,
@@ -194,8 +228,7 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         for k in range(0,self.n_classes) :
             selection = (y== self.classes[k])
             self.gmm[k].fit(X[selection,: ])
-            self.class_count_[k] = np.sum(selection)
-#            print("Model for class: ",self.gmm[k].means_,np.sqrt(self.gmm[k].covariances_))        
+            self.class_count_[k] = np.sum(selection)     
               
         # keep the counts in the model for adaptation and incremental training purposes
         # keep the datarange for summary / plotting utilities
@@ -203,7 +236,7 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         self.data_range_ = np.vstack((np.min(X,axis=0),np.max(X,axis=0)))
         
     def predict_log_prob(self,X):
-        """ Likelihoods of  X  for each class
+        """ Log Likelihoods of  X  for each class
         
             Returns
             -------
@@ -219,19 +252,25 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         return Xprob
 
     def predict_prob(self,X):
-        """ Log-Probability estimates (likelihoods) per class
+        """ Compute Likelihoods per class
         """
         return np.exp(self.predict_log_prob(X))
 
         
-
+    def predict_log_proba(self, X, priors = None):
+        """ 
+        Computes the log posteriors (class probabilities) given the samples
+        You can override the priors derived during training
+        """
+        return( np.log(self.predict_proba( X, priors) ) )
+        
     def predict_proba(self, X, priors = None):
         """ 
         Computes the class probabilities (posteriors) given the samples
         You can override the priors derived during training
         """
         
-        if priors == None:
+        if priors is None:
             priors = self.class_prior_
             
         if (len(priors) != self.n_classes):

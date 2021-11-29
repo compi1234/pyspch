@@ -12,26 +12,21 @@ Modification History:
 14/11/2019: changed 'backtrace' to 'alignment'
 19/11/2019: added routine backtrack() to class Trellis
 22/11/2021: 
-    The observation probabilities are now  computes by "an observation model" that is completely discoupled from the HMM 
+    The observation probabilities are now  computed by "an observation model" that is completely discoupled from the HMM 
     thus collapsing to a single HMM class and eliminating the different styles
     
     The observation model should support at least two method:
-    obs_model.predict_log_proba(X):    computes log likelihoods for feature vector(s) X
-    obs_model.predict_proba(X):        computes likelihoods for feature vector(s) X
+    obs_model.predict_log_prob(X):    computes log likelihoods for feature vector(s) X
+    obs_model.predict_prob(X):        computes likelihoods for feature vector(s) X
 
-libhmm details
-==============
-    - the classes are all derived from master class _BaseHMM and just describe the model
-    - DHMM and GHMM are the most simple implementations for single discrete and continuous densities 
-    - a set of training and initializiation procedures are available
+
         
 """
 import sys, os
-from math import ceil, log10, pow
+from math import ceil, pow
 import numpy as np
 import pandas as pd
 from IPython.display import display, HTML
-from ipywidgets import widgets
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec  
@@ -39,11 +34,6 @@ import seaborn as sns
 
 
 from . import utils as u
-
-__all__ = ["DHMM","DirectHMM"]
-#__all__ = ["DHMM", "CHMM", "GMMHMM",  "MultinomialHMM"]
-COVARIANCE_TYPES = frozenset(( "diag", "spherical", "tied"))
-HMM_CLASSES = frozenset(("DHMM","DirectHMM"))
 PROB_FLOOR = u.EPS_FLOAT
 
 class Obs_Dummy():
@@ -57,11 +47,11 @@ class Obs_Dummy():
         self.prob_style = "lin"
         
     # log-likelihood
-    def predict_log_proba(self,X):
+    def predict_log_prob(self,X):
         return(np.log(X))
     
     # likelihood
-    def predict_proba(self,X):
+    def predict_prob(self,X):
         return(X)
 
 
@@ -123,23 +113,6 @@ class HMM():
     print_model()
         pretty prints HMM transition and observation model parameters
 
-
-    Deprecated (22/11/2021)
-    =========================
-    hmm_class  : string, any of HMM_CLASSES    
-    n_features: int
-        Number of feature streams
-        
-    compute_frameprobs()
-        compute the observation probabilities for a given stream of features
-        
-    Subclasses are created for different emission models and feature types
-    The base class contains the common framework for the state network
-    
-       + DirectHMM()   the input features are the observation probabilities
-       + DHMM()        is a discrete density with n_features=1 mandatory
-     
-         
     ==========
     """
 
@@ -147,18 +120,11 @@ class HMM():
 
         self._Debug = False
             
-        # map old-fashioned synonyms  logprob -> log and prob -> lin
-        if prob_style == "logprob": prob_style = "log"
-        elif prob_style == "prob":  prob_style = "lin"
-        
         self.prob_style = prob_style
         self.prob_floor = prob_floor
         
         # initialize the observation model
-        if obs_model is None:
-            self.obs_model = Obs_Dummy()
-        else:
-            self.obs_model = obs_model
+        self.obs_model = obs_model
             
         # initialize  the state model
         # either the "states" array with state names should be given or "n_states" to set the number of states
@@ -173,8 +139,6 @@ class HMM():
             self.transmat = np.eye(self.n_states)
             if(self.prob_style == "log"):
                 self.transmat = u.logf(self.transmat,eps=self.prob_floor)
-            elif(self.prob_style == "log10"):
-                self.transmat = u.log10f(self.transmat,eps=self.prob_floor)
         else:
             if(transmat.shape != (self.n_states,self.n_states)):
                 print("ERROR(init_hmm): transition matrix of wrong size is given")
@@ -186,8 +150,6 @@ class HMM():
             self.initmat[0] = 1.0
             if(self.prob_style == "log"):
                 self.initmat = u.logf(self.initmat,eps=self.prob_floor)
-            elif(self.prob_style == "log10"):
-                self.initmat = u.log10f(self.initmat,eps=self.prob_floor)
         else:
             if(initmat.size != self.n_states):
                 print("ERROR(init_hmm): initial probability matrix of wrong size is given")
@@ -199,18 +161,16 @@ class HMM():
         else:
             self.end_states = end_states
 
-    def set_probstyle(self,prob_style):
-        
+    def set_probstyle(self,prob_style):     
         if prob_style == "logprob": prob_style = "log"
         elif prob_style == "prob":  prob_style = "lin"
-        if(self.prob_style == prob_style):  return
+        else: raise ValueError("prob_style must be 'lin' or 'log' ")
         
         self.transmat = u.convertf(self.transmat,iscale=self.prob_style,oscale=prob_style)
         self.initmat = u.convertf(self.initmat,iscale=self.prob_style,oscale=prob_style)
         self.set_obs_probstyle(prob_style)       
         self.prob_style = prob_style
-
-    
+  
     def init_topology(self,type="lr",selfprob=0.5):
         if(type == "lr"):
             self.initmat = np.zeros(self.n_states)
@@ -227,19 +187,21 @@ class HMM():
             self.transmat = (1-selfprob)/(self.n_states-1) * np.ones((self.n_states,self.n_states))
             for j in range(0,self.n_states-1):
                 self.transmat[j,j]=selfprob          
-        if(self.prob_style == "logprob"):
-            self.transmat = np.log(u.floor(self.transmat,self.prob_floor))
-        
+        if(self.prob_style == "log"):
+            self.transmat = np.log(u.floor(self.transmat,self.prob_floor))       
 
     def print_model(self):
-        print("HMM STATE MODEL\n")
+        print("\nHMM STATE MODEL\n=================\n")
         dfi = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states, index=["Pinit(S.)"])
         display(dfi)
         dft = pd.DataFrame(self.transmat.T,columns=self.states,
             index= ['P('+self.states[i]+'|S.)' for i in range(0,self.n_states)])
         display(dft) 
-        print("OBSERVATION MODEL\n")
-        self.obs_model.print_model()
+        print("\nOBSERVATION MODEL\n=================\n")
+        if self.obs_model is None: 
+            print("Observations are Observation likelihoods\n")
+        else:
+            self.obs_model.print_model()
 
     def observation_prob(self,X):
         """
@@ -248,6 +210,8 @@ class HMM():
         
         The result will ALWAYS be (n_samples,n_features) !!!
         """
+        if self.obs_model is None: return(X)
+        
         if X.ndim==1: # recast to 2d - best guess - if needed
             n = 1
             if hasattr(self.obs_model,'n_features_in_'):
@@ -259,9 +223,9 @@ class HMM():
             X = X.reshape(-1,n)
 
         if(self.prob_style == "log"):
-            obs_prob = self.obs_model.predict_log_proba(X)
+            obs_prob = self.obs_model.predict_log_prob(X)
         else:
-            obs_prob = self.obs_model.predict_proba(X)            
+            obs_prob = self.obs_model.predict_prob(X)            
         return(obs_prob)
        
     def viterbi_recursion(self, X, prev_buffer):
@@ -279,7 +243,7 @@ class HMM():
         backptr :        shape(n_sates,)      backpointers for current frame
         """
         
-        if(self.prob_style == "log" or self.prob_style == "log10"):
+        if(self.prob_style == "log"):
             buffer = u.logf(np.zeros(prev_buffer.shape))
             backptr = np.zeros(self.n_states,dtype=int)-1
             for to_state in range(0,self.n_states):
@@ -443,7 +407,7 @@ class Trellis():
                 what = ['obs_probs','probs']
 
         if X is not None:
-            if(Titles): print("Observations\n")
+            if(Titles): print("\nObservations\n")
             if X.ndim ==1: 
                 Xd = X.reshape(self.n_samples,1)
                 indx = ['X']
@@ -458,7 +422,7 @@ class Trellis():
                 fdf = pd.DataFrame(self.obs_probs.T,
                            columns=np.arange(self.n_samples),
                            index = ['S'+str(i) for i in range(self.hmm.n_states)])  
-                if(Titles): print("Observation Probabilities\n")
+                if(Titles): print("\nObservation Probabilities\n")
                 display(fdf)
 
             elif w == "probs":
@@ -466,23 +430,23 @@ class Trellis():
                            columns=np.arange(self.n_samples),
                            index = ['S'+str(i) for i in range(self.hmm.n_states)])  
                 if(Titles):
-                    if self.style == "Viterbi": print("Trellis Probabilities (Viterbi)\n")
-                    else: print("Trellis Probabilities (Forward)\n")
+                    if self.style == "Viterbi": print("\nTrellis Probabilities (Viterbi)\n")
+                    else: print("\nTrellis Probabilities (Forward)\n")
                 display(pdf)
 
             elif w== "backpointers":
                 bdf = pd.DataFrame(self.backptrs.T,
                            columns=np.arange(self.n_samples),
                            index = ['S'+str(i) for i in range(self.hmm.n_states)])  
-                if(Titles): print("Backpointers\n")
+                if(Titles): print("\nBackpointers\n")
                 display(bdf)
                 
             elif w == "alignment":
-                if(Titles): print("Alignment\n")
+                if(Titles): print("\nAlignment\n")
                 alignment = self.backtrace()
-                display( pd.DataFrame(alignment.reshape(1,-1)))
+                display( pd.DataFrame(alignment.reshape(1,-1),index=['VIT-ALIGN']))
                 
-    def plot_trellis(self,xticks=None,yticks=None,cmap=None,cmapf=None,
+    def plot_trellis(self,xticks=None,yticks=None,cmap='Greys',cmapf=None,
                      vmin=-10.,vmax=0.,fmt=".3f",fontsize=12,fontsize_backptrs=10,figsize=None,
                      plot_obs_probs=False,plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False):
         """
@@ -515,6 +479,7 @@ class Trellis():
         gs1.update( hspace=0.15)
             
         if plot_obs_probs:
+            if cmapf is None: cmapf = cmap
             axf = plt.subplot(gs1[0:2, 0])
             axt = plt.subplot(gs1[2:6, 0]) 
             sns.heatmap(self.obs_probs.T,ax=axf, vmin=vmin,vmax=vmax, 

@@ -21,17 +21,31 @@ def tokenizer(text,tolower=False):
     return(tokens)
 
 def print_align(align):
+    '''
+    prints an alignment given in DataFrame format
+    '''
     with pd.option_context('display.max_rows', None, 'display.max_columns', None): 
-        print(align.transpose())
+        print(align)
 
-def print_edist_results(cts=None,df_align=None,Display=False):
+def print_edit_results(cts=None,align=None,trellis=None,Display=True):
+    '''
+    pretty prints results from edit_distance() 
+    '''
     if df_align is not None:
         print(" == ALIGNMENT == ")
         with pd.option_context('display.max_rows', None, 'display.max_columns', None): 
-            print(df_align.T)
+            if(Display):
+                display(align)
+            else:
+                print(align)
+                
     if cts is not None:
         print("Results:\n#S=%d, #I=%d, #D=%d for %d tokens \nErr=%.2f%%" % cts )
 
+    if trellis is not None:
+        if(Display):
+            display(trellis)
+        
 def alignment_to_counts(df):
     ''' 
     count nSUB/nINS/nDEL, nTOT and Err from an alignment dataframe
@@ -51,11 +65,12 @@ def alignment_to_counts(df):
     Err = (100.*(Nsub+Nins+Ndel)/Ntot)
     return(Nsub,  Nins, Ndel, Ntot, Err)
     
-def levenshtein(seq1, seq2):
+def lev_distance(seq1, seq2):
     '''
     Levenshtein Distance
         Finds the symmetric Levenshtein distance as the sum of INS/DEL/SUB 
         There is no backtracking, and no separate maintenance of INS/SUB/DEL 
+        Each operation adds '1.' to the cost
     
     Parameters
     ----------
@@ -66,7 +81,7 @@ def levenshtein(seq1, seq2):
     
     Returns
    --------
-        cummdist : int
+        dist : int
             total number of edits
     '''
     Nx = len(seq1) 
@@ -88,37 +103,38 @@ def levenshtein(seq1, seq2):
     return (current[Ny])
 
 
-def wedit(x=[],y=[],wS=4.,wI=3.,wD=3.,Verbose=False):
+def edit_distance(x=[],y=[],wS=1.,wI=1.,wD=1.,Verbose=False):
     '''
     Weighted Edit Distance by DTW aligment allowing for SUB/INS/DEL
 
     Parameters
     ----------
     x : list (or str) 
-        tokens in test
+        tokens in hypothesis/test
     y : list (or str)
         tokens in reference
 
-    wS, wI, wD: float, default (4., 3., 3.)
+    wS, wI, wD: float, defaults to 1.   
         edit costs for Substition, Insertion, Deletion
 
     Verbose : boolean, default=False
         if True highly Verbose printing of internal results (trellis, backtrace, .. )
     
-    Result : str, default = WER
-        Result specifies the type of output
-            "WER":  applicable to string matching
     Returns
     -------
-        cummdist : float
+        dist : float
             weighted edit distance
         alignment : DataFrame
             alignment path as DataFrame with columns [ 'x', 'y', 'OPS' ]
-        details : list of int
+        cts : list of int
             counts of [nsub,nins,ndel,Ny,nCx,nCy]
             if Compounds is False then last 2 arguments will be 0
+        trellis :
+            2D nd-array with trellis values
              
     '''
+    if isinstance(x,str): x = list(x)
+    if isinstance(y,str): y = list(y)        
     Nx = len(x) 
     Ny = len(y) 
     trellis = np.zeros((Nx+1, Ny+1))
@@ -187,20 +203,22 @@ def wedit(x=[],y=[],wS=4.,wI=3.,wD=3.,Verbose=False):
     Ndel = sum([ int(alignment[i][2]=='D') for i in range(len(alignment))])
     Nsub = sum([ int(alignment[i][2]=='S') for i in range(len(alignment))])
 
-    alignment_df = pd.DataFrame(alignment,columns=['x','y','O'])
+    alignment_df = pd.DataFrame(alignment,columns=['x','y','O']).T
+    trellis_df = pd.DataFrame(trellis.T, index=(['#']+y),columns=(['#']+x))
     
+    dist = trellis[Nx,Ny]
     if (Verbose):
-        print("Edit Distance: ", trellis[Nx,Ny])
+        print("Edit Distance: ", dist)
         print(trellis[0:,0:].T)
         print(edits[0:,0:].T)
         print(trace)
         print(alignment_df.transpose())
         print("Number of Words: ",Ny)
-        print("Substitutions/Insertions/Deletions: ",nsub,nins,ndel)
+        print("Substitutions/Insertions/Deletions: ",Nsub,Nins,Ndel)
 
 
     Err = (100.*(Nsub+Nins+Ndel)/Ny)
     cts = (Nsub,  Nins, Ndel, Ny, Err)
 
-    return(alignment_df,cts,trellis)
+    return(dist,alignment_df,cts,trellis_df)
 
