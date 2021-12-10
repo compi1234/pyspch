@@ -1,7 +1,6 @@
 # A number of 'sequence data sets'
 
 from sklearn.datasets import load_iris
-#from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 
@@ -16,7 +15,7 @@ def norm_mv(x):
     x0 = x - x.mean(axis=0,keepdims=True)
     return(x0/x0.std(axis=0,keepdims=True))
 # maps [-range,range]  to nbins class labels with rather uniform distribution if std.norm input
-def discretize(X,nbins=5,xrange=2.): 
+def discretize(X,nbins=4,xrange=2.): 
     _,n_features = X.shape
     Xd = np.zeros(dtype='int32',shape=X.shape)
     if not isinstance(nbins,list):
@@ -33,7 +32,7 @@ def discretize(X,nbins=5,xrange=2.):
 
 def make_seq1(noise=0.1,return_X_y=True):
     """
-    make_seq_1 is a small sequence data set
+    make_seq1 is a small sequence data set
     it has 4D feature vectors and data is drawn sequentially from 3 classes
     
     there are 2 sets with 75 data samples per set
@@ -41,9 +40,9 @@ def make_seq1(noise=0.1,return_X_y=True):
     
     the noisiness of the data can be manipulated with the parameter
     noise  default=0.1    best in range(0.,1.)
-    """  
-    # we actually use the Iris data set and canibalize it into a sequence data set
+    """ 
     
+    # we actually use the Iris data set and canibalize it into a sequence data set
     X, y = load_iris(return_X_y=True)
     X = perturb(X,lev=noise) 
     X1 = X[0::2]
@@ -53,9 +52,9 @@ def make_seq1(noise=0.1,return_X_y=True):
     
     return( (X1,y1), (X2,y2) )
 
-def make_seq1d(nbins=[3,3,3,5],noise=0.1,return_X_y=True):
+def make_seq1d(nbins=[4,4,4,4],noise=0.1,return_X_y=True):
     """
-    make_seq_1d is a small sequence data set
+    make_seq1d is a small sequence data set
     it has 4D feature vectors and data is drawn sequentially from 3 classes
     there are 2 sets with 75 data samples per set
     it is a discretized version of the continuous data generated in make_seq1
