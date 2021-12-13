@@ -377,7 +377,7 @@ class Trellis():
         for i in range(X.shape[0]):
             x = X[i:i+1,:]
             self.viterbi_step(x)
-        self.finalize()
+        self.seq_prob, self.end_state = self.finalize()
         
     def forward_pass(self,X):
         """
@@ -386,33 +386,39 @@ class Trellis():
         for i in range(X.shape[0]):
             x = X[i:i+1,:]
             self.forward_step(x)
-        self.finalize()
+        self.seq_prob, self.end_state = self.finalize()
 
-    def finalize(self):
+    def finalize(self,end_states = None):
         """
         find sequence probability, subjective to admissible end states 
         """
         # determine best admissible endstate
         endprobs = self.probs[self.n_samples-1,:]
-        self.end_state = self.hmm.end_states[np.argmax( endprobs[self.hmm.end_states] )]
-        self.seq_prob = endprobs[self.end_state] 
+        if end_states is None:
+            end_states = self.hmm.end_states
+            
+        end_state = end_states[np.argmax( endprobs[end_states] )]
+        seq_prob = endprobs[end_state] 
 
         # add accumulative scaling to end prob
         if self.hmm.prob_style == 'lin':
-            self.seq_prob = self.seq_prob * self.scale
+            seq_prob = seq_prob * self.scale
         else:
-            self.seq_prob = self.seq_prob + self.scale
+            seq_prob = seq_prob + self.scale
      
+        return seq_prob,end_state
 
             
-    def backtrace(self):
+    def backtrace(self,end_state = None):
         if  self.style != 'Viterbi':
             print("Trellis.backtrace: Backtracing is only possible on Viterbi style Trellis")
             exit(-1)
         alignment = np.zeros((self.n_samples,),dtype='int')
         # be sure to finalize (might be duplicate)
-        self.finalize()
+        if end_state is None: end_state = self.end_state
+        _, _  = self.finalize(end_states=[end_state])
         alignment[self.n_samples-1] = self.end_state
+        
         for i in range(self.n_samples-1,0,-1):
             alignment[i-1]=self.backptrs[i,alignment[i]]
         return(alignment)
@@ -468,7 +474,7 @@ class Trellis():
                 print("\nSequence Probability: %.2f\n" % self.seq_prob)
             
             
-    def plot_trellis(self,xticks=None,yticks=None,cmap='Greys',cmapf=None,
+    def plot_trellis(self,xticks=None,yticks=None,cmap=None,cmapf=None,
                      vmin=-10.,vmax=0.,fmt=".3f",fontsize=12,fontsize_backptrs=10,figsize=None,
                      plot_obs_probs=False,plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False):
         """

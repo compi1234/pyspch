@@ -68,7 +68,8 @@ def convertf(x,iscale="lin",oscale="log",eps=EPS_FLOAT):
             return np.power(10.0,x)
         elif oscale == "log":
             return x*LOG10
-        
+
+
 
 ####
 # A singel call to check if IN_COLAB has been set
