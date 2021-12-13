@@ -120,8 +120,6 @@ class HMM():
         # either the "states" array with state names should be given or the states will be inferred from the classes in the observation model
         if (states is None):
             self.states = self.obs_model.classes_   #.astype('str')
-            #self.n_states = n_states
-            #self.states = np.array(['S'+str(i) for i in range(self.n_states)])
         else:
             self.states = np.array(states)
         self.n_states = len(self.states)
@@ -173,14 +171,16 @@ class HMM():
             for j in range(self.n_states):
                 self.transmat[j,j]=selfprob          
         if(self.prob_style == "log"):
-            self.transmat = np.log(u.floor(self.transmat,self.prob_floor))       
-
+            self.initmat = np.log(u.floor(self.initmat,self.prob_floor))       
+            self.transmat = np.log(u.floor(self.transmat,self.prob_floor)) 
+            
     def print_model(self):
         print("\nHMM STATE MODEL\n=================\n")
         dfi = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states, index=["Pinit(.)"])
         display(dfi)
-        dft = pd.DataFrame(self.transmat.T,columns=self.states,
-            index= ['P('+self.states[i]+'|.)' for i in range(0,self.n_states)])
+        states_str = self.states.astype('str')
+        dft = pd.DataFrame(self.transmat.T,columns=states_str,
+            index= ['P('+states_str[i]+'|.)' for i in range(0,self.n_states)])
         display(dft) 
         print("\nOBSERVATION MODEL\n=================\n")
         if self.obs_model is None: 
@@ -503,23 +503,23 @@ class Trellis():
 
             
         fig = plt.figure(figsize=figsize)
-        gs1 = gridspec.GridSpec(6, 1)
+        gs1 = gridspec.GridSpec(8, 1)
         gs1.update( hspace=0.15)
             
         if plot_obs_probs:
             if cmapf is None: cmapf = cmap
-            axf = plt.subplot(gs1[0:2, 0])
-            axt = plt.subplot(gs1[2:6, 0]) 
+            axf = plt.subplot(gs1[0:3, 0])
+            axt = plt.subplot(gs1[3:8, 0]) 
             sns.heatmap(self.obs_probs.T,ax=axf, vmin=vmin,vmax=vmax, 
                     xticklabels=xticks,yticklabels=yticks,
-                    cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.0,
+                    cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.2,
                     annot=plot_values,fmt=fmt,annot_kws={'fontsize':(fontsize-1),'color':'k'},
                        )
             axf.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
             axt.tick_params(axis='x',labelrotation=0.0,labeltop=False,labelbottom=False,bottom=False)
             axf.tick_params(axis='y',labelrotation=0.0,left=False)
         else:
-            axt = plt.subplot(gs1[0:6, 0]) 
+            axt = plt.subplot(gs1[0:8, 0]) 
             axt.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
             axt.tick_params(axis='y',labelrotation=0.0,left=False)
             

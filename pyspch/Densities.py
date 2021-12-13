@@ -345,7 +345,8 @@ class Gaussian(GaussianNB):
             raise ValueError("GAUSSIAN: NOT initialized yet")
             
     def init_model(self,mu=None,var=None,classes=None,class_prior=None):
-        self.classes_ = None
+        
+        # initialize class means, n_classes and n_features_in_
         if (mu is None):
             if (classes is None):
                 print("You must at least specify means to import a model")
@@ -366,9 +367,10 @@ class Gaussian(GaussianNB):
             self.var_ = var
         else:
             self.var_ = np.ones((self.n_classes,self.n_features_in_))
-            
-        if self.classes_ is None: self.classes_ = np.arange(self.n_classes)
-        else:                     self.classes_ = np.array(classes)
+        
+        # initialize class names and class priors
+        if classes is None: self.classes_ = np.arange(self.n_classes)
+        else:               self.classes_ = np.array(classes)
             
         if class_prior is None:
             self.class_prior_ = np.ones(self.n_classes)/self.n_classes
@@ -394,7 +396,8 @@ class Gaussian(GaussianNB):
             
     def plot_model(self):
         nclass, n_features = self.theta_.shape
-        f,ax = plt.subplots(1,n_features,figsize=(14,5))
+        f,_ = plt.subplots(1,n_features,figsize=(14,5))
+        ax = f.axes
         for j in range(n_features):
             for i in range(nclass):
                 mu = self.theta_[i,j]
