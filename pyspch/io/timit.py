@@ -7,6 +7,7 @@ import os,sys
 import numpy as np
 import pandas as pd
 
+TIMIT_DEFINTIONS = True
 # 61-> cmu is an approximate mapping from TIMIT to CMU dict
 # closures are attached to the plosives, further 61->39 mapping except for zh->sh
 map61_cmu = { 'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k',
@@ -41,6 +42,10 @@ map61_48={ 'ax-h': 'ax',
 map_closures={'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k'}
 map48_39= { 'vcl':'sil','cl':'sil',
 'ao': 'aa','ax': 'ah' ,'el': 'l', 'em':'n' ,'zh': 'sh'}
+
+timit_48 = ['aa','ae', 'ah','ao','aw','ax','er','ay','b','vcl','ch','d','dh','dx','eh','el',
+ 'm','en','ng','epi','ey','f','g','sil','hh','ih','ix','iy','jh','k','cl','l','n','ow',
+ 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh']
 
 def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     """

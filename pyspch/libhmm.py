@@ -183,11 +183,12 @@ class HMM():
             index= ['P('+states_str[i]+'|.)' for i in range(0,self.n_states)])
         display(dft) 
         print("\nOBSERVATION MODEL\n=================\n")
-        if self.obs_model is None: 
-            print("Observations are Observation likelihoods\n")
-        else:
-            self.obs_model.print_model()
 
+        try:
+            self.obs_model.print_model()
+        except: 
+            print("Nothing to print\n")
+            
     def observation_prob(self,X):
         """
         compute the observation probability for a feature vector

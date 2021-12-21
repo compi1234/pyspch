@@ -22,3 +22,11 @@ y_label         str ("Frequency(Hz)")
 
 ### segmentation data object 
 is a panda's dataframe
+
+
+
+# Code Modifications
+
+1. make the frames[] parameters a slice object
+2. put spectrograms also in a (n_frames,n_param) array (transposed vs now)
+3. streamline n_xxx vs nxxx

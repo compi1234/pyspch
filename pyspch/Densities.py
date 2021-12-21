@@ -122,7 +122,7 @@ class Prob():
                     trained priors should be passed explicitly
     '''
     def __init__(self,style="Probs",priors=None):
-        self.style = style
+        self.prob_style = style
         self.class_prior_ = priors
         
     def predict_ftr_prob(self,X):
