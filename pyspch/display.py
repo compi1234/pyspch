@@ -155,7 +155,7 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
 
 # An Extended Plotting Routine for time aligned
 
-def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=None,
+def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
             spglabel='Frequency (Hz)',line_labels=None, img_labels=None,
             sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,**kwargs):
     '''
@@ -179,8 +179,11 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
     nimg_ftrs = len(img_ftrs) if img_ftrs is not None else 0 
     if line_labels== None: line_labels = [None]*nlin_ftrs
     if img_labels== None: img_labels = [None]*nimg_ftrs
-     
-    fig = SpchFig(row_heights=[1,3]+nsegs*[.5]+nimg_ftrs*[3.]+nlin_ftrs*[2.],**kwargs)
+    
+    if row_heights is None:
+        fig = SpchFig(row_heights=[1,3]+nsegs*[.5]+nimg_ftrs*[3.]+nlin_ftrs*[2.],**kwargs)
+    else:
+        fig = SpchFig(row_heights=row_heights,**kwargs)
     iax = 0
     fig.add_line_plot(wavdata[sample_range],iax=iax,x=sample_range/sample_rate)
     iax = 1

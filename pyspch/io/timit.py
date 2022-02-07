@@ -1,6 +1,8 @@
 """
 File Utilities for accessing TIMIT style files
 including conversion of TIMIT phone sets
+
+26/01/2022:  Some corrections in the mapping definitions
 """
 
 import os,sys
@@ -9,12 +11,17 @@ import pandas as pd
 
 TIMIT_DEFINTIONS = True
 # 61-> cmu is an approximate mapping from TIMIT to CMU dict
-# closures are attached to the plosives, further 61->39 mapping except for zh->sh
-map61_cmu = { 'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k',
+# closures are attached to the plosives, further 61->39 mapping 
+#   - except for zh->sh and ao->aa
+#   - plus  dx->t
+map61_cmu = { 
+ 'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k',
  'epi': 'sil', 'h#': 'sil', 'pau': 'sil', 'q': 'sil',
- 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er',
+ 'ax': 'ah','ax-h': 'ah','axr': 'er',
  'el': 'l', 'em': 'm','en': 'n', 'eng': 'ng', 
-  'hv': 'hh', 'ix': 'ih', 'nx': 'n'  
+  'hv': 'hh', 'ix': 'ih', 'nx': 'n' ,
+    'dx':'t'
+  #  'ao': 'aa',
 }
 
 map61_39 = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
@@ -22,13 +29,14 @@ map61_39 = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
  'h#': 'sil', 'hv': 'hh', 'ix': 'ih', 'kcl': 'sil', 'nx': 'n', 'pau': 'sil', 
  'pcl': 'sil','q': 'sil','tcl': 'sil','zh': 'sh'}
 
+# this is actually a timit-47 mapping if epi -> silence is included
 map61_48={ 'ax-h': 'ax',
  'axr': 'er',
  'bcl': 'vcl',
  'dcl': 'vcl',
  'em': 'm',
  'eng': 'ng',
- 'epi': 'sil',
+ 'epi': 'sil',   # optional
  'gcl': 'vcl',
  'h#': 'sil',
  'hv': 'hh',
@@ -40,8 +48,13 @@ map61_48={ 'ax-h': 'ax',
  'tcl': 'cl',
 }
 map_closures={'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k'}
-map48_39= { 'vcl':'sil','cl':'sil',
-'ao': 'aa','ax': 'ah' ,'el': 'l', 'em':'n' ,'zh': 'sh'}
+# the 48-39 mapping is ok for frame based,
+# but for segmental work it is better to fold the closures into the plosives
+map48_39= { 
+    'vcl':'sil','cl':'sil','epi':'sil',
+    'ix':'ih','ax': 'ah' ,'el': 'l', 'en':'n' ,
+    'ao': 'aa','zh': 'sh'
+}
 
 timit_48 = ['aa','ae', 'ah','ao','aw','ax','er','ay','b','vcl','ch','d','dh','dx','eh','el',
  'm','en','ng','epi','ey','f','g','sil','hh','ih','ix','iy','jh','k','cl','l','n','ow',

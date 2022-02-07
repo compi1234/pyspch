@@ -55,6 +55,9 @@ Additional Methods
     .plot_model()           plots the distribution for each feature or per class
     
 
+History:
+=========
+11/01/2022: added 'style' option for printing of logprobs in class=Discrete, module=print_model()
 
 """
 
@@ -264,11 +267,13 @@ class Discrete():
     def predict_log_proba(self,X):
         return spchu.logf(self.predict_ftr_prob(X))        
     
-    def print_model(self,labels=None):
+    def print_model(self,labels=None,style='lin'):
         for j in range(self.n_features):
-            print("\n ++ Feature (%d) ++"%j)
-            labels = self.labels[j]            
-            featprob_df = pd.DataFrame(self.feature_prob_[j].T,columns=self.classes_,
+            print("++ Feature (%d) ++\n "%j)
+            labels = self.labels[j]  
+            if style == 'lin': ftr_prob = self.feature_prob_[j].T
+            elif style == 'log': ftr_prob = spchu.logf(self.feature_prob_[j].T)
+            featprob_df = pd.DataFrame(ftr_prob,columns=self.classes_,
                      index= ['P('+labels[i]+'|.)' for i in range(0,self.n_categories[j])])
             display(featprob_df)
 

@@ -89,6 +89,8 @@ def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
             vowels = ['aw','eh','er','ih','iy','uw']
         elif vowels == 'vowels3':
             vowels = ['aw','iy','uw']
+        elif vowels == 'pb':
+            vowels = ['iy','ih','eh','ae','ah','aw','oo','uw','uh','er']
         elif (vowels == 'all') :
             vowels = list(df['vowel'].unique())
         
