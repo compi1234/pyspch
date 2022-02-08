@@ -34,15 +34,15 @@ import math
 import numpy as np
 import pandas as pd
 
-from .constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
+from ..utils.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec 
 
 # import low-level API depending on backend
-try: os.environ['PYSPCH_BACKEND'] 
-except: os.environ['PYSPCH_BACKEND'] = "mpl"
+#try: os.environ['PYSPCH_BACKEND'] 
+#except: os.environ['PYSPCH_BACKEND'] = "mpl"
 #
 if os.environ['PYSPCH_BACKEND'] == "mpl":
     from .display_mpl import SpchFig

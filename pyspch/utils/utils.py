@@ -72,7 +72,7 @@ def convertf(x,iscale="lin",oscale="log",eps=EPS_FLOAT):
 
 
 ####
-# A singel call to check if IN_COLAB has been set
+# A single call to check if IN_COLAB has been set
 ####
 def check_colab():
     return('google.colab' in str(get_ipython()))

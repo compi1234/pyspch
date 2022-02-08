@@ -37,8 +37,8 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 import copy
 
-from . import utils as u
-PROB_FLOOR = u.EPS_FLOAT
+from pyspch.utils.constants import *
+PROB_FLOOR = EPS_FLOAT
 
 class Obs_Dummy():
     """

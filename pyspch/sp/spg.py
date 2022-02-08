@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import librosa
-from .constants import EPS_FLOAT
+from ..utils.constants import EPS_FLOAT
 
 
 # do preemhasis and padding

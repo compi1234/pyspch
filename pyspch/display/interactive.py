@@ -5,12 +5,12 @@ import ipywidgets as widgets
 from ipywidgets import HBox, VBox, Layout
 import librosa
 
-import pyspch.spg as specg
-import pyspch.audio as audio
-import pyspch.utils as spchu
-import pyspch.io.timit as tio
+import pyspch.sp as Sps
+import pyspch.audio as Spa
+import pyspch.utils as Spu
+import pyspch.io as Spio
 import matplotlib.pyplot as plt
-import pyspch.display as spchd
+import pyspch.display as Spd
 
 
 dw_5 = {'description_width': '50%'}
@@ -121,14 +121,14 @@ class Spg1(VBox):
         fname = self.root+self.fname
         #with self.logscr:
         #    print("audio file name",fname)
-        self.wavdata, self.sample_rate = audio.load(fname)
+        self.wavdata, self.sample_rate = Spa.load(fname)
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.wg_range.min = self.wavtimes[0]
         self.wg_range.max = self.wavtimes[1]
         self.wg_range.value = self.wavtimes
         self.seltimes = self.wavtimes
         self.nshift = int(self.shift*self.sample_rate)
-        self.fig_range = spchd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
+        self.fig_range = Spd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
                         figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)
         with self.wavrange:
             clear_output(wait=True)
@@ -140,13 +140,13 @@ class Spg1(VBox):
         self.n_shift = int(self.shift*self.sample_rate)
         self.frames = [int(self.seltimes[0]/self.shift), int(self.seltimes[1]/self.shift)]
                   
-        self.fig_range = spchd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=' ',xlabel=None,xticks=False,
+        self.fig_range = Spd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=' ',xlabel=None,xticks=False,
                             figsize=(self.figwidth,1.0),dpi=self.dpi)
         self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#222')
         self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#222')
         
-        self.spg = specg.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = specg.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spg = Sps.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         
         # get segmentation
@@ -185,7 +185,7 @@ class Spg1(VBox):
             img_ftrs += [ mfccs ]
             img_labels += ['mfcc '+str(mfccs.shape[0])]
    
-        self.fig_main = spchd.PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
+        self.fig_main = Spd.PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
                     dy=self.sample_rate/(2*(self.nparam-1)),frames=self.frames,img_ftrs=img_ftrs,img_labels=img_labels,
                     figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
         for seg in self.segs:
@@ -195,7 +195,7 @@ class Spg1(VBox):
                 self.fig_main.add_seg_plot(seg,iax=2+i,ypos=None,color="#222")
 
     def plot2(self):
-        self.fig = spchd.SpchFig()
+        self.fig = Spd.SpchFig()
             
     def root_observe(self,change):
         self.root=change.new
@@ -351,7 +351,7 @@ class Spg2(VBox):
         self.frame = int(self.wg_range.value/self.shift)
         self.seltimes = self.wavtimes
 
-        self.fig_range = spchd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
+        self.fig_range = Spd.PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
                         figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)       
         
     def update(self):     
@@ -367,8 +367,8 @@ class Spg2(VBox):
         self.winsamples = [self.selsamples[0]-nextend, self.selsamples[1]+nextend]
         self.wintimes = [self.winsamples[0]/self.sample_rate, self.winsamples[1]/self.sample_rate]
         
-        self.spg = specg.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = specg.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spg = Sps.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         img_ftrs = []
         img_labels = []
@@ -384,12 +384,12 @@ class Spg2(VBox):
             img_labels += ['mfcc '+str(mfccs.shape[0])]
         # add segmentation
         try:
-            seg1= tio.read_seg_file(self.root+self.segfname)
+            seg1= Spio.read_seg_file(self.root+self.segfname)
             segs = [seg1] if seg1 is not None else []
         except:
             segs = []
    
-        self.fig_main = spchd.PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
+        self.fig_main = Spd.PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
                     dy=self.sample_rate/(2*(self.nparam-1)),img_ftrs=img_ftrs,img_labels=img_labels,
                     figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
         for seg in segs:
@@ -420,7 +420,7 @@ class Spg2(VBox):
 
     def plot_rhs(self,ftrs,labels):
         nftrs=0 if ftrs is None else len(ftrs)
-        self.fig_rhs = spchd.SpchFig(row_heights=[1.,3.]+nftrs*[3.],figsize=((1.-self.fig_ratio)*self.figwidth,0.5*self.figwidth),dpi=self.dpi)
+        self.fig_rhs = Spd.SpchFig(row_heights=[1.,3.]+nftrs*[3.],figsize=((1.-self.fig_ratio)*self.figwidth,0.5*self.figwidth),dpi=self.dpi)
         sample_range = np.arange(self.winsamples[0],self.winsamples[1])
         self.fig_rhs.add_line_plot(self.wavdata[sample_range],iax=0,x=sample_range/self.sample_rate,color='#3F3',yrange=self.fig_main.axes[0].get_ylim())
         sample_range = np.arange(self.selsamples[0],self.selsamples[1])

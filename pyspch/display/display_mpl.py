@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 import librosa
-from .constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
+from ..utils.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
