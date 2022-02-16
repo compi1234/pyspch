@@ -18,6 +18,10 @@ from .constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 ##################################################################################################
 # PART I:  MATH UTILITIES
 ##################################################################################################
+
+def next_power_of_2(x):  
+    return 1 if x == 0 else 2**(x - 1).bit_length()
+
 def normalize(x, axis=0):
     """Normalizes a multidimensional input array so that the values sums to 1 along the specified axis
     Typically applied to some multinomal distribution

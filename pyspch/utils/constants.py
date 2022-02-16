@@ -10,7 +10,9 @@
     situations one can use SIGEPS_FLOAT = 1.19e-7 and a corresponding dB value of SIGEPS_DB of -69.2
     """
 #
-LOG10        = 2.302585092994046      # np.log(10.0)
+import numpy as np
+LOG10        = np.log(10)          # 2.302585092994046 
+LOG2DB       = 10.0/LOG10
 
 # flooring to apply in general computations
 EPS_FLOAT    = 1.e-39

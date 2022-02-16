@@ -1,6 +1,25 @@
 # pyspch
 
-### Notes on v0.5 -- in dev  (24/11/2021)
+
+### Notes on v0.6 
+
+- TBD: 
+    - bump librosa to v0.9 ? (mainly for multichannel which we don't rely on)
+    - change to power spectrum as default representation ?
+
+- major reorganization with subpackages
+    - io : for (file) I/O related stuff
+    - sp : signal processing related modules, fully crafted in the spirit of librosa (though single channel mainly)
+            now includes, cepstral processing, feature manipulation, ..
+    - display : all display routines
+    - utils :
+
+- generic utilities for phone/index processing  
+
+
+
+
+### Notes on v0.5 -- final version for H02A6 course in 2021
 
 bumped a few minimal requirements, especially
 pandas > 1.1      to avoid read_pickle() problems

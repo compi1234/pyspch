@@ -1,3 +1,4 @@
-__all__ = ["feature","spg"]
+__all__ = ["feature","spectral","frames"]
 from .feature import *
-from .spg import *
+from .spectral import *
+from .frames import *
