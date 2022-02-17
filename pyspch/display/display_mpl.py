@@ -268,23 +268,42 @@ class SpchFig(Figure):
             ax.tick_params(axis='x',labelbottom=False,bottom=True)
 
 
-    def add_vlines(self,x,iax=0,color='#F00',linestyle='dashed'):
+    def add_vlines(self,x,iax=0,color='#F00',linestyle='dashed', **kwargs):
         '''
         add vertical lines at positions x over full heigth of the axis
         '''
-        ax = self.get_axis(iax)
-        y = ax.get_ylim()
-        ax.vlines(x,y[0],y[1],colors=color,linestyles=linestyle)
+        iaxes = np.atleast_1d(iax)
+        xx = np.atleast_1d(x)
+        for iax in iaxes:
+            ax = self.get_axis(iax)
+            y = ax.get_ylim()
+            for x in xx:
+                ax.vlines(x,y[0],y[1],colors=color,linestyles=linestyle, **kwargs)
 
-
-    def add_vrect(self,x0,x1,iax=0,color='#888',alpha=0.2):
+    def add_vrect(self,x0,x1,iax=0,color='#AAA',ec="#000",lw=2.,alpha=1.,fill=False,**kwargs):
         '''
         add vertical rectangle between x0 and x1 
         '''
-        ax = self.get_axis(iax)
-        ax.axvspan(x0, x1, color=color,  alpha=alpha )
+        iaxes = np.atleast_1d(iax)
+        for iax in iaxes:
+            ax = self.get_axis(iax)
+            ax.axvspan(x0, x1, color=color, fill=fill, lw=lw, ec=ec, alpha=alpha , **kwargs)
     
-    
+
+    def remove_patches(self,iax=None):
+        '''
+        remove patches from the figure or specified axes
+        '''
+        if iax is None:
+            for ax in self.axes:
+                ax.patches =[]
+        else:
+            iaxes = np.atleast_1d(iax)
+            for iax in iaxes:
+                ax = self.get_axis(iax)
+                ax.patches =[]        
+        
+        
 ################################ OLDDDDDDDDDDDDDDDDDDDDD   ############################    
     
 def make_subplots(row_heights=[1.,1.],col_widths=[1.],figsize=(12,6),dpi=72,**kwargs):
