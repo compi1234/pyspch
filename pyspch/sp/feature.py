@@ -4,7 +4,7 @@ import math
 import numpy as np
 import librosa
 #from .constants import EPS_FLOAT
-
+from .spectral import *
 
 def mean_norm(ftrs,type="mean"):
     """ normalizes features for mean and variance depending on Norm argument 
@@ -98,33 +98,50 @@ def splice_frames(X,N=1,stride=1):
             ),axis=0)
     return X_s    
     
-    
-    
-    
-    
-    
-    
+        
 
-def feature_extraction(wavdata=None, spg=None,n_mels=80,sample_rate=8000,ncep=13,Deltas=True,Norm=None):
+def feature_extraction(wavdata=None, spg=None,n_mels=None,sample_rate=8000,n_cep=None,Deltas=None,Norm=None, **kwargs):
+    '''
+    A reference pipeline for spectral/cepstral feature extraction
+    with optional settings for key parameters
+    
+    Arguments:
+    
+    wavdata  numpy array, float    waveform data (default: None)
+    spg      numpy array, float of size (n_param, n_frames) spectrogram data (default: None)
+               if spg is None, then wavdata must be specified
+    sample_rate   int, default=8000
+    
+    n_mels:  number of mel filterbank channels (default: None, otherwise int:)
+    n_cep    number of cepstral coefficients (default: None, otherwise int:)
+    Deltas:  adding delta's (default: None, otherwise str: delta type)
+    Norm:    mean/variance normalization (default: None, otherwise str: normalization type)
+    
+    **kwargs:  additional arguments are passed to the spectrogram calling routine (shift, length, ... )
+    
+    Returns:
+    
+    ftrs:    numpy array, float's of  size (n_param,n_frames)
+    '''
+    
     #1. Spectral Estimation (Fourier Spectrogram)
     if spg is None:
-        spg = Sps.spectrogram(wavdata,sample_rate=sample_rate,n_mels=None)
+        spg = spectrogram(wavdata,sample_rate=sample_rate,n_mels=None, **kwargs)
     
     #2. Mel scale transform
     if n_mels is not None:
-        spg1 = Sps.spg2mel(spg,n_mels=n_mels,sample_rate=sample_rate)
-    else: spg1 = spg
+        spg = spg2mel(spg,n_mels=n_mels,sample_rate=sample_rate)
         
     #3. Cepstral transform
-    if ncep is None: ftr1 = spg1
-    else: ftr1 = cepstrum(spg1,ncep=ncep)
+    if n_cep is None: ftrs = spg
+    else: ftrs = cepstrum(S=spg,n_cep=n_cep)
         
     #4. Add delta's
-    if Deltas:
-        deltas = librosa.feature.delta(ftr1,order=1)
-        ftrs = np.vstack((ftr1,deltas))
-    else: ftrs = ftr1
+    if Deltas is not None:
+        ftrs = deltas(ftrs,type=Deltas,Augment=True)
         
     #5. Mean and variance normalization
-
-    return(ftrs_n)    
+    if Norm is not None:
+        ftrs = mean_norm(ftrs,type=Norm)
+        
+    return(ftrs)
