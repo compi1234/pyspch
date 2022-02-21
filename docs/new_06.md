@@ -11,14 +11,16 @@ subpackages:  (all modules in a subpackage are fully loaded on init )
 
 ### Signal Processing
 
-- cepstrum(wavdata=None, Spg=None, n_mel=None, n_cep=None )
-    - input: waveform or spectrogram data
-    - n_mel: if None regular cepstrum, if mel
-    - n_cep: number of cepstral coefficients to be returned (if None = all, full resolution)
+- spectrogram()
+- spg2mel()
+- cepstrum()
+- cep_lifter()
+- melcepstrum()
 
-- spg2cep(spgdata, n_cep=None)
-        
-- cep2spec()
+- mean_norm()
+- deltas()
+- splice_frames()
+- feature_extraction()
     
     
 Data objects
