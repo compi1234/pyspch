@@ -26,6 +26,7 @@ subpackages:  (all modules in a subpackage are fully loaded on init )
 Data objects
 
 it is worth considering putting all signal data (waveforms, spectrograms) in a data object 
+   - this is mainly true for plotting purposes
 
 ### waveform data object
 data            float32 - wavdata
@@ -53,5 +54,5 @@ is a panda's dataframe
 # Code Modifications
 
 1. make the frames[] parameters a slice object
-2. put spectrograms also in a (n_frames,n_param) array (transposed vs now)
+2. put spectrograms also in a (n_frames,n_param) array (transposed vs now)         no - keep librosa compatibility
 3. streamline n_xxx vs nxxx

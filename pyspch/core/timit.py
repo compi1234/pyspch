@@ -3,62 +3,90 @@ File Utilities for accessing TIMIT style files
 including conversion of TIMIT phone sets
 
 26/01/2022:  Some corrections in the mapping definitions
+
+21/02/2022:  Addition of TIMIT-41 symbol set, ie. CMU + SIL + CL
 """
 
 import os,sys
 import numpy as np
 import pandas as pd
 
-TIMIT_DEFINTIONS = True
-# 61-> cmu is an approximate mapping from TIMIT to CMU dict
-# closures are attached to the plosives, further 61->39 mapping 
-#   - except for zh->sh and ao->aa
-#   - plus  dx->t
-map61_cmu = { 
- 'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k',
- 'epi': 'sil', 'h#': 'sil', 'pau': 'sil', 'q': 'sil',
- 'ax': 'ah','ax-h': 'ah','axr': 'er',
- 'el': 'l', 'em': 'm','en': 'n', 'eng': 'ng', 
-  'hv': 'hh', 'ix': 'ih', 'nx': 'n' ,
-    'dx':'t'
-  #  'ao': 'aa',
-}
 
-map61_39 = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
- 'dcl': 'sil', 'el': 'l', 'em': 'm','en': 'n', 'eng': 'ng', 'epi': 'sil', 'gcl': 'sil',
- 'h#': 'sil', 'hv': 'hh', 'ix': 'ih', 'kcl': 'sil', 'nx': 'n', 'pau': 'sil', 
- 'pcl': 'sil','q': 'sil','tcl': 'sil','zh': 'sh'}
+######## TIMIT MAPPINGS   61-> 48 -> 39 ##########################
 
-# this is actually a timit-47 mapping if epi -> silence is included
-map61_48={ 'ax-h': 'ax',
+TIMIT48 = ['aa','ae', 'ah','ao','aw','ax','er','ay','b','ch','d','dh','dx','eh','el',
+ 'm','en','ng','ey','f','g','hh','ih','ix','iy','jh','k','l','n','ow', 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh','sil','epi','vcl','cl']
+
+# the very rare 'q' is mapped to 'sil' instead of None
+# as a variant one could define timit-47 including epi -> silence 
+#  15 symbols deleted - 2 symbols added (vcl,cl)
+timit61_48={ 
+ 'ax-h': 'ax',
  'axr': 'er',
- 'bcl': 'vcl',
- 'dcl': 'vcl',
  'em': 'm',
  'eng': 'ng',
- 'epi': 'sil',   # optional
- 'gcl': 'vcl',
- 'h#': 'sil',
+ 'nx': 'n',    
  'hv': 'hh',
- 'kcl': 'cl',
- 'nx': 'n',
- 'pau': 'sil',
- 'pcl': 'cl',
- 'q': 'cl',
- 'tcl': 'cl',
+ 'bcl': 'vcl', 'dcl': 'vcl',  'gcl': 'vcl',
+ 'kcl': 'cl',  'pcl': 'cl',  'tcl': 'cl',
+ 'h#': 'sil', 'pau': 'sil',  # ,  'epi': 'sil',    optional would make CMU 47
+  'q': 'sil'
 }
-map_closures={'bcl':'b','dcl':'d','gcl':'g','pcl':'p','tcl':'t','kcl':'k'}
-# the 48-39 mapping is ok for frame based,
-# but for segmental work it is better to fold the closures into the plosives
-map48_39= { 
+
+# only used for scoring purposes for TIMIT phone experiments, where training is done on 48 classes and scoring on 39
+#  9 symbols deleted
+#
+timit48_39= { 
     'vcl':'sil','cl':'sil','epi':'sil',
     'ix':'ih','ax': 'ah' ,'el': 'l', 'en':'n' ,
     'ao': 'aa','zh': 'sh'
 }
 
-timit_48 = ['aa','ae', 'ah','ao','aw','ax','er','ay','b','vcl','ch','d','dh','dx','eh','el',
- 'm','en','ng','epi','ey','f','g','sil','hh','ih','ix','iy','jh','k','cl','l','n','ow',
- 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh']
+# rarely used as such
+timit61_39 = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
+ 'dcl': 'sil', 'el': 'l', 'em': 'm','en': 'n', 'eng': 'ng', 'epi': 'sil', 'gcl': 'sil',
+ 'h#': 'sil', 'hv': 'hh', 'ix': 'ih', 'kcl': 'sil', 'nx': 'n', 'pau': 'sil', 
+ 'pcl': 'sil','q': 'sil','tcl': 'sil','zh': 'sh'}
+
+
+######## TIMIT  61-> 41  APPROXIMATE CMU MAPPING ##########################
+# TIMIT-41 is similar to CMU alphabet mapping, i.e. there are 39 phonemes + SIL + CL
+# symbols in TIMIT 41 / CMU, not in TIMIT39:  ao, zh
+# symbol  in TIMIT 41, not in CMU or TIMIT39: cl
+# symbol  NOT in TIMIT 41/CM, but in TIMIT39: dx
+#
+# REMARK: it should be understood that the above alphabet mappings do NOT IMPLY that TIMIT transcriptions / segmenations 
+# can be mapped to good CMU transcriptions / segmentations
+#   - plosives consist of a 'closure' + 'burst'
+#   - syllabic mappings should be to symbol sequences, eg. 'el' -> 'ah'+'l'
+# 
+TIMIT41 = ['aa','ae', 'ah','ao','aw','er','ay','b','ch','d','dh','eh',
+ 'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
+ 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh','sil','cl']
+
+timit48_41 = { 
+    'epi':'sil',
+    'vcl':'cl',
+    'dx':'t',
+    'ix':'ih','ax': 'ah' ,
+    'el': 'l', 'en':'n' 
+}
+timit61_41={ 
+ 'axr': 'er',
+ 'em': 'm',
+ 'eng': 'ng',
+ 'nx': 'n',    
+ 'hv': 'hh',
+ 'kcl': 'cl',  'pcl': 'cl',  'tcl': 'cl',
+ 'h#': 'sil', 'pau': 'sil' ,   'q': 'sil', 
+## different from 48 mapping
+ 'bcl': 'cl', 'dcl': 'cl',  'gcl': 'cl',
+ 'epi': 'sil',
+ 'dx':'t',
+ 'ax-h': 'ah', 'ix':'ih','ax': 'ah' ,
+ 'el': 'l', 'en':'n' 
+}
+
 
 def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     """
@@ -134,10 +162,9 @@ def xlat_seg(isegdf,xlat=None):
     """
 
     if(xlat is None):        xlat_dict = None
-    elif (xlat == 'map61_48'): xlat_dict = map61_48
-    elif (xlat == 'map61_39'): xlat_dict = map61_39     
-    elif (xlat == 'map48_39'): xlat_dict = map48_39
-    elif (xlat == 'map61_cmu'): xlat_dict = map61_cmu
+    elif(xlat == 'timit61_48') : xlat_dict = timit61_48
+    elif(xlat == 'timit61_41') : xlat_dict = timit61_41
+    elif(xlat == 'timit61_39') : xlat_dict = timit61_39
     else: xlat_dict = xlat
         
     ww=isegdf.seg

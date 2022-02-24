@@ -1,7 +1,7 @@
 # A set of utilities for audio IO and essential handling
 #
 # Data Formats: 
-# audio data is passed as (float32) numpy arrays using the 'implicit mono' convention ( librosa) 
+# audio data is passed as (float32) numpy arrays using the 'implicit mono' convention (librosa) 
 #    + (n_samples,_) for mono 
 #    + (n_channels,n_samples) for multichannel data 
 #
@@ -31,7 +31,7 @@ import IPython
 import math
 import numpy as np
 from base64 import b64decode
-
+from .file_tools import *
 import librosa
 
 # we currently acknowledge 2 IO METHODS, 
@@ -62,18 +62,18 @@ except:
     print("ERROR: Using spchutils.audio requires soundfile and pydub packages to be installed.   You should fix this first")
 
 
-def get_fobj(resource):
-    '''
-    returns a file like object for reading from either a filename (local) or a URL resource
-    
-    A URL resource is read into a BytesIO object, while filenames are left unchanged
-    '''
-    parsed=urlparse(resource)
-    if(parsed.scheme !=''):
-        fobj = io.BytesIO(urlopen(resource).read())
-    else:
-        fobj = resource
-    return(fobj)
+#def get_fobj(resource):
+#    '''
+#    returns a file like object for reading from either a filename (local) or a URL resource
+#    
+#    A URL resource is read into a BytesIO object, while filenames are left unchanged
+#    '''
+#    parsed=urlparse(resource)
+#    if(parsed.scheme !=''):
+#        fobj = io.BytesIO(urlopen(resource).read())
+#    else:
+#        fobj = open(resource,"r")
+#    return(fobj)
 
 def load(resource,sample_rate=None,**kwargs):
     ''' 
@@ -98,7 +98,7 @@ def load(resource,sample_rate=None,**kwargs):
             sampling rate of returned signal
     '''
     
-    fobj = get_fobj(resource)
+    fobj = open_fobj(resource)
     data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
     # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
     # can resolve this 

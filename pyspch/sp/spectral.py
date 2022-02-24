@@ -7,7 +7,7 @@ from scipy.fft import dct, idct
 DCT_TYPE = 2  # dct_type used to convert log-spectrum to cepstrum
 DCT_NORM = 'ortho'
  
-from ..utils.constants import EPS_FLOAT, LOG2DB
+from ..core.constants import EPS_FLOAT, LOG2DB
 from .frames import *
 
 def check_mode(mode):

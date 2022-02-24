@@ -34,7 +34,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from ..utils.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
+from ..core.constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
