@@ -122,7 +122,7 @@ class Spg1(VBox):
         fname = self.root+self.fname
         #with self.logscr:
         #    print("audio file name",fname)
-        self.wavdata, self.sample_rate = Spch.load(fname)
+        self.wavdata, self.sample_rate = Spch.audio.load(fname)
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.wg_range.min = self.wavtimes[0]
         self.wg_range.max = self.wavtimes[1]
@@ -349,7 +349,7 @@ class Spg2(VBox):
         self.update()
   
     def wav_update(self):
-        self.wavdata, self.sample_rate = Spch.load(self.root+self.fname)  
+        self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.frames = [0, int(self.wavtimes[1]/self.shift)]
         self.wg_range.min = self.wavtimes[0]

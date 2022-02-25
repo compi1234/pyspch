@@ -69,7 +69,7 @@ from sklearn.naive_bayes import GaussianNB, CategoricalNB
 import matplotlib.pyplot as plt
 from scipy.special import logsumexp
 from scipy.stats import norm
-from pyspch import utils as spchu
+import pyspch.core as Spch
 
 # reusable initialization routine for classes and priors
 def _init_classes_(n_classes=None,classes=None,priors=None):
@@ -136,9 +136,9 @@ class Prob():
         
     def predict_ftr_log_prob(self,X):
         if self.prob_style == "logProbs": return(X)
-        elif self.prob_style == "Probs": return spchu.logf(X)  
-        elif self.prob_style == "Posteriors": return spchu.logf( _posteriors_to_probs_(X) )    
-        elif self.prob_style == "logPosteriors": return spchu.logf( _posteriors_to_probs_(np.exp(X)) )  
+        elif self.prob_style == "Probs": return Spch.logf(X)  
+        elif self.prob_style == "Posteriors": return Spch.logf( _posteriors_to_probs_(X) )    
+        elif self.prob_style == "logPosteriors": return Spch.logf( _posteriors_to_probs_(np.exp(X)) )  
 
     def predict_prob(self,X):
         return self.predict_ftr_prob(X)
@@ -153,9 +153,9 @@ class Prob():
         
     def predict_log_proba(self,X):
         if self.prob_style == "logPosteriors": return(X)
-        elif self.prob_style == "Posteriors": return spchu.logf(X)      
-        elif self.prob_style == "Probs": return spchu.logf( _probs_to_posteriors_(X) )
-        elif self.prob_style == "logProbs": return spchu.logf( _probs_to_posteriors_(np.exp(X) ) )        
+        elif self.prob_style == "Posteriors": return Spch.logf(X)      
+        elif self.prob_style == "Probs": return Spch.logf( _probs_to_posteriors_(X) )
+        elif self.prob_style == "logProbs": return Spch.logf( _probs_to_posteriors_(np.exp(X) ) )        
         
 
 
@@ -249,7 +249,7 @@ class Discrete():
         return prob
     
     def predict_ftr_log_prob(self,X):
-        return spchu.logf(self.predict_ftr_prob(X))
+        return Spch.logf(self.predict_ftr_prob(X))
 
     def predict_prob(self,X):
         return self.predict_ftr_prob(X)
@@ -265,14 +265,14 @@ class Discrete():
         return( proba / np.sum(proba,axis=1,keepdims=True) )
 
     def predict_log_proba(self,X):
-        return spchu.logf(self.predict_ftr_prob(X))        
+        return Spch.logf(self.predict_ftr_prob(X))        
     
     def print_model(self,labels=None,style='lin'):
         for j in range(self.n_features):
             print("++ Feature (%d) ++\n "%j)
             labels = self.labels[j]  
             if style == 'lin': ftr_prob = self.feature_prob_[j].T
-            elif style == 'log': ftr_prob = spchu.logf(self.feature_prob_[j].T)
+            elif style == 'log': ftr_prob = Spch.logf(self.feature_prob_[j].T)
             featprob_df = pd.DataFrame(ftr_prob,columns=self.classes_,
                      index= ['P('+labels[i]+'|.)' for i in range(0,self.n_categories[j])])
             display(featprob_df)
@@ -643,7 +643,7 @@ class DiscreteDens_obsolete1(CategoricalNB):
             self.class_prior_ = np.ones(self.n_classes,dtype='float64')/(self.n_classes) 
         else: 
             self.class_prior_ = priors
-            self.feature_log_prob_ = spchu.logf(_probs_to_posteriors_(self.feature_probs),priors=self.class_prior_)
+            self.feature_log_prob_ = Spch.logf(_probs_to_posteriors_(self.feature_probs),priors=self.class_prior_)
         
         if labels is None:
             self.labels=[]

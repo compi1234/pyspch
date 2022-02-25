@@ -9,30 +9,39 @@ from urllib.parse import urlparse
 def open_fobj(resource):
     '''
     opens a file like object for reading from either a filename (local) or a URL resource
-    
-    A URL resource is read into a BytesIO object, 
-    A local file is opened for reading
+    and read all data into a BytesIO object
     '''
     parsed=urlparse(resource)
     if(parsed.scheme !=''):
-        f = io.BytesIO(urlopen(resource).read())
+        f = urlopen(resource)
     else:
-        f = open(resource,"r")
+        f = open(resource,"rb")
     return(f)
 
-def read_data_file(resource,maxcols=None,encoding='utf-8'):
+
+def read_fobj(resource):
+    '''
+    opens a file like object for reading from either a filename (local) or a URL resource
+    and reads all data into a BytesIO object
+    '''    
+    return(io.BytesIO(open_fobj(resource).read()))
+
+
+def read_data_file(resource,maxcols=None,encoding='utf-8',format='cols'):
     '''
     generic read_data_file() routine
     
     reads from local file or URL resource
     
     returns
-        list of lines       if maxcols is None
-        list of columns     if maxcols is specified, maxcols is the maximum number of columns to split each dataline
+        list of lines       
+            - if maxcols is None  then each line is a text string
+            - if maxcols is specified then each line is a list of cols (maxcols+1)
+
         
     '''
     try:
-        f = open_fobj(resource)
+        f = read_fobj(resource)
         lines = []
         for line in f:
             lines.append(line.decode(encoding).strip())
@@ -43,9 +52,12 @@ def read_data_file(resource,maxcols=None,encoding='utf-8'):
             result=[]
             for x in lines:
                 result.append(x.strip().split(None,maxcols))
+            if format == 'cols':
             # convert lines to columns
-            result = [list(i) for i in zip(*result)]
-            return(result)
+                return(result)
+                #return( [list(i) for i in zip(*result)] )
+            else:
+                return(pd.DataFrame(result))
     except:
         print(f"WARNING(read_xxx_file): reading from file {resource} failed")
         return(None)

@@ -24,6 +24,8 @@ Modification History:
     changed buffer initialization in viterbi_recursion to -np.inf for log probs
     added .fillna("") to printing of  probs and obs_probs  dataframes
 
+25/02/2022:
+    adaptation to v0.6
         
 """
 import sys, os
@@ -37,7 +39,7 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 import copy
 
-from pyspch.utils.constants import *
+from pyspch.core.constants import EPS_FLOAT
 PROB_FLOOR = EPS_FLOAT
 
 class Obs_Dummy():

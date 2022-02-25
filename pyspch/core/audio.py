@@ -98,7 +98,7 @@ def load(resource,sample_rate=None,**kwargs):
             sampling rate of returned signal
     '''
     
-    fobj = open_fobj(resource)
+    fobj = read_fobj(resource)
     data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
     # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
     # can resolve this 

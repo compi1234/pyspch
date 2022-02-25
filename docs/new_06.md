@@ -1,58 +1,51 @@
 # New Organization with Subpackages
 
 subpackages:  (all modules in a subpackage are fully loaded on init )
-- io
-- utils
-- sp
-- display
+- core        collects the older subpackages io, audio, utils
+- sp          signal processing routines
+- display     display routines
 
 
 
+### Core Utilities
+```
+audio.load()       loading of audio file
+audio.record()     recording audio
+audio.play()       playing audio
+audio.stop()       interrupt audio recording
+logf()             log with EPS flooring
+log10f()           log10 with EPS flooring
+check_colab() 
+```
 
-### Signal Processing
 
-- spectrogram()
-- spg2mel()
-- cepstrum()
-- cep_lifter()
++ **Defined Constants**
+```
+LOG10       log(10)
+LOG2DB      10.0/LOG10
+EPS_FLOAT   1.e-39  
+
+```
+
++ **Kaldi Constants (default flooring)**
+```
+SIGEPS_FLOAT = 1.19209290e-7
+SIGEPS_DB    = -69.23689          # scale*math.log(1.19209290e-7)  
+
+```
+
+
+### Signal Processing Routines
+
+- spectrogram()       Fourier or mel spectrogram
+- spg2mel()           converts Fourier Spectrogram to mel scale
+- cepstrum()          waveform or spectrogram to cepstrum
+- cep_lifter()        cepstrum inverse
 - melcepstrum()
 
-- mean_norm()
-- deltas()
-- splice_frames()
-- feature_extraction()
+- mean_norm()           mean normalization, utterance based
+- deltas()              delta computation / augmentation
+- splice_frames()       splicing of frames
     
     
-Data objects
 
-it is worth considering putting all signal data (waveforms, spectrograms) in a data object 
-   - this is mainly true for plotting purposes
-
-### waveform data object
-data            float32 - wavdata
-n_samples       int
-n_channels      int
-sample_rate     int
-dx              float
-x_label         str ("Time(sec)")
-y_label         str
-
-### spectrogram data object
-data            float32 - spgdata
-n_frames        int
-n_param         int
-dx              float
-dy              float
-x_label         str ("Time")
-y_label         str ("Frequency(Hz)")
-
-### segmentation data object 
-is a panda's dataframe
-
-
-
-# Code Modifications
-
-1. make the frames[] parameters a slice object
-2. put spectrograms also in a (n_frames,n_param) array (transposed vs now)         no - keep librosa compatibility
-3. streamline n_xxx vs nxxx
