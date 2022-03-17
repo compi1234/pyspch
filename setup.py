@@ -16,8 +16,9 @@ setup(
     # add spch_version to the required install modules
     py_modules = ['spch_version'],
     # a dictionary refering to required data not in .py files
+    
     # include_package_data=True  (this would look into MANIFEST.in
-    #package_data = {'pyspch':['my_data/*']},
+    #package_data = {'pyspch':['data/*']},
     package_data = {'spchdata':['*']},
     
     install_requires=[
