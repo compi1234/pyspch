@@ -5,28 +5,70 @@ including conversion of TIMIT phone sets
 26/01/2022:  Some corrections in the mapping definitions
 
 21/02/2022:  Addition of TIMIT-41 symbol set, ie. CMU + SIL + CL
+
+TIMIT PHONE SETS:   
+The different phone sets defined here all use ARPABET notations but differ slightly in the phonetic detail that is maintained.   
+
+TIMIT61: alphabet used in TIMIT transcriptions
+    seldomly used in ASR   
+    
+TIMIT48: alphabet typically used for ASR training on TIMIT database  
+    - 7 phonetic symbols are folded into other existing phones
+    - 9 "silence"-like symbols are folded into 3 NEW symbols (SIL, CL, VCL)
+    
+TIMIT39: alphabet typically used for SCORING in ASR experiments with TIMIT
+    compared to TIMIT48
+        - 3 silence-like labels are folded onto SIL
+        - 6 phone like labels are folded onto a similar phone
+
+TIMIT41: ad hoc alphabet, similar to TIMIT39, that comes as close as possible to the CMU alphabet
+    - closures are mapped to 'cl'  (this is an additional symbol vs. CMU)
+    - AO and ZH are preserved
+    - DX is folded onto T
+    
+REMARK: it should be understood that the above alphabet mappings do NOT IMPLY that TIMIT transcriptions / segmenations 
+ can be mapped to good CMU transcriptions / segmentations
+   - plosives consist of a 'closure' + 'burst'
+   - syllabic mappings should be to symbol sequences, eg. 'el' -> 'ah'+'l'
 """
 
 import os,sys
 import numpy as np
 import pandas as pd
-
+import pkg_resources
+from .file_tools import *
 
 ######## TIMIT MAPPINGS   61-> 48 -> 39 ##########################
+
+TIMIT61 = ['aa','ae', 'ah','ao','aw','ax','ax-h', 'axr', 'ay', 'b', 'bcl',
+ 'ch', 'd', 'dcl', 'dh', 'dx', 'eh', 'el', 'em', 'en', 'eng', 'epi', 'er', 'ey', 'f',
+ 'g', 'gcl', 'h#', 'hh','hv', 'ih','ix', 'iy', 'jh', 'k', 'kcl', 'l', 'm',
+ 'n', 'ng', 'nx', 'ow', 'oy', 'p', 'pau', 'pcl', 'q', 'r', 's', 'sh', 't', 'tcl','th', 'uh','uw', 'ux',
+ 'v', 'w', 'y', 'z', 'zh']
 
 TIMIT48 = ['aa','ae', 'ah','ao','aw','ax','er','ay','b','ch','d','dh','dx','eh','el',
  'm','en','ng','ey','f','g','hh','ih','ix','iy','jh','k','l','n','ow', 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh','sil','epi','vcl','cl']
 
-# the very rare 'q' is mapped to 'sil' instead of None
-# as a variant one could define timit-47 including epi -> silence 
-#  15 symbols deleted - 2 symbols added (vcl,cl)
-timit61_48={ 
+TIMIT41 = ['aa','ae', 'ah','ao','aw','er','ay','b','ch','d','dh','eh',
+ 'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
+ 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh', 'sil','cl']
+
+TIMIT39 = ['aa','ae', 'ah','aw','er','ay','b','ch','d','dh','dx','eh',
+ 'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
+ 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','sil']
+
+
+# TIMIT 61 -> 48
+################
+# The TIMIT-47 variant is obtained by also mapping epi -> silence 
+timit61_48_diff ={ 
  'ax-h': 'ax',
  'axr': 'er',
  'em': 'm',
  'eng': 'ng',
- 'nx': 'n',    
  'hv': 'hh',
+ 'nx': 'n',    
+ 'ux': 'uw',
  'bcl': 'vcl', 'dcl': 'vcl',  'gcl': 'vcl',
  'kcl': 'cl',  'pcl': 'cl',  'tcl': 'cl',
  'h#': 'sil', 'pau': 'sil',  # ,  'epi': 'sil',    optional would make CMU 47
@@ -34,49 +76,41 @@ timit61_48={
 }
 
 # only used for scoring purposes for TIMIT phone experiments, where training is done on 48 classes and scoring on 39
-#  9 symbols deleted
+#  9 symbols deleted;   deleting the 'ao' and 'zh' symbols seems a bit erratic - these are maintained in TIMIT41
 #
-timit48_39= { 
+timit48_39_diff = { 
     'vcl':'sil','cl':'sil','epi':'sil',
     'ix':'ih','ax': 'ah' ,'el': 'l', 'en':'n' ,
     'ao': 'aa','zh': 'sh'
 }
 
 # rarely used as such
-timit61_39 = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
+timit61_39_diff = { 'ao': 'aa','ax': 'ah','ax-h': 'ah','axr': 'er','bcl': 'sil',
  'dcl': 'sil', 'el': 'l', 'em': 'm','en': 'n', 'eng': 'ng', 'epi': 'sil', 'gcl': 'sil',
  'h#': 'sil', 'hv': 'hh', 'ix': 'ih', 'kcl': 'sil', 'nx': 'n', 'pau': 'sil', 
  'pcl': 'sil','q': 'sil','tcl': 'sil','zh': 'sh'}
 
 
 ######## TIMIT  61-> 41  APPROXIMATE CMU MAPPING ##########################
-# TIMIT-41 is similar to CMU alphabet mapping, i.e. there are 39 phonemes + SIL + CL
-# symbols in TIMIT 41 / CMU, not in TIMIT39:  ao, zh
-# symbol  in TIMIT 41, not in CMU or TIMIT39: cl
-# symbol  NOT in TIMIT 41/CM, but in TIMIT39: dx
 #
-# REMARK: it should be understood that the above alphabet mappings do NOT IMPLY that TIMIT transcriptions / segmenations 
-# can be mapped to good CMU transcriptions / segmentations
-#   - plosives consist of a 'closure' + 'burst'
-#   - syllabic mappings should be to symbol sequences, eg. 'el' -> 'ah'+'l'
-# 
-TIMIT41 = ['aa','ae', 'ah','ao','aw','er','ay','b','ch','d','dh','eh',
- 'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
- 'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','zh','sil','cl']
 
-timit48_41 = { 
+# 
+
+
+timit48_41_diff = { 
     'epi':'sil',
     'vcl':'cl',
     'dx':'t',
     'ix':'ih','ax': 'ah' ,
     'el': 'l', 'en':'n' 
 }
-timit61_41={ 
+timit61_41_diff ={ 
  'axr': 'er',
  'em': 'm',
  'eng': 'ng',
  'nx': 'n',    
  'hv': 'hh',
+ 'ux': 'uw',
  'kcl': 'cl',  'pcl': 'cl',  'tcl': 'cl',
  'h#': 'sil', 'pau': 'sil' ,   'q': 'sil', 
 ## different from 48 mapping
@@ -87,6 +121,36 @@ timit61_41={
  'el': 'l', 'en':'n' 
 }
 
+# FILE based definitions of the TIMTI alphabet and their mappings
+# This usage is the preferred way of doing this
+
+def get_timit_alphabet(set="timit61"):
+    '''
+    gets one of the various TIMIT alphabets
+    acceptable names: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
+    '''
+    fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
+    timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
+    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
+    
+    col = col_map[set.lower()]
+    return(timit_map[col])
+
+def get_timit_mapping(set1="timit61",set2="timit41"):
+    '''
+    makes a mapping dictionary between various TIMIT alphabets
+    acceptable names: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
+    '''
+    fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
+    timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
+    #timit_map
+    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
+    
+    col_set1 = col_map[set1.lower()]
+    col_set2 = col_map[set2.lower()]
+    
+    timit_map = dict(zip(timit_map[col_set1],timit_map[col_set2]))
+    return(timit_map)
 
 def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     """
@@ -162,9 +226,9 @@ def xlat_seg(isegdf,xlat=None):
     """
 
     if(xlat is None):        xlat_dict = None
-    elif(xlat == 'timit61_48') : xlat_dict = timit61_48
-    elif(xlat == 'timit61_41') : xlat_dict = timit61_41
-    elif(xlat == 'timit61_39') : xlat_dict = timit61_39
+    elif(xlat == 'timit61_48') : xlat_dict = timit61_48_diff
+    elif(xlat == 'timit61_41') : xlat_dict = timit61_41_diff
+    elif(xlat == 'timit61_39') : xlat_dict = timit61_39_diff
     else: xlat_dict = xlat
         
     ww=isegdf.seg

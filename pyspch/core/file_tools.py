@@ -46,16 +46,18 @@ def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
     return(df)
 
 
-def read_data_file(resource,encoding='utf-8',maxcols=None):
+def read_data_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
     '''
     generic read_data_file() routine with optional encoding setting
-    reads from local file or URL resource
+    reads lines from local file or URL resource
     
     for local files equivalent to read().splitlines()
     
     Arguments:
-        maxcols   if specified, each line is split on blanks into (maxcols+1) cols
-                        the last column may be a string with blacks        
+        maxcols (int, default=None)  if specified, each line is split on blanks into (maxcols+1) cols
+                        the last column may be a string with blacks   
+        as_cols (boolean, default= False)  if True, data is returned as list of columns instead of (lines with splits)
+                        only applicable if maxcols is not None
     '''
     try:
         # read into lines
@@ -67,9 +69,32 @@ def read_data_file(resource,encoding='utf-8',maxcols=None):
                 line = line.split(None,maxcols)
             lines.append(line)
         f.close()
-        return(lines)
+    
+        if( as_cols and (maxcols is not None) ):
+            # split into columns
+            cols = [ [] for _ in range(maxcols) ]
+            for line in lines:
+                for c in range(maxcols):
+                    cols[c].append(line[c])
+            return(cols)
+        else:
+            return(lines)
     except:
         print(f"WARNING(read_data_file): reading from file {resource} failed")
         return(None)
     
 
+def lines_to_columns(lines,maxcols=2,sep=None):
+    '''
+    rearrange an array of lines holding column data into columns
+    
+    parsing is done using the separator definitions of the builtin split() function
+        - the default sep (separator) is None
+        - the maximum number of columns to extract is maxcols (as passed to split())
+    '''
+    cols = [ [] for _ in range(maxcols) ]
+    for line in lines:
+        line = line.split(sep,maxcols)        
+        for c in range(maxcols):
+            cols[c].append(line[c])
+    return(cols)

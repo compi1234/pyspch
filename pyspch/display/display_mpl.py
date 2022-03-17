@@ -19,20 +19,56 @@ from matplotlib.figure import Figure
 
 os.environ['PYSPCH_BACKEND'] = "mpl"
 
+
+# local utilities
+def invert_xy_line2D(ax,swap_labels=True):
+        
+    n_lines = len(ax.lines)
+    x_lim = ax.get_xlim()
+    y_lim = ax.get_ylim()
+    xlabel = ax.get_xlabel()
+    ylabel = ax.get_ylabel()
+    xdata = []
+    ydata = []
+    
+    for i in range(n_lines):
+        xdata.append(ax.lines[i].get_xdata())
+        ydata.append(ax.lines[i].get_ydata())
+        
+    ax.clear()
+
+    for i in range(n_lines):
+        ax.plot(ydata[i],xdata[i])
+
+        
+    ax.set_ylim(x_lim)
+    ax.invert_yaxis()
+    ax.set_ylabel(xlabel,rotation=0)
+    ax.set_xlim(y_lim)
+    #ax.invert_xaxis()
+    ax.set_xlabel(ylabel,rotation=0)    
+    
+    if swap_labels:
+        #ax.yaxis.tick_right()
+        #ax.yaxis.set_label_position('right') 
+        ax.xaxis.tick_top()
+        ax.xaxis.set_label_position('top') 
+
+
 #######################################################################################
 # Define the SpchFig class as a superclass of matplotlib Figure
 #######################################################################################
 class SpchFig(Figure):
-    def __init__(self,row_heights=[1.,1.],col_widths=[1.],**kwargs):
+    def __init__(self,row_heights=[1.,1.],col_widths=[1.],sharex=False,sharey=False,**kwargs):
         fig_kwargs={'constrained_layout':True,'figsize':(12,6),'dpi':72}
         fig_kwargs.update(kwargs)
         super().__init__(**fig_kwargs)
 
         self.nrows = len(row_heights)
         self.ncols = len(col_widths)
+        
         gs = self.add_gridspec(nrows=self.nrows,ncols=self.ncols,
                               height_ratios=row_heights,width_ratios=col_widths)
-
         for i in range(0,self.nrows):
             for j in range(0,self.ncols):
                 ii = i*self.ncols + j
@@ -46,8 +82,11 @@ class SpchFig(Figure):
         if self.ncols == 1:
             self.align_ylabels(self.axes)
             
-# convert list of axis to axis number
+
     def get_axis(self,iax):
+        '''
+        converts axis grid specification to axis number
+        '''
         if isinstance(iax,list): # row*col spec
             ii = iax[0]*self.axes[0].numCols + iax[1]
             ax = self.axes[ii]
@@ -59,7 +98,11 @@ class SpchFig(Figure):
 #######################################################################################
 # Low level API for mpl backend
 #######################################################################################
-    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,**kwargs):
+# this function redraws all lines in a standard line2D plot while inverting y_x
+#
+
+
+    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,invert_xy=False,**kwargs):
         """
         Add a line plot to an existing axis
 
@@ -90,11 +133,9 @@ class SpchFig(Figure):
             x = x0+np.arange(npts) * dx
 
         ax.plot(x,y.T,**kwargs)
-        if xrange is None: pass
-        elif xrange == 'tight': 
-            ddx = (x[-1]-x[0])/len(x)
-            ax.set_xlim([x[0],x[-1]])
-        else: ax.set_xlim(xrange)
+        if xrange is None:         pass
+        elif xrange == 'tight':    ax.set_xlim([x[0],x[-1]])
+        else:                      ax.set_xlim(xrange)
 
         if yrange is None: pass
         elif yrange == 'tight':
@@ -111,6 +152,9 @@ class SpchFig(Figure):
         else:       ax.tick_params(axis='y',labelleft=False, left=False)
         if(xticks): ax.tick_params(axis='x',labelbottom=True)
         else:       ax.tick_params(axis='x',labelrotation=0.0,labelbottom=False,bottom=True)    
+            
+        if invert_xy:
+            invert_xy_line2D(ax,swap_labels=True)
 
 
     def add_img_plot(self,img,iax=0,x0=None,y0=None,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,**kwargs):
@@ -127,7 +171,6 @@ class SpchFig(Figure):
         xticks : (boolean) - label the x-axis ticks
         xlabel : string (default=None)
         ylabel : string (default=None)
-        row :    int (default=1)  [Numbering: row=1=top row]
 
         **kwargs: extra arguments to pass / override defaults in ax.colormesh()
 
@@ -140,14 +183,20 @@ class SpchFig(Figure):
         params={'cmap':'jet','shading':'auto'}
         params.update(kwargs)
 
+        # code before v0.6
         # Use x & y center coordinates with same dimensions and centered positions
-        if x is None: 
-            if x0 is None : x0 = 0.5*dx
-            x = np.arange(nc) * dx +  x0
-        if y is None: 
-            if y0 is None : y0 = 0.5*dy
-            y=  np.arange(nr) * dy  + y0
+        #if x is None: 
+        #    if x0 is None : x0 = 0.5*dx
+        #    x = np.arange(nc) * dx +  x0
+        #if y is None: 
+        #    if y0 is None : y0 = 0.5*dy
+        #    y=  np.arange(nr) * dy  + y0
 
+        # give x,y as edges, thus dim+1 vs. img
+        if x0 is None : x0 = -.5*dx
+        if y0 is None : y0 = -.5*dy
+        x = x0 + dx * np.arange(nc+1)
+        y = y0 + dy * np.arange(nr+1)
         ax.pcolormesh(x,y,img,**params)
 
         if(xticks): ax.tick_params(axis='x',labelbottom=True)
