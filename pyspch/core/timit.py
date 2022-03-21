@@ -124,6 +124,10 @@ timit61_41_diff ={
 # FILE based definitions of the TIMTI alphabet and their mappings
 # This usage is the preferred way of doing this
 
+####################################################################
+# TIMIT ALPHABETS and MAPPINGS
+####################################################################
+
 def get_timit_alphabet(set="timit61"):
     '''
     gets one of the various TIMIT alphabets
@@ -151,6 +155,113 @@ def get_timit_mapping(set1="timit61",set2="timit41"):
     
     timit_map = dict(zip(timit_map[col_set1],timit_map[col_set2]))
     return(timit_map)
+
+
+####################################################################
+# TIMIT CORPORA TOOLS
+####################################################################
+
+### Corpus from directory ###
+
+def get_all_files(path):
+    
+    files = os.listdir(path)
+    fnames = list()
+    
+    for entry in files:
+        file = os.path.join(path, entry)
+        if os.path.isdir(file):
+            fnames = fnames + get_all_files(file)
+        else:
+            fnames.append(file)
+            
+    return fnames
+
+def get_corpus(path):
+    """
+    Returns all files in path (without extensions)
+    """    
+    # get all filenames
+    fnames = utils.get_all_files(path)
+
+    # remove root and extention + to posix + remove duplicates
+    fnames = [relpath(fname, path) for fname in fnames]
+    fnames = [Path(fname).as_posix() for fname in fnames]
+    fnames = [splitext(fname)[0] for fname in fnames]
+    fnames = list(set(fnames))
+    
+    return sorted(fnames)
+
+def get_timit_corpus(path, 
+        split="(train|test)", 
+        region="dr[12345678]", 
+        speaker="(m|f)",
+        sentence="(si|sx|sa)"):
+    """
+    Returns TIMIT files in path (without extensions).
+    Regular expressions (arguments) rely on TIMIT directory structure 
+    and can adapted to obtain a TIMIT subset.
+    """
+    # get all filenames
+    fnames = get_corpus(path)
+    
+    # regex filtering
+    fnames = filter_list_timit(fnames, split, region, speaker, sentence)
+    
+    return fnames
+
+
+def filter_list_regex(fnames, rgx):
+    # regex filtering
+    rgx = re.compile(rgx)
+    fnames_filt = [ fname for fname in fnames if rgx.match(fname) ]
+    
+    return sorted(fnames_filt)
+  
+### TIMIT corpus ###
+
+def filter_list_timit(fnames, 
+        split="(train|test)", 
+        region="dr[12345678]", 
+        speaker="(m|f)",
+        sentence="(si|sx|sa)"):
+    
+    # regex for TIMIT 
+    rgx = f'.*{split}.*/{region}.*/{speaker}.*/{sentence}.*'
+
+    return filter_list_regex(fnames, rgx)
+
+
+
+def get_timit_metadata(fnames):
+    """
+    Returns DataFrame containing meta data derrived from TIMIT filenames.
+    Regular expressions (arguments) rely on TIMIT directory structure to extract meta data.
+    """
+    # TIMIT metadata (from relative path, with regex)
+    rgx_split = re.compile(f'.*(train|test)/.*')
+    rgx_region = re.compile(f'.*/(dr\d)/.*')
+    rgx_gender = re.compile(f'.*/(m|f).{{4}}/.*')
+    rgx_speaker = re.compile(f'.*/([mf].{{4}})/.*')
+    rgx_sentence = re.compile(f'.*/(si|sa|sx).*')
+    
+    # metadata lists
+    split = [rgx_split.search(fname).group(1) for fname in fnames]
+    region = [rgx_region.search(fname).group(1) for fname in fnames]
+    gender = [rgx_gender.search(fname).group(1) for fname in fnames]
+    speaker = [rgx_speaker.search(fname).group(1) for fname in fnames]
+    sentence = [rgx_sentence.search(fname).group(1) for fname in fnames]
+    
+    # dataframe
+    meta_df = pd.DataFrame([fnames, split, region, gender, speaker, sentence]).T
+    
+    return meta_df
+
+
+
+####################################################################
+# PROCESSING of (TIMIT like) SEGMENTATION FILES
+####################################################################
 
 def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     """
