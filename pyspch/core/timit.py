@@ -211,28 +211,6 @@ def get_timit_corpus(path,
     return fnames
 
 
-def filter_list_regex(fnames, rgx):
-    # regex filtering
-    rgx = re.compile(rgx)
-    fnames_filt = [ fname for fname in fnames if rgx.match(fname) ]
-    
-    return sorted(fnames_filt)
-  
-### TIMIT corpus ###
-
-def filter_list_timit(fnames, 
-        split="(train|test)", 
-        region="dr[12345678]", 
-        speaker="(m|f)",
-        sentence="(si|sx|sa)"):
-    
-    # regex for TIMIT 
-    rgx = f'.*{split}.*/{region}.*/{speaker}.*/{sentence}.*'
-
-    return filter_list_regex(fnames, rgx)
-
-
-
 def get_timit_metadata(fnames):
     """
     Returns DataFrame containing meta data derrived from TIMIT filenames.
@@ -256,6 +234,29 @@ def get_timit_metadata(fnames):
     meta_df = pd.DataFrame([fnames, split, region, gender, speaker, sentence]).T
     
     return meta_df
+
+def filter_list_regex(fnames, rgx):
+    # regex filtering
+    rgx = re.compile(rgx)
+    fnames_filt = [ fname for fname in fnames if rgx.match(fname) ]
+    
+    return sorted(fnames_filt)
+  
+### TIMIT corpus ###
+
+def filter_list_timit(fnames, 
+        split="(train|test)", 
+        region="dr[12345678]", 
+        speaker="(m|f)",
+        sentence="(si|sx|sa)"):
+    
+    # regex for TIMIT 
+    rgx = f'.*{split}.*/{region}.*/{speaker}.*/{sentence}.*'
+
+    return filter_list_regex(fnames, rgx)
+
+
+
 
 
 
