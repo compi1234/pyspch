@@ -12,7 +12,7 @@ setup(
     description="A loose collection of speech processing utilities",
     license = "free",
     
-    packages = ['pyspch'],
+    packages = find_packages() #['pyspch'],
     # add spch_version to the required install modules
     py_modules = ['spch_version'],
     # a dictionary refering to required data not in .py files
