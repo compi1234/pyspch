@@ -15,36 +15,43 @@ class SpchDataset(Dataset):
         self.corpus = corpus
         self.input = np.hstack(input).T
         self.target = np.hstack(target)
-    
+        self.sampler = None
+                        
+    def map_target(self, dct):
+        # apply dictionairy mapping
+        if type(self.target) == np.ndarray:
+            self.target = np.vectorize(dct.get)(self.target)
+        elif type(self.target) == torch.Tensor:
+            self.target.apply_(dct.get)
+        else:      
+            print("method expects target of type np.ndarray")
+            
     def set_encoding(self, lab2idx=None):
         if lab2idx is None:
             self.labels = sorted(np.unique(self.target))
             self.lab2idx = {lab: i for i, lab in enumerate(self.labels)}
         else:
             self.lab2idx = lab2idx
-
+            
     def encode_target(self, lab2idx=None):
-        # set enocding
         self.set_encoding(lab2idx)
-        # encode target
-        if type(self.target) == np.ndarray:
-            self.target = np.vectorize(self.lab2idx.get)(self.target)
-        elif type(self.target) == torch.Tensor:
-            self.target.apply_(self.lab2idx.get)
-        else:      
-            print("method expects target of type np.ndarray")
+        self.map_target(self.lab2idx)
         
-    def to_tensor(self):
-        self.input = torch.tensor(self.input)
-        self.target = torch.tensor(self.target).long()
+    def to_tensor(self, mode='classification'):
+        if mode == 'classification':
+            self.input = torch.tensor(self.input).float()
+            self.target = torch.tensor(self.target).long()
+        if mode == 'regression':
+            self.input = torch.tensor(self.input).float()
+            self.target = torch.tensor(self.target).float()  
         
     def to_device(self, device):
         self.input = self.input.to(device)
         self.target = self.target.to(device)
        
-    def set_sampler(self, lengths, splice_args):
+    def set_sampler(self, lengths, sampler_args):
         # splicing arguments
-        self.splice_args = splice_args
+        self.sampler_args = sampler_args
         # splicing windows
         splice_idcs = []   
         for length in lengths:
@@ -54,20 +61,44 @@ class SpchDataset(Dataset):
         
     def get_window(self, frame_idx, nframes):
         # unpack splicing arguments
-        n = self.splice_args['N']
-        stride = self.splice_args['stride']
+        n = self.sampler_args['N']
+        stride = self.sampler_args['stride']
         # window (clipped to utterance boundaries)
-        window = np.arange(-n + 1, n, 1).astype(int) * stride  
-        window = np.clip(window, -frame_idx, nframes - frame_idx)
+        window = np.arange(-n, n + 1, 1).astype(int) * stride  
+        window = np.clip(window, -frame_idx, (nframes - 1)  - frame_idx)
         return window
 
+    def get_input_shape(self):
+        return self.__getitem__(0)[0].shape
+    
+    def get_output_shape(self):
+        return self.__getitem__(0)[1].shape
+
+    def split(self, frac=None, seed=None):
+        if frac is None:
+            return None, self
+        else:
+            n_split = int(len(self) * frac)
+            if seed is not None: torch.manual_seed(seed)
+            return torch.utils.data.random_split(self, [n_split, len(self) - n_split])
+    
     def __len__(self):
         return len(self.input)
     
     def __getitem__(self, idx):
-        splice_idcs = self.sampler[idx]
-        input = torch.flatten(self.input[splice_idcs], end_dim=1)
-        label = self.target[idx]
-        return input, label 
+        # input with sampler
+        if self.sampler is None:
+            input = self.input[idx]
+        else:
+            splice_idcs = self.sampler[idx]
+            input = self.input[idx + splice_idcs]
+            if self.sampler_args['mode'] == 'flatten1d':
+                input = torch.flatten(input, end_dim=1)
+            if self.sampler_args['mode'] == 'flatten2d':
+                input = torch.flatten(input, end_dim=2)
+        # target
+        target = self.target[idx]
+        return input, target 
 
 
+    

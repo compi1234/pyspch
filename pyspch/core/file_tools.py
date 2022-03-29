@@ -1,4 +1,5 @@
 import os, sys, io
+import json
 import numpy as np
 import pandas as pd
 from urllib.request import urlopen
@@ -103,3 +104,8 @@ def lines_to_columns(lines,maxcols=2,sep=None):
         for c in range(maxcols):
             cols[c].append(line[c])
     return(cols)
+
+def read_json_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
+    lines = read_data_file(resource,encoding,maxcols,as_cols)
+    return json.loads(lines[0])
+    

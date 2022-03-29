@@ -188,3 +188,14 @@ def plot_confusion_matrix(cm,labels=[],title='Confusion Matrix\n',figsize=(4,4),
 ####
 def check_colab():
     return('google.colab' in str(get_ipython()))
+
+
+####
+# Dictionairy function
+####
+def dct_diff(dct1, dct2):
+    '''
+    Returns dictionairy with keys and values from dct2, 
+    but only retains keys not in dct1. 
+    '''
+    return {k : dct2[k] for k, _ in set(dct2.items()) - set(dct1.items())}
