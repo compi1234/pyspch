@@ -1,12 +1,13 @@
-import os, sys, io
+import os, sys, io, pkg_resources
 import numpy as np
 import pandas as pd
 import json
 from urllib.request import urlopen
 from urllib.parse import urlparse
 from pathlib import Path
+import scipy.io as sio
 
-
+#from . import audio, timit
     
 ###########################
 # FILE TOOLS
@@ -32,6 +33,7 @@ def read_fobj(resource):
     '''    
     return(io.BytesIO(open_fobj(resource).read()))
 
+    
 def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
     '''
     reads a column organized datafile into a panda's DataFrame
@@ -54,7 +56,7 @@ def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
 
 def read_data_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
     '''
-    deprecated - pls. use read_txt() instead
+    print('DEPRECATION WARNING:  - pls. use read_txt() instead')
     '''
     return(read_txt(resource,encoding=encoding,maxcols=maxcols,as_cols=as_cols))
 
