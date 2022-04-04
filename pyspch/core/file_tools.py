@@ -144,6 +144,6 @@ def write_json(data, filename):
         json.dump(data, f, cls=NpEncoder)
 
 def read_json(filename):
-    with Spch.open_fobj(filename) as f:
+    with open_fobj(filename) as f:
         data = json.load(f)
     return data
