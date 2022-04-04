@@ -6,8 +6,9 @@ from ipywidgets import HBox, VBox, Layout
 import librosa
 
 
-from .. import core as Spch
-from ..sp import spectrogram, spg2mel, cepstrum
+from .. import core
+#from ..sp import spectrogram, spg2mel, cepstrum
+from .. import sp #sp import spectrogram, spg2mel, cepstrum
 from .display import SpchFig, PlotWaveform, PlotSpg, PlotSpgFtrs
 
 import matplotlib.pyplot as plt
@@ -122,7 +123,7 @@ class Spg1(VBox):
         fname = self.root+self.fname
         #with self.logscr:
         #    print("audio file name",fname)
-        self.wavdata, self.sample_rate = Spch.audio.load(fname)
+        self.wavdata, self.sample_rate = core.audio.load(fname)
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.wg_range.min = self.wavtimes[0]
         self.wg_range.max = self.wavtimes[1]
@@ -146,13 +147,13 @@ class Spg1(VBox):
         self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#222')
         self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#222')
         
-        self.spg = spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         
         # get segmentation
         try:
-            seg1= Spch.read_seg_file(self.root+self.segfname)
+            seg1= core.read_seg_file(self.root+self.segfname)
             self.segs = [seg1] if seg1 is not None else []
         except:
             self.segs = []
@@ -188,7 +189,7 @@ class Spg1(VBox):
             ceptype = 'cep'
         # add (mel) cepstral view
         if self.mfcc:
-            mfccs = cepstrum(S=S,n_cep=self.nmfcc)
+            mfccs = sp.cepstrum(S=S,n_cep=self.nmfcc)
             # mfccs = librosa.feature.mfcc(S=self.spgmel,sr=self.sample_rate,n_mfcc=self.nmfcc,dct_type=3) 
             img_ftrs += [ mfccs ]
             img_labels += [ceptype+str(mfccs.shape[0])]
@@ -349,7 +350,7 @@ class Spg2(VBox):
         self.update()
   
     def wav_update(self):
-        self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
+        self.wavdata, self.sample_rate = core.audio.load(self.root+self.fname)  
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.frames = [0, int(self.wavtimes[1]/self.shift)]
         self.wg_range.min = self.wavtimes[0]
@@ -375,8 +376,8 @@ class Spg2(VBox):
         self.winsamples = [self.selsamples[0]-nextend, self.selsamples[1]+nextend]
         self.wintimes = [self.winsamples[0]/self.sample_rate, self.winsamples[1]/self.sample_rate]
         
-        self.spg = spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         img_ftrs = []
         img_labels = []
@@ -392,13 +393,13 @@ class Spg2(VBox):
             ceptype = 'cep'
         # add (mel) cepstral view
         if self.mfcc:
-            mfccs = cepstrum(S=S,n_cep=self.nmfcc)
+            mfccs = sp.cepstrum(S=S,n_cep=self.nmfcc)
             # mfccs = librosa.feature.mfcc(S=self.spgmel,sr=self.sample_rate,n_mfcc=self.nmfcc,dct_type=3) 
             img_ftrs += [ mfccs ]
             img_labels += [ceptype+str(mfccs.shape[0])]
         # add segmentation
         try:
-            seg1= Spch.read_seg_file(self.root+self.segfname)
+            seg1= core.read_seg_file(self.root+self.segfname)
             segs = [seg1] if seg1 is not None else []
         except:
             segs = []

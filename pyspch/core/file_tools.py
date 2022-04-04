@@ -54,6 +54,12 @@ def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
 
 def read_data_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
     '''
+    deprecated - pls. use read_txt() instead
+    '''
+    return(read_txt(resource,encoding=encoding,maxcols=maxcols,as_cols=as_cols))
+
+def read_txt(resource,encoding='utf-8',maxcols=None,as_cols=False):
+    '''
     generic read_data_file() routine with optional encoding setting
     reads lines from local file or URL resource
     
@@ -88,6 +94,22 @@ def read_data_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
     except:
         print(f"WARNING(read_data_file): reading from file {resource} failed")
         return(None)
+
+    
+def write_txt(txt, filename, eol='\n'):
+    '''
+    write_txt() generic write routine for txt data
+    
+    writes *txt* to a LOCAL FILE 
+    txt must be either a single string or a list of strings, in case of list the *eol* character is added to each line
+    
+    arguments:
+        txt       list or str
+        
+    '''
+    if type(txt) is list: 
+        txt = [line + eol for line in txt]
+    open(filename, 'w').writelines(txt) 
     
 
 def lines_to_columns(lines,maxcols=2,sep=None):
@@ -105,7 +127,21 @@ def lines_to_columns(lines,maxcols=2,sep=None):
             cols[c].append(line[c])
     return(cols)
 
-def read_json_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
-    lines = read_data_file(resource,encoding,maxcols,as_cols)
-    return json.loads(lines[0])
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
     
+def write_json(data, filename):
+    with open(filename, 'w') as f:
+        json.dump(data, f, cls=NpEncoder)
+
+def read_json(filename):
+    with open_fobj(filename) as f:
+        data = json.load(f)
+    return data

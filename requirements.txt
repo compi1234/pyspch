@@ -4,7 +4,8 @@ pandas >= 1.1
 librosa >= 0.8.0
 numba
 soundfile >= 0.10.0
-matplotlib >= 3.2
+matplotlib >= 3.4
 ipywidgets >= 7.5.1
 pydub
 scikit-learn >= 1.0.0
+seaborn >= 0.11
