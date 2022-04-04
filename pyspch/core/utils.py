@@ -3,8 +3,6 @@
 #
 import os,sys,io 
 
-from IPython.display import display, Audio, HTML, clear_output
-
 import math
 import numpy as np
 import pandas as pd
@@ -15,6 +13,14 @@ import matplotlib.gridspec as gridspec
 
 from .constants import EPS_FLOAT, LOG10, SIGEPS_FLOAT
 
+##################################################
+# PART 0:  GLOBAL UTILITIES
+##################################################
+####
+# A single call to check if IN_COLAB has been set
+####
+def check_colab():
+    return('google.colab' in str(get_ipython()))
 
 ##################################################
 # PART I:  MATH UTILITIES
@@ -180,11 +186,3 @@ def plot_confusion_matrix(cm,labels=[],title='Confusion Matrix\n',figsize=(4,4),
     plt.show()
     
     return f,ax
-    
-
-
-####
-# A single call to check if IN_COLAB has been set
-####
-def check_colab():
-    return('google.colab' in str(get_ipython()))

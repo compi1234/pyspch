@@ -44,11 +44,16 @@ import librosa
 #          an Ipython.display.Audio() is generated
 #
 
+
 _IO_ENV_ = None
-if ('google.colab' in str(get_ipython())):
-    _IO_ENV_ = "colab"
-    from google.colab import output
-else:
+try:
+    if ('google.colab' in str(get_ipython())):
+        _IO_ENV_ = "colab"
+        from google.colab import output
+except: pass
+
+
+if _IO_ENV_ is None:
     try:
         import sounddevice as sd
         _IO_ENV_ = "sd"
@@ -59,26 +64,15 @@ try:
     import soundfile as sf
     from pydub import AudioSegment 
 except:
-    print("ERROR: Using spchutils.audio requires soundfile and pydub packages to be installed.   You should fix this first")
+    print("ERROR: Using pyspch.core.audio requires soundfile and pydub packages to be installed.   You should fix this first")
 
 
-#def get_fobj(resource):
-#    '''
-#    returns a file like object for reading from either a filename (local) or a URL resource
-#    
-#    A URL resource is read into a BytesIO object, while filenames are left unchanged
-#    '''
-#    parsed=urlparse(resource)
-#    if(parsed.scheme !=''):
-#        fobj = io.BytesIO(urlopen(resource).read())
-#    else:
-#        fobj = open(resource,"r")
-#    return(fobj)
 
 def load(resource,sample_rate=None,**kwargs):
     ''' 
     This is a tiny wrapper around librosa.load() to accomodate for specifying a resource
-    both by url or filename
+    both by url or filename.
+    librosa.load() has the nice feature that it allows for sample rate conversion ( soundfile.read() does not )
     
     Parameters:
     -----------

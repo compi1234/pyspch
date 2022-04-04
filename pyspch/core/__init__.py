@@ -1,9 +1,15 @@
-__all__ =['constants','utils','audio','hillenbrand','sequence_data','file_tools']
+__all__ =['constants','utils','audio','hillenbrand','sequence_data','file_tools','timit']
+#
 from .file_tools import *
 from .constants import *
 from .utils import *
+
 #
-from .timit import *
-from .hillenbrand import *
-from .sequence_data import *
-from .audio import *
+from . import audio
+from . import timit
+from . import hillenbrand
+from . import sequence_data
+#from .timit import *
+#from .hillenbrand import *
+#from .sequence_data import *
+

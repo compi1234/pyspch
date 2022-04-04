@@ -69,7 +69,7 @@ from sklearn.naive_bayes import GaussianNB, CategoricalNB
 import matplotlib.pyplot as plt
 from scipy.special import logsumexp
 from scipy.stats import norm
-import pyspch.core as Spch
+from . import core as Spch
 
 # reusable initialization routine for classes and priors
 def _init_classes_(n_classes=None,classes=None,priors=None):
