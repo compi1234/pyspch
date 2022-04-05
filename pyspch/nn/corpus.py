@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 
 # import modules
-import pyspch.sp as Sps
-import pyspch.core as Spch
+import pyspch
 
 ### Corpus from directory ###
 
@@ -20,7 +19,7 @@ def get_corpus(path):
     Returns all files in path (without extensions)
     """    
     # get all filenames
-    fnames = Spch.get_all_files(path)
+    fnames = pyspch.get_all_files(path)
 
     # remove root and extention + to posix + remove duplicates
     fnames = [relpath(fname, path) for fname in fnames]
@@ -50,7 +49,7 @@ class SpchData(object):
         self.lengths = None
         # write/read
         self.write_fnc = lambda file, array: np.save(file + '.npy', array)
-        self.read_fnc = lambda file: np.load(Spch.read_fobj(file + '.npy'))       
+        self.read_fnc = lambda file: np.load(pyspch.read_fobj(file + '.npy'))       
 
     # General    
     def read(self, path, attr_name=None):
@@ -73,7 +72,7 @@ class SpchData(object):
         for fname in self.corpus:
             # read wav file (enforce sample rate)
             wavfname = os.path.join(feature_path, fname + extension)
-            wavdata, _ = Spch.load(wavfname, sample_rate=sample_rate)
+            wavdata, _ = pyspch.audio.load(wavfname, sample_rate=sample_rate)
             self.signals.append(wavdata)
     
     # Features       
@@ -82,9 +81,16 @@ class SpchData(object):
         for fname in self.corpus:
             # read wav file (enforce sample rate)
             wavfname = os.path.join(feature_path, fname + extension)
-            wavdata, _ = Spch.load(wavfname, sample_rate=feature_args['sample_rate'])
+            wavdata, _ = pyspch.audio.load(wavfname, sample_rate=feature_args['sample_rate'])
             # extract feature
-            feature = Sps.feature_extraction(wavdata, **feature_args)
+            feature = pyspch.sp.feature_extraction(wavdata, **feature_args)
+            self.features.append(feature)
+    
+    def extract_features_from_signals(self, feature_args):
+        self.features = []
+        for wavdata in self.signals:
+            # extract feature
+            feature = pyspch.sp.feature_extraction(wavdata, **feature_args)
             self.features.append(feature)
     
     def write_features(self, feature_path):
@@ -105,9 +111,9 @@ class SpchData(object):
         for fname in self.corpus:
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
-            seg_df = Spch.read_seg_file(segfname)
+            seg_df = pyspch.timit.read_seg_file(segfname)
             # extract labels
-            label = Spch.seg2lbls(seg_df, shift)
+            label = pyspch.seg2lbls(seg_df, shift)
             self.labels.append(np.array(label))
     
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
@@ -117,9 +123,9 @@ class SpchData(object):
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
-            seg_df = Spch.read_seg_file(segfname)
+            seg_df = pyspch.timit.read_seg_file(segfname)
             # extract labels
-            label = Spch.seg2lbls(seg_df, shift, n_frames=length, end_time=None, pad_lbl=pad_lbl)
+            label = pyspch.seg2lbls(seg_df, shift, n_frames=length, end_time=None, pad_lbl=pad_lbl)
             self.labels.append(np.array(label))       
  
     def extract_labels_from_meta(self, meta: pd.DataFrame, col_fname=0, col_label=-1):
@@ -176,4 +182,24 @@ class SpchData(object):
         attr = getattr(self, name)
         if attr is None: return []
         else: return [item.shape[axis] for item in attr]
-
+        
+    # Dataframe
+    def to_dataframe(self):
+        df_dict = {}
+        attributes = ['corpus', 'signals', 'features', 'labels']
+        for attr in attributes:
+            df_dict[attr] = getattr(self, attr)
+            
+        return pd.DataFrame(df_dict)
+        
+def SpchData_from_dataframe(df):
+    # initialize with corpus
+    corpus = df['corpus'].to_list()
+    spchdata = SpchData(corpus)
+    # other attributes
+    attributes = ['corpus', 'signals', 'features', 'labels']
+    attributes = [attr for attr in attributes if attr in df.columns]
+    for attr in attributes:
+        setattr(spchdata, attr, df[attr].to_list())
+    
+    return spchdata
