@@ -223,7 +223,7 @@ def train(model, train_dl, criterion, optimizer,
           
         # early stoppping
         if valid_dl is not None:
-            valid_loss = model.evaluate(valid_dl, criterion)
+            valid_loss = evaluate(model, valid_dl, criterion)
             valid_losses.append(valid_loss)
             if epoch % every == 0:   
                 print("\t -- av. validation loss per mini-batch %.2f" % (valid_loss)) 

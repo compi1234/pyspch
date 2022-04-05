@@ -80,7 +80,10 @@ def convertf(x,iscale="lin",oscale="log",eps=EPS_FLOAT):
         elif oscale == "log":
             return x*LOG10
 
-
+def dct_diff(dct_a, dct_b):
+    dct_a = {k: v for k, v in dct_a.items() if v is not None}
+    dct_b = {k: v for k, v in dct_b.items() if v is not None}
+    return { k : dct_b[k] for k in set(dct_b.keys()) - set(dct_a.keys()) }
         
 ##################################################
 # PART II: Labels and Segmentations

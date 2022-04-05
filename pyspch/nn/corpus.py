@@ -192,7 +192,7 @@ class SpchData(object):
             
         return pd.DataFrame(df_dict)
         
-def SpchData_from_dataframe(df):
+def DataFrame_to_SpchData(df):
     # initialize with corpus
     corpus = df['corpus'].to_list()
     spchdata = SpchData(corpus)

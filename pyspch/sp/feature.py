@@ -27,7 +27,7 @@ def mean_norm(ftrs,type="mean"):
     elif type == "meanvar":
         ftrs = (ftrs - ftrs.mean(axis=1,keepdims=True) )/ ftrs.std(axis=1,keepdims=True)     
     else:
-        print("WARNING(mean_norm): Normalization(%s) not recognized",Norm)
+        print("WARNING(mean_norm): Normalization(%s) not recognized",type)
         
     return(ftrs)
 
