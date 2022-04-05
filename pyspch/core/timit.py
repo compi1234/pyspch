@@ -32,7 +32,7 @@ REMARK: it should be understood that the above alphabet mappings do NOT IMPLY th
    - syllabic mappings should be to symbol sequences, eg. 'el' -> 'ah'+'l'
 """
 
-import os,sys
+import os,sys,re
 import numpy as np
 import pandas as pd
 import pkg_resources
@@ -182,12 +182,12 @@ def get_corpus(path):
     Returns all files in path (without extensions)
     """    
     # get all filenames
-    fnames = utils.get_all_files(path)
+    fnames = get_all_files(path)
 
     # remove root and extention + to posix + remove duplicates
-    fnames = [relpath(fname, path) for fname in fnames]
+    fnames = [os.path.relpath(fname, path) for fname in fnames]
     fnames = [Path(fname).as_posix() for fname in fnames]
-    fnames = [splitext(fname)[0] for fname in fnames]
+    fnames = [os.path.splitext(fname)[0] for fname in fnames]
     fnames = list(set(fnames))
     
     return sorted(fnames)
