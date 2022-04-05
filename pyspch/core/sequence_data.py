@@ -30,13 +30,14 @@ def discretize(X,nbins=4,xrange=2.):
     return(Xd)
 ##########
 
-def make_seq1(noise=0.1,return_X_y=True):
+def make_seq1(noise=0.1,return_X_y=True,subset=0):
     """
     make_seq1 is a small sequence data set
     it has 4D feature vectors and data is drawn sequentially from 3 classes
     
-    there are 2 sets with 75 data samples per set
+    there are 2 subsets with 75 data samples per set
     the data is returned as a tuple of tuples (X1,y1),(X2,y2)
+    depending on the argument 'sets'
     
     the noisiness of the data can be manipulated with the parameter
     noise  default=0.1    best in range(0.,1.)
@@ -45,18 +46,20 @@ def make_seq1(noise=0.1,return_X_y=True):
     # we actually use the Iris data set and canibalize it into a sequence data set
     X, y = load_iris(return_X_y=True)
     X = perturb(X,lev=noise) 
-    X1 = X[0::2]
-    y1 = y[0::2]
-    X2 = X[1::2]
-    y2 = y[1::2]
     
-    return( (X1,y1), (X2,y2) )
+    if subset == 0:
+        return(X,y)
+    elif subset == 1:
+        return(X[0::2],y[0::2])
+    elif subset == 2:
+        return(X[1::2],y[1::2])
 
-def make_seq1d(nbins=[4,4,4,4],noise=0.1,return_X_y=True):
+
+def make_seq1d(nbins=[4,4,4,4],noise=0.1,return_X_y=True,subset=0):
     """
     make_seq1d is a small sequence data set
     it has 4D feature vectors and data is drawn sequentially from 3 classes
-    there are 2 sets with 75 data samples per set
+    there are 2 subsets with 75 data samples per set
     it is a discretized version of the continuous data generated in make_seq1
     
     the number of labels per class can be specified in the nbins as a list
@@ -67,12 +70,11 @@ def make_seq1d(nbins=[4,4,4,4],noise=0.1,return_X_y=True):
     noise  default=0.1    best in range(0.,1.)
     """  
     
-    (X1,y1), (X2,y2) = make_seq1(noise=noise)
+    (X,y) = make_seq1(noise=noise,subset=subset)
 
-    X1d = discretize(norm_mv(X1),nbins=nbins)
-    X2d = discretize(norm_mv(X2),nbins=nbins)
-    
-    return( (X1d,y1), (X2d,y2) )
+    Xd = discretize(norm_mv(X),nbins=nbins)
+
+    return(Xd,y)
 
 def load_seq_iris_1():
     X, y = load_iris(return_X_y=True)

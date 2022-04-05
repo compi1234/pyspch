@@ -31,7 +31,7 @@ import IPython
 import math
 import numpy as np
 from base64 import b64decode
-from .file_tools import *
+from .file_tools import read_fobj
 import librosa
 
 # we currently acknowledge 2 IO METHODS, 
