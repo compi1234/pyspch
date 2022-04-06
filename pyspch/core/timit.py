@@ -138,7 +138,7 @@ def get_timit_alphabet(set="timit61"):
     col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
     
     col = col_map[set.lower()]
-    return(timit_map[col])
+    return(list(set(timit_map[col])))
 
 def get_timit_mapping(set1="timit61",set2="timit41"):
     '''
