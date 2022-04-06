@@ -119,7 +119,7 @@ class SpchData(object):
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
         self.labels = [] 
         if self.lengths is None: 
-            self.lengths = self.get_length('features')
+            print("Set self.lengths first")
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
