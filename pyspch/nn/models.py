@@ -239,7 +239,9 @@ def train(model, train_dl, criterion, optimizer,
                 metrics = train_loss if valid_dl is None else valid_loss
                 scheduler.step(metrics)
             else:
-                scheduler.step()           
+                scheduler.step()   
+                new_lr = scheduler.get_last_lr()
+                print("\t -- new lr: %.6f" % (new_lr))        
          
     return train_losses, valid_losses, end_epoch
 
