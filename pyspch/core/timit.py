@@ -128,7 +128,7 @@ timit61_41_diff ={
 # TIMIT ALPHABETS and MAPPINGS
 ####################################################################
 
-def get_timit_alphabet(set="timit61"):
+def get_timit_alphabet(labset="timit61"):
     '''
     gets one of the various TIMIT alphabets
     acceptable names: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
@@ -137,7 +137,7 @@ def get_timit_alphabet(set="timit61"):
     timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
     col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
     
-    col = col_map[set.lower()]
+    col = col_map[labset.lower()]
     return(list(set(timit_map[col])))
 
 def get_timit_mapping(set1="timit61",set2="timit41"):
