@@ -133,12 +133,14 @@ def get_timit_alphabet(labset="timit61"):
     gets one of the various TIMIT alphabets
     acceptable names: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
     '''
-    fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
-    timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
-    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
+    timit_map = {
+        "timit61": TIMIT61,
+        "timit48": TIMIT48,
+        "timit39": TIMIT39,
+        "timit41": TIMIT41
+        }
     
-    col = col_map[labset.lower()]
-    return(list(set(timit_map[col])))
+    return(timit_map[labset])
 
 def get_timit_mapping(set1="timit61",set2="timit41"):
     '''
