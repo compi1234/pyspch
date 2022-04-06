@@ -228,6 +228,7 @@ def train(model, train_dl, criterion, optimizer,
             valid_losses.append(valid_loss)
             if epoch % every == 0:   
                 print("\t -- av. validation loss per mini-batch %.2f" % (valid_loss)) 
+            earlystop.update(valid_loss)
             if earlystop.stop():
                 print("\t -- stop early")
                 break
