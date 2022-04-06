@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import math
+from typing import Counter
 import torch
 import torch.nn as nn
 import numpy as np
@@ -169,7 +170,7 @@ class EarlyStop(object):
             self.counter = 0
             self.best_loss = loss
         else:
-            self.counter += 0  
+            self.counter += 1  
     
     def stop(self):
         return self.counter > self.patience
@@ -227,8 +228,8 @@ def train(model, train_dl, criterion, optimizer,
             valid_losses.append(valid_loss)
             if epoch % every == 0:   
                 print("\t -- av. validation loss per mini-batch %.2f" % (valid_loss)) 
-            earlystop.update(valid_loss)
             if earlystop.stop():
+                print("\t -- stop early")
                 break
 
         # update scheduler
