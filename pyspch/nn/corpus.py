@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import itertools
 
 # import modules
 import pyspch
@@ -118,8 +119,10 @@ class SpchData(object):
     
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
         self.labels = [] 
-        if self.lengths is None: 
+        if self.lengths is None and self.features is None:
             print("Set self.lengths first")
+        elif self.lengths is None:
+            self.lengths = self.get_length('features')
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
@@ -134,7 +137,9 @@ class SpchData(object):
         meta_labels = meta_filtered[col_label]
         # extract labels
         self.labels = [] 
-        if self.lengths is None: 
+        if self.lengths is None and self.features is None:
+            print("Set self.lengths first")
+        elif self.lengths is None:
             self.lengths = self.get_length('features')
         for meta_label, length in zip(meta_labels, self.lengths):
             label = [meta_label] * length
@@ -177,12 +182,17 @@ class SpchData(object):
         filt = [ True if rgx.match(fname) else False for fname in self.corpus ]
         return self.filter(filt, inplace)
        
-    # Length  
+    # get from attribute
     def get_length(self, name, axis=-1):
         attr = getattr(self, name)
         if attr is None: return []
         else: return [item.shape[axis] for item in attr]
-        
+    
+    def get_unique(self, name='labels'):
+        attr = getattr(self, name)
+        return list(set(itertools.chain.from_iterable(attr)))
+    
+      
     # Dataframe
     def to_dataframe(self):
         df_dict = {}
