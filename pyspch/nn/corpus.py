@@ -188,9 +188,9 @@ class SpchData(object):
         if attr is None: return []
         else: return [item.shape[axis] for item in attr]
     
-    def get_unique(self, name='labels'):
+    def get_set(self, name='labels'):
         attr = getattr(self, name)
-        return list(set(itertools.chain.from_iterable(attr)))
+        return set(itertools.chain.from_iterable(attr))
     
       
     # Dataframe
