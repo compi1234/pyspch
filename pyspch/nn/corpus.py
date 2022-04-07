@@ -202,7 +202,7 @@ class SpchData(object):
             
         return pd.DataFrame(df_dict)
         
-def DataFrame_to_SpchData(df):
+def DataFrame_to_SpchData(df, delete_df=True):
     # initialize with corpus
     corpus = df['corpus'].to_list()
     spchdata = SpchData(corpus)
@@ -211,5 +211,7 @@ def DataFrame_to_SpchData(df):
     attributes = [attr for attr in attributes if attr in df.columns]
     for attr in attributes:
         setattr(spchdata, attr, df[attr].to_list())
+        if delete_df: df.drop(attr, axis=1, inplace=True)
+    if delete_df: del df
     
     return spchdata
