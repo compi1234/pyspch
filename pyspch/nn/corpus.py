@@ -11,7 +11,7 @@ import pandas as pd
 import itertools
 
 # import modules
-from ..core import read_obj, seg2lbls
+from ..core import read_fobj, seg2lbls
 from ..core.audio import load
 from ..core.timit import read_seg_file
 from ..sp import feature_extraction
