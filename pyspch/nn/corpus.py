@@ -11,31 +11,10 @@ import pandas as pd
 import itertools
 
 # import modules
-import pyspch
-
-### Corpus from directory ###
-
-def get_corpus(path):
-    """
-    Returns all files in path (without extensions)
-    """    
-    # get all filenames
-    fnames = pyspch.get_all_files(path)
-
-    # remove root and extention + to posix + remove duplicates
-    fnames = [relpath(fname, path) for fname in fnames]
-    fnames = [Path(fname).as_posix() for fname in fnames]
-    fnames = [splitext(fname)[0] for fname in fnames]
-    fnames = list(set(fnames))
-    
-    return sorted(fnames)
-
-def filter_list_regex(fnames, rgx):
-    # regex filtering
-    rgx = re.compile(rgx)
-    fnames_filt = [ fname for fname in fnames if rgx.match(fname) ]
-    
-    return sorted(fnames_filt)
+from ..core import read_obj, seg2lbls
+from ..core.audio import load
+from ..core.timit import read_seg_file
+from ..sp import feature_extraction
 
 ### SpchData ###
 
@@ -50,7 +29,7 @@ class SpchData(object):
         self.lengths = None
         # write/read
         self.write_fnc = lambda file, array: np.save(file + '.npy', array)
-        self.read_fnc = lambda file: np.load(pyspch.read_fobj(file + '.npy'))       
+        self.read_fnc = lambda file: np.load(read_fobj(file + '.npy'))       
 
     # General    
     def read(self, path, attr_name=None):
@@ -73,7 +52,7 @@ class SpchData(object):
         for fname in self.corpus:
             # read wav file (enforce sample rate)
             wavfname = os.path.join(feature_path, fname + extension)
-            wavdata, _ = pyspch.audio.load(wavfname, sample_rate=sample_rate)
+            wavdata, _ = load(wavfname, sample_rate=sample_rate)
             self.signals.append(wavdata)
     
     # Features       
@@ -82,16 +61,16 @@ class SpchData(object):
         for fname in self.corpus:
             # read wav file (enforce sample rate)
             wavfname = os.path.join(feature_path, fname + extension)
-            wavdata, _ = pyspch.audio.load(wavfname, sample_rate=feature_args['sample_rate'])
+            wavdata, _ = load(wavfname, sample_rate=feature_args['sample_rate'])
             # extract feature
-            feature = pyspch.sp.feature_extraction(wavdata, **feature_args)
+            feature = feature_extraction(wavdata, **feature_args)
             self.features.append(feature)
     
     def extract_features_from_signals(self, feature_args):
         self.features = []
         for wavdata in self.signals:
             # extract feature
-            feature = pyspch.sp.feature_extraction(wavdata, **feature_args)
+            feature = feature_extraction(wavdata, **feature_args)
             self.features.append(feature)
     
     def write_features(self, feature_path):
@@ -112,9 +91,9 @@ class SpchData(object):
         for fname in self.corpus:
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
-            seg_df = pyspch.timit.read_seg_file(segfname)
+            seg_df = read_seg_file(segfname)
             # extract labels
-            label = pyspch.seg2lbls(seg_df, shift)
+            label = seg2lbls(seg_df, shift)
             self.labels.append(np.array(label))
     
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
@@ -126,9 +105,9 @@ class SpchData(object):
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
-            seg_df = pyspch.timit.read_seg_file(segfname)
+            seg_df = read_seg_file(segfname)
             # extract labels
-            label = pyspch.seg2lbls(seg_df, shift, n_frames=length, end_time=None, pad_lbl=pad_lbl)
+            label = seg2lbls(seg_df, shift, n_frames=length, end_time=None, pad_lbl=pad_lbl)
             self.labels.append(np.array(label))       
  
     def extract_labels_from_meta(self, meta: pd.DataFrame, col_fname=0, col_label=-1):
