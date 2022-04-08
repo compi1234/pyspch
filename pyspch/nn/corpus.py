@@ -85,7 +85,7 @@ class SpchData(object):
             feature = self.read_fnc(featurefname)
             # modify feature on the fly (can save memory)
             if modify_feature_args:
-                feature = feature_extraction(feature, **modify_feature_args)
+                feature = feature_extraction(spg=feature, **modify_feature_args)
             self.features.append(feature)
                 
     # Labels   

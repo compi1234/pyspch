@@ -196,7 +196,7 @@ def get_corpus(path):
 
 def make_dirs_for_corpus(root_path, rel_path_list):
     for rel_path in rel_path_list:
-        os.makedirs(root_path + os.path.dirname(rel_path), mode=755, exist_ok=True)
+        os.makedirs(root_path + os.path.join(os.path.dirname(rel_path),''), mode=755, exist_ok=True)
 
 def get_timit_corpus(path, 
         split="(train|test)", 
