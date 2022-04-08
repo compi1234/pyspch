@@ -175,7 +175,7 @@ class EarlyStop(object):
     def stop(self):
         return self.counter > self.patience
          
-def train_epoch(model, train_dl, criterion, optimizer, clip=None):
+def train_epoch(model, train_dl, criterion, optimizer, clip_args=None):
 
     model.train()
     epoch_loss = 0
@@ -189,8 +189,8 @@ def train_epoch(model, train_dl, criterion, optimizer, clip=None):
         loss = criterion(outputs, targets)
         # backward pass
         loss.backward()
-        if clip is not None:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
+        if clip_args:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), **clip_args)
         # model update
         optimizer.step()
         epoch_loss += loss.item()
@@ -198,7 +198,7 @@ def train_epoch(model, train_dl, criterion, optimizer, clip=None):
     return epoch_loss / len(train_dl)
    
 def train(model, train_dl, criterion, optimizer, 
-          clip=None, scheduler=None,
+          clip_args=None, scheduler=None,
           current_epoch=0, n_epochs=500, 
           valid_dl=None, patience=5, every=10,):
 
@@ -216,12 +216,12 @@ def train(model, train_dl, criterion, optimizer,
     for epoch in np.arange(start_epoch, start_epoch + n_epochs):
         
         # train epoch
-        train_loss = train_epoch(model, train_dl, criterion, optimizer, clip)
+        train_loss = train_epoch(model, train_dl, criterion, optimizer, clip_args)
         train_losses.append(train_loss)
         end_epoch = epoch
         if epoch % every == 0:   
             print("Epoch %d -- av. train loss per mini-batch %.2f" % (epoch, train_loss))
-          
+
         # early stoppping
         if valid_dl is not None:
             valid_loss = evaluate(model, valid_dl, criterion)
