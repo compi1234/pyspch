@@ -78,13 +78,13 @@ class SpchData(object):
             featurefname = os.path.join(feature_path, fname)
             self.write_fnc(featurefname, feature)  
             
-    def read_features(self, feature_path, modify_feature_args=None):
+    def read_features(self, feature_path, modify_feature_args={}):
         self.features = []
         for fname in self.corpus:
             featurefname = os.path.join(feature_path, fname)
             feature = self.read_fnc(featurefname)
             # modify feature on the fly (can save memory)
-            if modify_feature_args is not None:
+            if modify_feature_args:
                 feature = feature_extraction(feature, **modify_feature_args)
             self.features.append(feature)
                 
