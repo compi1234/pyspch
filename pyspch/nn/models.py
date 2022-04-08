@@ -379,3 +379,45 @@ def map_labels_cm(confusionmatrix, lab2lab_dict):
             
     return confusionmatrix_new
 
+# Get functions
+
+def get_model(model_super_args):
+    # fill in arguments
+    model_args = model_super_args['model_args']
+    for k, v in model_args.items():
+        if k == 'nonlinearity':
+            if v == 'sig': model_args[k] = torch.nn.Sigmoid()
+            if v == 'relu': model_args[k] = torch.nn.ReLU()
+        if k == 'dropout': 
+            model_args[k] = torch.nn.Dropout(float(v))
+    # model
+    model = None
+    model_type = model_super_args['model']
+    if model_type == 'ffdnn':
+        model = FFDNN(**model_args)  
+    if model_type == 'tdnn':
+        model = CNN(**model_args)    
+    if model_type == 'cnn':
+        model = CNN(**model_args)   
+    
+    return model
+    
+def get_criterion(training_args):
+    criterion = None
+    if training_args['criterion'] == 'crossentropy':
+        criterion = torch.nn.CrossEntropyLoss(**training_args['criterion_args'])
+    return criterion
+
+def get_optimizer(training_args, model):
+    optimizer = None
+    if training_args['optimizer'] == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), **training_args['optimizer_args'])
+    if training_args['optimizer'] == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), **training_args['optimizer_args'])
+    return optimizer
+
+def get_scheduler(training_args, optimizer):
+    scheduler = None
+    if training_args['scheduler'] == 'plateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **training_args['scheduler_args'])    
+    return scheduler
