@@ -19,19 +19,17 @@ class FFDNN(nn.Module):
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.hidden_layer_sizes = hidden_layer_dims
-        self.nonlinearity = nonlinearity
-        self.dropout = dropout
-        
+                
         # parameters
         layer_sizes = (in_dim, *hidden_layer_dims, out_dim)
         layer_sizes_pairwise = [(layer_sizes[i], layer_sizes[i+1]) for 
                                  i in range(len(layer_sizes)-1)]
 
-        if type(self.nonlinearity) is not list:
-            self.nonlinearity = [self.nonlinearity] * len(layer_sizes_pairwise)
+        if type(nonlinearity) is list: self.nonlinearity_layers = nonlinearity
+        else: self.nonlinearity_layers = [ nonlinearity for _ in len(layer_sizes_pairwise) ]
 
-        if type(self.dropout) is not list:
-            self.dropout = [self.dropout] * len(layer_sizes_pairwise)
+        if type(dropout) is list: self.dropout_layers = nonlinearity
+        else: self.dropout_layers = [ dropout for _ in len(layer_sizes_pairwise) ]
 
         # define architecture
         modulelist = nn.ModuleList([])  
