@@ -407,7 +407,7 @@ def get_dropout(dropout_p):
 def get_model(model_super_args):
     
     # fill in arguments
-    model_args = model_super_args['model_args']
+    model_args = model_super_args['model_args'].copy()
     for k, v in model_args.items():
         if k == 'nonlinearity':
             if type(v) is list:
