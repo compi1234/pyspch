@@ -26,10 +26,10 @@ class FFDNN(nn.Module):
                                  i in range(len(layer_sizes)-1)]
 
         if type(nonlinearity) is list: self.nonlinearity_layers = nonlinearity
-        else: self.nonlinearity_layers = [ nonlinearity for _ in len(layer_sizes_pairwise) ]
+        else: self.nonlinearity_layers = [ nonlinearity for _ in layer_sizes_pairwise ]
 
         if type(dropout) is list: self.dropout_layers = nonlinearity
-        else: self.dropout_layers = [ dropout for _ in len(layer_sizes_pairwise) ]
+        else: self.dropout_layers = [ dropout for _ in layer_sizes_pairwise ]
 
         # define architecture
         modulelist = nn.ModuleList([])  
