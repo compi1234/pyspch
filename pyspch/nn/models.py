@@ -37,8 +37,8 @@ class FFDNN(nn.Module):
             
             modulelist.append(nn.Linear(layer_in_size, layer_out_size))
             if i < len(self.hidden_layer_sizes):
-                modulelist.append(self.nonlinearity[i])
-                modulelist.append(self.dropout[i])
+                modulelist.append(self.nonlinearity_layers[i])
+                modulelist.append(self.dropout_layers[i])
 
         # define network as nn.Sequential
         self.net = nn.Sequential(*modulelist)
