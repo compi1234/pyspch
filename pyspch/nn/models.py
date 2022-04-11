@@ -10,9 +10,7 @@ import numpy as np
 ## Neural network architecure
 
 class FFDNN(nn.Module):
-    '''
-    fully-connected feedforward deep neural network
-    '''
+    """Fully-connected feedforward deep neural network"""
     def __init__(self, in_dim, out_dim, hidden_layer_dims, 
                  nonlinearity=nn.Sigmoid(), dropout=nn.Dropout(0)):
         super(FFDNN, self).__init__()
@@ -29,13 +27,20 @@ class FFDNN(nn.Module):
         layer_sizes_pairwise = [(layer_sizes[i], layer_sizes[i+1]) for 
                                  i in range(len(layer_sizes)-1)]
 
+        if type(self.nonlinearity) is not list:
+            self.nonlinearity = [self.nonlinearity] * len(layer_sizes_pairwise)
+
+        if type(self.dropout) is not list:
+            self.dropout = [self.dropout] * len(layer_sizes_pairwise)
+
         # define architecture
         modulelist = nn.ModuleList([])  
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
+            
             modulelist.append(nn.Linear(layer_in_size, layer_out_size))
             if i < len(self.hidden_layer_sizes):
-                modulelist.append(self.nonlinearity)
-                modulelist.append(self.dropout)
+                modulelist.append(self.nonlinearity[i])
+                modulelist.append(self.dropout[i])
 
         # define network as nn.Sequential
         self.net = nn.Sequential(*modulelist)
@@ -47,6 +52,14 @@ class FFDNN(nn.Module):
         x = self.net(x)
         return x
     
+    def predict(self, inputs):
+        outputs = self.net(inputs)
+        predictions = torch.argmax(outputs, dim=-1)
+        return outputs, predictions
+
+
+
+   
 class TDNN(nn.Module):
     '''
     Time-delay deep neural network
@@ -88,6 +101,11 @@ class TDNN(nn.Module):
     def forward(self, x):
         x = self.net(x)
         return x
+    
+    def predict(self, inputs):
+        outputs = self.net(inputs)
+        predictions = torch.argmax(outputs, dim=-1)
+        return outputs, predictions
 
 class CNN(nn.Module):
     '''
@@ -381,15 +399,29 @@ def map_labels_cm(confusionmatrix, lab2lab_dict):
 
 # Get functions
 
+def get_nonlinearity(nl):
+    if nl == 'sig': return torch.nn.Sigmoid()
+    if nl == 'relu': return torch.nn.ReLU()
+
+def get_dropout(dropout_p):
+    return torch.nn.Dropout(float(dropout_p))
+
 def get_model(model_super_args):
+    
     # fill in arguments
     model_args = model_super_args['model_args']
     for k, v in model_args.items():
         if k == 'nonlinearity':
-            if v == 'sig': model_args[k] = torch.nn.Sigmoid()
-            if v == 'relu': model_args[k] = torch.nn.ReLU()
+            if type(v) is list:
+                model_args[k] = [get_nonlinearity(val) for val in v]
+            else:
+                model_args[k] = get_nonlinearity(v)
         if k == 'dropout': 
-            model_args[k] = torch.nn.Dropout(float(v))
+            if type(v) is list:
+                model_args[k] = [get_dropout(val) for val in v]
+            else:
+                model_args[k] = get_dropout(v)
+    
     # model
     model = None
     model_type = model_super_args['model']
