@@ -101,10 +101,10 @@ class SpchData(object):
     
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
         self.labels = [] 
-        if self.lengths is None and self.features is None:
-            print("Set self.lengths first")
-        elif self.lengths is None:
+        if self.features and self.lengths:
             self.lengths = self.get_length('features')
+        else:
+            print("First set self.features or self.lengths")
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
