@@ -34,10 +34,13 @@ class FFDNN(nn.Module):
         # define architecture
         modulelist = nn.ModuleList([])  
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
-            
+            # linear layer
             modulelist.append(nn.Linear(layer_in_size, layer_out_size))
+            # non-linearity
             if i < len(self.hidden_layer_sizes):
                 modulelist.append(self.nonlinearity_layers[i])
+            # dropout (not between last layer pair)
+            if i < len(self.hidden_layer_sizes) - 1:
                 modulelist.append(self.dropout_layers[i])
 
         # define network as nn.Sequential
@@ -54,9 +57,6 @@ class FFDNN(nn.Module):
         outputs = self.net(inputs)
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
-
-
-
    
 class TDNN(nn.Module):
     '''
