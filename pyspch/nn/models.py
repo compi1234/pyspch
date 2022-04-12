@@ -37,10 +37,10 @@ class FFDNN(nn.Module):
             # linear layer
             modulelist.append(nn.Linear(layer_in_size, layer_out_size))
             # non-linearity
-            if i < len(self.hidden_layer_sizes):
+            if i < len(self.hidden_layer_sizes) and i < len(self.nonlinearity_layers):
                 modulelist.append(self.nonlinearity_layers[i])
             # dropout (not between last layer pair)
-            if i < len(self.hidden_layer_sizes) - 1:
+            if i < len(self.hidden_layer_sizes) and i < len(self.dropout_layers):
                 modulelist.append(self.dropout_layers[i])
 
         # define network as nn.Sequential
@@ -369,18 +369,18 @@ def cm2per(confusionmatrix):
 
     n_classes = confusionmatrix.shape[0]    
     
-    # compute ER 
+    # compute error_rate 
     trace = np.trace(confusionmatrix)
-    ER = 1- trace.sum() / confusionmatrix.sum()
+    error_rate = 1 - trace.sum() / confusionmatrix.sum()
         
     # compute ER per class (disregarding non label or not)
-    no_examples_pc = confusionmatrix.sum(axis=1)
-    ER_pc = [None] * n_classes
+    n_examples_per_class = confusionmatrix.sum(axis=1)
+    error_rate_per_class = [None] * n_classes
     for i in range(n_classes):
-        if no_examples_pc[i] != 0:
-            ER_pc[i] = 1-confusionmatrix[i,i] / (no_examples_pc[i])
+        if n_examples_per_class[i] != 0:
+            error_rate_per_class[i] = 1 - confusionmatrix[i,i] / n_examples_per_class[i]
         
-    return ER, ER_pc
+    return error_rate, error_rate_per_class
 
 def map_labels_cm(confusionmatrix, lab2lab_dict):
     

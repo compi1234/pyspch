@@ -11,6 +11,8 @@ class SpchDataset(Dataset):
     
     def __init__(self, corpus, input, target):
         
+        # input = (T, F)
+        
         # arguments
         self.corpus = corpus
         self.input = np.hstack(input).T
@@ -48,7 +50,7 @@ class SpchDataset(Dataset):
     def to_device(self, device):
         self.input = self.input.to(device)
         self.target = self.target.to(device)
-       
+    
     def set_sampler(self, lengths, sampler_args):
         # splicing arguments
         self.sampler_args = sampler_args
