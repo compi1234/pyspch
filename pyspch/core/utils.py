@@ -135,9 +135,8 @@ def seg2lbls(seg, shift=0.01, n_frames=None, end_time=None, pad_lbl=None):
     if (n_frames is None) and (end_time is not None):
         n_frames = round(end_time/shift)
 
-    n_fr = round(seg['t1'].iloc[-1]/shift)
     if n_frames is None: 
-        n_frames = n_fr
+        n_frames = round(seg['t1'].iloc[-1]/shift)
     # else: n_frames = max(n_frames,n_fr)
         
     lbls = [pad_lbl] * n_frames
