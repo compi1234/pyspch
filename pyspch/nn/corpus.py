@@ -73,6 +73,10 @@ class SpchData(object):
             feature = feature_extraction(wavdata, **feature_args)
             self.features.append(feature)
     
+    def modify_features(self, modify_feature_args):
+        for i, feature in enumerate(self.features):
+            self.features[i] = feature_extraction(spg=feature, **modify_feature_args)
+    
     def write_features(self, feature_path):
         for fname, feature in zip(self.corpus, self.features):
             featurefname = os.path.join(feature_path, fname)
@@ -118,11 +122,11 @@ class SpchData(object):
         meta_filtered = meta[meta[col_fname].isin(self.corpus)]
         meta_labels = meta_filtered[col_label]
         # extract labels
-        self.labels = [] 
-        if self.lengths is None and self.features is None:
-            print("Set self.lengths first")
-        elif self.lengths is None:
+        self.labels = []
+        if self.features and self.lengths:
             self.lengths = self.get_length('features')
+        else:
+            print("First set self.features or self.lengths")
         for meta_label, length in zip(meta_labels, self.lengths):
             label = [meta_label] * length
             self.labels.append(np.array(label))
@@ -145,7 +149,7 @@ class SpchData(object):
         if inplace: 
             new = self
         else: 
-            new = SpchData(self.corpus)
+            new = SpchData(None)
         # filter attributes
         for name in ['corpus', 'signals', 'features', 'labels']:
             attr = getattr(self, name)

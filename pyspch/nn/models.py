@@ -2,17 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import math
-from typing import Counter
 import torch
 import torch.nn as nn
 import numpy as np
 
 ## Neural network architecure
 
-class FFDNN(nn.Module):
+class FFDNN(torch.nn.Module):
     """Fully-connected feedforward deep neural network"""
     def __init__(self, in_dim, out_dim, hidden_layer_dims, 
-                 nonlinearity=nn.Sigmoid(), dropout=nn.Dropout(0)):
+                 nonlinearity=torch.nn.Sigmoid(), dropout=torch.nn.Dropout(0)):
         super(FFDNN, self).__init__()
 
         # attributes
@@ -32,10 +31,10 @@ class FFDNN(nn.Module):
         else: self.dropout_layers = [ dropout for _ in layer_sizes_pairwise ]
 
         # define architecture
-        modulelist = nn.ModuleList([])  
+        modulelist = torch.nn.ModuleList([])  
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
             # linear layer
-            modulelist.append(nn.Linear(layer_in_size, layer_out_size))
+            modulelist.append(torch.nn.Linear(layer_in_size, layer_out_size))
             # non-linearity
             if i < len(self.hidden_layer_sizes) and i < len(self.nonlinearity_layers):
                 modulelist.append(self.nonlinearity_layers[i])
@@ -43,8 +42,8 @@ class FFDNN(nn.Module):
             if i < len(self.hidden_layer_sizes) and i < len(self.dropout_layers):
                 modulelist.append(self.dropout_layers[i])
 
-        # define network as nn.Sequential
-        self.net = nn.Sequential(*modulelist)
+        # define network as torch.nn.Sequential
+        self.net = torch.nn.Sequential(*modulelist)
         
         # initialize weights
         self.apply(init_weights)
@@ -58,7 +57,7 @@ class FFDNN(nn.Module):
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
    
-class TDNN(nn.Module):
+class TDNN(torch.nn.Module):
     '''
     Time-delay deep neural network
     = fully-connected neural network with 1D convolutional layer
@@ -79,22 +78,22 @@ class TDNN(nn.Module):
                                  i in range(len(layer_sizes)-1)]
 
         # define architecture
-        modulelist = nn.ModuleList([])
+        modulelist = torch.nn.ModuleList([])
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
 
             if i == cnn_position:
-                modulelist.append(nn.Conv1d(layer_in_size, n_filters, 
+                modulelist.append(torch.nn.Conv1d(layer_in_size, n_filters, 
                                             kernel_size, padding=padding))
                 modulelist.append(View(shape=(-1, )))
                     
             else:
-                modulelist.append(nn.Linear(layer_in_size, layer_out_size))
+                modulelist.append(torch.nn.Linear(layer_in_size, layer_out_size))
 
             if i < len(self.hidden_layer_sizes):
-                modulelist.append(nn.Sigmoid())
+                modulelist.append(torch.nn.Sigmoid())
 
-        # define network as nn.Sequential
-        self.net = nn.Sequential(*modulelist)
+        # define network as torch.nn.Sequential
+        self.net = torch.nn.Sequential(*modulelist)
 
     def forward(self, x):
         x = self.net(x)
@@ -105,7 +104,7 @@ class TDNN(nn.Module):
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
 
-class CNN(nn.Module):
+class CNN(torch.nn.Module):
     '''
     Convolutional neural network
     = fully-connected neural network with 2D convolutional input layer
@@ -126,29 +125,29 @@ class CNN(nn.Module):
                                  i in range(len(layer_sizes)-1)]
 
         # define architecture
-        modulelist = nn.ModuleList([])
+        modulelist = torch.nn.ModuleList([])
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
 
             if i == cnn_position:
-                modulelist.append(nn.Conv2d(layer_in_size, n_filters, 
+                modulelist.append(torch.nn.Conv2d(layer_in_size, n_filters, 
                                             kernel_size, padding=padding))
                 modulelist.append(View(shape=(-1, )))
                     
             else:
-                modulelist.append(nn.Linear(layer_in_size, layer_out_size))
+                modulelist.append(torch.nn.Linear(layer_in_size, layer_out_size))
 
             if i < len(self.hidden_layer_sizes):
-                modulelist.append(nn.Sigmoid())
+                modulelist.append(torch.nn.Sigmoid())
 
-        # define network as nn.Sequential
-        self.net = nn.Sequential(*modulelist)
+        # define network as torch.nn.Sequential
+        self.net = torch.nn.Sequential(*modulelist)
 
     def forward(self, x):
         x = self.net(x)
         return x
 
 # view: (B, ...) -> (B, shape)
-class View(nn.Module):
+class View(torch.nn.Module):
     
     def __init__(self, shape):
         super().__init__()
@@ -164,11 +163,11 @@ class View(nn.Module):
 
 def init_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
-        nn.init.xavier_uniform_(m.weight.data)
+        torch.nn.init.xavier_uniform_(m.weight.data)
 
 def set_dropout(m, p=0.1):
     for name, child in m.named_children():
-        if isinstance(child, torch.nn.Dropout):
+        if isinstance(child, torch.torch.nn.Dropout):
             child.p = p
         set_dropout(child, drop_rate=p)
 
@@ -206,7 +205,7 @@ def train_epoch(model, train_dl, criterion, optimizer, clip_args=None):
         # backward pass
         loss.backward()
         if clip_args:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), **clip_args)
+            torch.torch.nn.utils.clip_grad_norm_(model.parameters(), **clip_args)
         # model update
         optimizer.step()
         epoch_loss += loss.item()
@@ -431,11 +430,23 @@ def get_model(model_super_args):
         model = CNN(**model_args)   
     
     return model
+
+def get_model_bis(model_type, model_args):
+    # model
+    model = None
+    if model_type == 'ffdnn':
+        model = FFDNN(**model_args)  
+    if model_type == 'tdnn':
+        model = CNN(**model_args)    
+    if model_type == 'cnn':
+        model = CNN(**model_args)   
+    
+    return model
     
 def get_criterion(training_args):
     criterion = None
     if training_args['criterion'] == 'crossentropy':
-        criterion = torch.nn.CrossEntropyLoss(**training_args['criterion_args'])
+        criterion = torch.torch.nn.CrossEntropyLoss(**training_args['criterion_args'])
     return criterion
 
 def get_optimizer(training_args, model):
