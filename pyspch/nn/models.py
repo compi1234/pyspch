@@ -341,7 +341,10 @@ def get_model(model_super_args):
     model = None
     model_type = model_super_args['model']
     if model_type == 'ffdnn':
-        model = FFDNN(**model_args)  
+        model = FFDNN(**model_args)
+    if model_type == 'tdnn-lstm':
+        model = TdnnLstm_icefall(**model_args) 
+     
     # if model_type == 'tdnn':
     #     model = CNN(**model_args)    
     # if model_type == 'cnn':
@@ -372,95 +375,93 @@ def get_scheduler(training_args, optimizer):
     return scheduler
 
 
-# class TdnnLstm_icefall(torch.nn.Module):
-#     def __init__(self, in_dim, out_dim, hidden_layer_dims, subsampling_factors,
-#                  nonlinearity=torch.nn.Sigmoid(), dropout=torch.nn.Dropout(0), 
-#                  batchnorm=torch.nn.BatchNorm1d(512)) -> None:
-#         """
-#         Args:
-#           num_features:
-#             The input dimension of the model.
-#           num_classes:
-#             The output dimension of the model.
-#           subsampling_factor:
-#             It reduces the number of output frames by this factor.
-#         """
-#         super().__init__()
-#         self.num_features = num_features
-#         self.num_classes = num_classes
-#         self.subsampling_factor = subsampling_factor
-#         self.tdnn = nn.Sequential(
-#             nn.Conv1d(
-#                 in_channels=num_features,
-#                 out_channels=512,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=1,
-#             ),
-#             nn.ReLU(inplace=True),
-#             nn.BatchNorm1d(num_features=512, affine=False),
-#             nn.Conv1d(
-#                 in_channels=512,
-#                 out_channels=512,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=1,
-#             ),
-#             nn.ReLU(inplace=True),
-#             nn.BatchNorm1d(num_features=512, affine=False),
-#             nn.Conv1d(
-#                 in_channels=512,
-#                 out_channels=512,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=1,
-#             ),
-#             nn.ReLU(inplace=True),
-#             nn.BatchNorm1d(num_features=512, affine=False),
-#             nn.Conv1d(
-#                 in_channels=512,
-#                 out_channels=512,
-#                 kernel_size=3,
-#                 stride=self.subsampling_factor,  # stride: subsampling_factor!
-#             ),
-#             nn.ReLU(inplace=True),
-#             nn.BatchNorm1d(num_features=512, affine=False),
-#         )
-#         self.lstms = nn.ModuleList(
-#             [
-#                 nn.LSTM(input_size=512, hidden_size=512, num_layers=1)
-#                 for _ in range(4)
-#             ]
-#         )
-#         self.lstm_bnorms = nn.ModuleList(
-#             [nn.BatchNorm1d(num_features=512, affine=False) for _ in range(5)]
-#         )
-#         self.dropout = nn.Dropout(0.2)
-#         self.linear = nn.Linear(in_features=512, out_features=self.num_classes)
+class TdnnLstm_icefall(torch.nn.Module):
+    def __init__(self, in_dim, out_dim, subsampling_factor) -> None:
+        """
+        Args:
+          num_features:
+            The input dimension of the model.
+          num_classes:
+            The output dimension of the model.
+          subsampling_factor:
+            It reduces the number of output frames by this factor.
+        """
+        super().__init__()
+        self.num_features = in_dim
+        self.num_classes = out_dim
+        self.subsampling_factor = subsampling_factor
+        self.tdnn = torch.nn.Sequential(
+            torch.nn.Conv1d(
+                in_channels=self.num_features,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=self.subsampling_factor,  # stride: subsampling_factor!
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+        )
+        self.lstms = torch.nn.ModuleList(
+            [
+                torch.nn.LSTM(input_size=512, hidden_size=512, num_layers=1)
+                for _ in range(4)
+            ]
+        )
+        self.lstm_bnorms = torch.nn.ModuleList(
+            [torch.nn.BatchNorm1d(num_features=512, affine=False) for _ in range(5)]
+        )
+        self.dropout = torch.nn.Dropout(0.2)
+        self.linear = torch.nn.Linear(in_features=512, out_features=self.num_classes)
 
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         """
-#         Args:
-#           x:
-#             Its shape is [N, C, T]
-#         Returns:
-#           The output tensor has shape [N, T, C]
-#         """
-#         x = self.tdnn(x)
-#         x = x.permute(2, 0, 1)  # (N, C, T) -> (T, N, C) -> how LSTM expects it
-#         for lstm, bnorm in zip(self.lstms, self.lstm_bnorms):
-#             x_new, _ = lstm(x)
-#             x_new = bnorm(x_new.permute(1, 2, 0)).permute(
-#                 2, 0, 1
-#             )  # (T, N, C) -> (N, C, T) -> (T, N, C)
-#             x_new = self.dropout(x_new)
-#             x = x_new + x  # skip connections
-#         x = x.transpose(
-#             1, 0
-#         )  # (T, N, C) -> (N, T, C) -> linear expects "features" in the last dim
-#         x = self.linear(x)
-#         x = nn.functional.log_softmax(x, dim=-1)
-#         return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+          x:
+            Its shape is [N, C, T]
+        Returns:
+          The output tensor has shape [N, T, C]
+        """
+        x = self.tdnn(x)
+        x = x.permute(2, 0, 1)  # (N, C, T) -> (T, N, C) -> how LSTM expects it
+        for lstm, bnorm in zip(self.lstms, self.lstm_bnorms):
+            x_new, _ = lstm(x)
+            x_new = bnorm(x_new.permute(1, 2, 0)).permute(
+                2, 0, 1
+            )  # (T, N, C) -> (N, C, T) -> (T, N, C)
+            x_new = self.dropout(x_new)
+            x = x_new + x  # skip connections
+        x = x.transpose(
+            1, 0
+        )  # (T, N, C) -> (N, T, C) -> linear expects "features" in the last dim
+        x = self.linear(x)
+        x = torch.nn.functional.log_softmax(x, dim=-1)
+        return x
 
 # class Tdnn(torch.nn.Module):
 #     def __init__(self, in_dim, out_dim, hidden_layer_dims, subsampling_factors,
