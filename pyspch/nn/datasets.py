@@ -11,7 +11,8 @@ class SpchDataset(Dataset):
     
     def __init__(self, corpus, input, target):
         
-        # input = (T, F)
+        # input = (time_dim, feature_dim)
+        # target = (time_dim, )
         
         # arguments
         self.corpus = corpus

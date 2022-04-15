@@ -8,3 +8,4 @@ pyspch/nn/layers/custom_linear.py
 pyspch/nn/layers/__init__.py
 pyspch/nn/utils.py
 pyspch/nn/plot.py
+pyspch/nn/models_tryout.py
