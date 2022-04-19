@@ -11,7 +11,7 @@ from . import audio, timit, file_tools
 from .hillenbrand import fetch_hillenbrand
 from .sequence_data import make_seq1, make_seq1d
  
-def load_data(name,src='pkg_resources',**kwargs):
+def load_data(name,root='pkg_resources',**kwargs):
     '''
     A high level generic data loading function.
     Data can be loaded from the example data included in the package as well from directories on disk or URL based resources.
@@ -24,7 +24,7 @@ def load_data(name,src='pkg_resources',**kwargs):
     
     Arguments:
         name       (str) filename of resource with extension or named resource
-        src        (str) directory (local or https: )
+        root        (str) directory (local or https: )
                     the default 'pkg_resources' reads data from
                     the package data directory
         **kwargs   (dict) passed to called reading routine
@@ -51,10 +51,10 @@ def load_data(name,src='pkg_resources',**kwargs):
     '''
 
     
-    if src == "pkg_resources":
+    if root == "pkg_resources":
         filename = pkg_resources.resource_filename('pyspch','data/' + name)
     else:
-        filename = src + name
+        filename = root + name
     
     _, ext = os.path.splitext(filename)
     
@@ -90,8 +90,8 @@ def load_data(name,src='pkg_resources',**kwargs):
         elif name == 'hillenbrand':
             data =  fetch_hillenbrand(**kwargs) 
         elif name == 'tinytimit':
-            tinytimit =  'https://homes.esat.kuleuven.be/~spchlab/datasets/tinytimit/'
-            data_raw = load_data('a-i-uw-800.mat', src=tinytimit)
+            tinytimit =  'https://homes.esat.kuleuven.be/~spchlab/data/timit/features/tinytimit/'
+            data_raw = load_data('a-i-uw-800.mat', root=tinytimit)
             data = data_raw
             norm_fac = 40.0
             X_train=data_raw['ALLtrain'].T - norm_fac

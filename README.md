@@ -3,18 +3,21 @@
 
 ### Notes on v0.6 
 
-- TBD: 
-    - bump librosa to v0.9 ? (mainly for multichannel which we don't rely on)
-    - change to power spectrum as default representation ?
-
 - major reorganization with subpackages
-    - io : for (file) I/O related stuff
-    - sp : signal processing related modules, fully crafted in the spirit of librosa (though single channel mainly)
-            now includes, cepstral processing, feature manipulation, ..
+    - core : for (file) I/O related stuff and general utilities; all these routines are included in the main import
+    - sp : subpackage that can be viewed as an extension to and built upon librosa, with some specific speech signal processing routines (though single channel mainly) 
+            now includes, cepstral processing, feature manipulation, time domain feature extraction, ..
     - display : all display routines
-    - utils :
+    - nn :   a neural net subpackage built on torch
 
-- generic utilities for phone/index processing  
+- default imports
+compatibility stays assured for python>=3.7, version numbers were raised for a few key packages:
+    + matplotlib>=3.4
+    + librosa>=0.9
+
+- Colab:
+On installing in colab a few warnings that come from matplotlib (higher version than default 3.2.2).
+From experience we know that these warnings can be neglected; though it may be best (required) to restart the runtime.
 
 
 

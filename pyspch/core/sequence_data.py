@@ -32,12 +32,15 @@ def discretize(X,nbins=4,xrange=2.):
 
 def make_seq1(noise=0.1,return_X_y=True,subset=0):
     """
-    make_seq1 is a small sequence data set
+    make_seq1 generates a small sequence data set
     it has 4D feature vectors and data is drawn sequentially from 3 classes
+       data values are in the range 0 - 10
     
+    the data is returned as a tuple of (features,classes) aka (X,y)
+    
+    full or partial data can be returned depending on the argument 'subset'
     there are 2 subsets with 75 data samples per set
-    the data is returned as a tuple of tuples (X1,y1),(X2,y2)
-    depending on the argument 'sets'
+    ( use: 0 for all, 1 for subset 1, 2 for subset 2)
     
     the noisiness of the data can be manipulated with the parameter
     noise  default=0.1    best in range(0.,1.)
@@ -64,7 +67,9 @@ def make_seq1d(nbins=[4,4,4,4],noise=0.1,return_X_y=True,subset=0):
     
     the number of labels per class can be specified in the nbins as a list
     
-    the data is returned as a tuple of tuples (X1,y1),(X2,y2)
+    full or partial data can be returned depending on the argument 'subset'
+    there are 2 subsets with 75 data samples per set
+    ( use: 0 for all, 1 for subset 1, 2 for subset 2)
     
     the noisiness of the data can be manipulated with the parameter
     noise  default=0.1    best in range(0.,1.)
