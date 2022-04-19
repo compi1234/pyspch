@@ -141,7 +141,7 @@ class NpEncoder(json.JSONEncoder):
     
 def write_json(data, filename):
     with open(filename, 'w') as f:
-        json.dump(data, f, cls=NpEncoder)
+        json.dump(data, f, indent=4, cls=NpEncoder)
 
 def read_json(filename):
     with open_fobj(filename) as f:

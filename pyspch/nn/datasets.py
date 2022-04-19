@@ -11,7 +11,8 @@ class SpchDataset(Dataset):
     
     def __init__(self, corpus, input, target):
         
-        # input = (T, F)
+        # input = (time_dim, feature_dim)
+        # target = (time_dim, )
         
         # arguments
         self.corpus = corpus
@@ -97,7 +98,7 @@ class SpchDataset(Dataset):
             if self.sampler_args['mode'] == 'flatten1d':
                 input = torch.flatten(input, end_dim=1)
             if self.sampler_args['mode'] == 'flatten2d':
-                input = torch.flatten(input, end_dim=2)
+                input = input.permute(1, 0) #torch.flatten(input, end_dim=-2)
         # target
         target = self.target[idx]
         return input, target 

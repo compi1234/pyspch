@@ -1,18 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import logging
 import math
-import torch
-import torch.nn as nn
+
 import numpy as np
+import torch
+import torch.nn
+
+def repeat_object(obj, n):
+    if type(n) != int: n = len(n)
+    if type(obj) is list: return obj
+    else: return [ obj for _ in range(n) ]
 
 ## Neural network architecure
 
 class FFDNN(torch.nn.Module):
-    """Fully-connected feedforward deep neural network"""
     def __init__(self, in_dim, out_dim, hidden_layer_dims, 
                  nonlinearity=torch.nn.Sigmoid(), dropout=torch.nn.Dropout(0)):
-        super(FFDNN, self).__init__()
+        """
+        Fully-connected feedforward deep neural network
+        
+        Args:
+            in_dim:
+                The input dimension of the model.
+            out_dim:
+                The output dimension of the model.
+            hidden_layer_dims:
+                Hidden layer dimensions of the model.
+            nonlinearity:
+                Non-linear activations (torch.nn.Module). 
+            dropout:
+                Dropout layers (torch.nn.Module). 
+        """
+        
+        super().__init__()
 
         # attributes
         self.in_dim = in_dim
@@ -24,11 +46,14 @@ class FFDNN(torch.nn.Module):
         layer_sizes_pairwise = [(layer_sizes[i], layer_sizes[i+1]) for 
                                  i in range(len(layer_sizes)-1)]
 
-        if type(nonlinearity) is list: self.nonlinearity_layers = nonlinearity
-        else: self.nonlinearity_layers = [ nonlinearity for _ in layer_sizes_pairwise ]
+        self.nonlinearity_layers = repeat_object(nonlinearity, layer_sizes_pairwise)
+        self.dropout_layers = repeat_object(dropout, layer_sizes_pairwise)
+        
+        # if type(nonlinearity) is list: self.nonlinearity_layers = nonlinearity
+        # else: self.nonlinearity_layers = [ nonlinearity for _ in layer_sizes_pairwise ]
 
-        if type(dropout) is list: self.dropout_layers = dropout
-        else: self.dropout_layers = [ dropout for _ in layer_sizes_pairwise ]
+        # if type(dropout) is list: self.dropout_layers = dropout
+        # else: self.dropout_layers = [ dropout for _ in layer_sizes_pairwise ]
 
         # define architecture
         modulelist = torch.nn.ModuleList([])  
@@ -56,44 +81,81 @@ class FFDNN(torch.nn.Module):
         outputs = self.net(inputs)
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
-   
-class TDNN(torch.nn.Module):
-    '''
-    Time-delay deep neural network
-    = fully-connected neural network with 1D convolutional layer
-    ''' 
-    def __init__(self, in_dim, out_dim, hidden_layer_sizes,
-                 kernel_size=(5, ), padding=(2, ), n_filters=100,
-                 cnn_position=0):
-        super(TDNN, self).__init__()
+
+
+class SimpleTDNN(torch.nn.Module):
+    
+    def __init__(self, in_dim, out_dim, n_layers,
+                 hidden_layer_dim=512, subsampling_factor=3, 
+                 kernel_size=3, padding=1) -> None:
+        """
+        Args:
+          num_features:
+            The input dimension of the model.
+          num_classes:
+            The output dimension of the model.
+          subsampling_factors:
+            It reduces the number of output frames by this factor.
+        """
+       
+        super().__init__()
 
         # attributes
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.hidden_layer_sizes = hidden_layer_sizes
-
+        self.n_layers = n_layers
+        self.hidden_layer_dim = hidden_layer_dim
+        self.hidden_layer_dims = [hidden_layer_dim] * n_layers
+        self.kernel_size = 3
+        self.subsampling_factor = 1
+        self.padding = 1
+        self.final_kernel_size = kernel_size
+        self.final_subsampling_factor = subsampling_factor
+        # self.final_padding = padding
+        
         # parameters
-        layer_sizes = (in_dim, *hidden_layer_sizes, out_dim)
+        layer_sizes = (in_dim, *self.hidden_layer_dims[:-1])
         layer_sizes_pairwise = [(layer_sizes[i], layer_sizes[i+1]) for 
                                  i in range(len(layer_sizes)-1)]
-
+        
         # define architecture
-        modulelist = torch.nn.ModuleList([])
+        modulelist = torch.nn.ModuleList([]) 
+        # layers
         for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
-
-            if i == cnn_position:
-                modulelist.append(torch.nn.Conv1d(layer_in_size, n_filters, 
-                                            kernel_size, padding=padding))
-                modulelist.append(View(shape=(-1, )))
-                    
-            else:
-                modulelist.append(torch.nn.Linear(layer_in_size, layer_out_size))
-
-            if i < len(self.hidden_layer_sizes):
-                modulelist.append(torch.nn.Sigmoid())
+            modulelist.extend([
+                torch.nn.Conv1d(
+                    in_channels=layer_in_size,
+                    out_channels=layer_out_size,
+                    kernel_size=self.kernel_size,
+                    stride=self.subsampling_factor,
+                    padding=self.padding,
+                ),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.BatchNorm1d(num_features=layer_out_size, affine=False)
+                ])
+        # final (conv1d) layer
+        modulelist.extend([
+            torch.nn.Conv1d(
+                in_channels=self.hidden_layer_dim,
+                out_channels=self.hidden_layer_dim,
+                kernel_size=self.final_kernel_size,
+                stride=self.final_subsampling_factor,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=self.hidden_layer_dim, affine=False),
+        ])
+        # final (dropout + linear) layer
+        flatten_dim = self.hidden_layer_dim * self.final_subsampling_factor
+        modulelist.extend([
+            torch.nn.Flatten(),
+            torch.nn.Linear(in_features=flatten_dim, out_features=self.out_dim),
+        ])
 
         # define network as torch.nn.Sequential
         self.net = torch.nn.Sequential(*modulelist)
+        
+        # initialize weights
+        #self.apply(init_weights)
 
     def forward(self, x):
         x = self.net(x)
@@ -104,60 +166,9 @@ class TDNN(torch.nn.Module):
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
 
-class CNN(torch.nn.Module):
-    '''
-    Convolutional neural network
-    = fully-connected neural network with 2D convolutional input layer
-    '''
-    def __init__(self, in_dim, out_dim, hidden_layer_sizes,
-                 kernel_size=(5, 5), padding=(2, 2), n_filters=25,
-                 cnn_position=0):
-        super(CNN, self).__init__()
-
-        # attributes
-        self.in_dim = in_dim
-        self.out_dim = out_dim
-        self.hidden_layer_sizes = hidden_layer_sizes
-
-        # parameters
-        layer_sizes = (in_dim, *hidden_layer_sizes, out_dim)
-        layer_sizes_pairwise = [(layer_sizes[i], layer_sizes[i+1]) for 
-                                 i in range(len(layer_sizes)-1)]
-
-        # define architecture
-        modulelist = torch.nn.ModuleList([])
-        for i, (layer_in_size, layer_out_size) in enumerate(layer_sizes_pairwise):
-
-            if i == cnn_position:
-                modulelist.append(torch.nn.Conv2d(layer_in_size, n_filters, 
-                                            kernel_size, padding=padding))
-                modulelist.append(View(shape=(-1, )))
-                    
-            else:
-                modulelist.append(torch.nn.Linear(layer_in_size, layer_out_size))
-
-            if i < len(self.hidden_layer_sizes):
-                modulelist.append(torch.nn.Sigmoid())
-
-        # define network as torch.nn.Sequential
-        self.net = torch.nn.Sequential(*modulelist)
-
-    def forward(self, x):
-        x = self.net(x)
-        return x
-
-# view: (B, ...) -> (B, shape)
-class View(torch.nn.Module):
-    
-    def __init__(self, shape):
-        super().__init__()
-        self.shape = shape
-
-    def forward(self, input):
-        batch_size = input.size(0)
-        shape = (batch_size, *self.shape)
-        out = input.view(shape)
-        return out
+        
+        
+     
 
 ## Modify neural network layers
 
@@ -235,17 +246,17 @@ def train(model, train_dl, criterion, optimizer,
         train_losses.append(train_loss)
         end_epoch = epoch
         if epoch % every == 0:   
-            print("Epoch %d -- av. train loss per mini-batch %.2f" % (epoch, train_loss))
+            logging.info("Epoch %d -- av. train loss per mini-batch %.2f" % (epoch, train_loss))
 
         # early stoppping
         if valid_dl is not None:
             valid_loss = evaluate(model, valid_dl, criterion)
             valid_losses.append(valid_loss)
             if epoch % every == 0:   
-                print("\t -- av. validation loss per mini-batch %.2f" % (valid_loss)) 
+                logging.info("\t -- av. validation loss per mini-batch %.2f" % (valid_loss)) 
             earlystop.update(valid_loss)
             if earlystop.stop():
-                print("\t -- stop early")
+                logging.info("\t -- stop early")
                 break
 
         # update scheduler
@@ -256,7 +267,7 @@ def train(model, train_dl, criterion, optimizer,
             else:
                 scheduler.step()   
                 new_lr = scheduler.get_last_lr()
-                print("\t -- new lr: %.6f" % (new_lr))        
+                logging.info("\t -- new lr: %.6f" % (new_lr))        
          
     return train_losses, valid_losses, end_epoch
 
@@ -399,7 +410,9 @@ def map_labels_cm(confusionmatrix, lab2lab_dict):
 def get_nonlinearity(nl):
     if nl == 'sig': return torch.nn.Sigmoid()
     if nl == 'relu': return torch.nn.ReLU()
-
+    if nl == 'gelu': return torch.nn.GELU()
+    if nl == 'tanh': return torch.nn.Tanh()
+    
 def get_dropout(dropout_p):
     return torch.nn.Dropout(float(dropout_p))
 
@@ -423,36 +436,26 @@ def get_model(model_super_args):
     model = None
     model_type = model_super_args['model']
     if model_type == 'ffdnn':
-        model = FFDNN(**model_args)  
-    if model_type == 'tdnn':
-        model = CNN(**model_args)    
-    if model_type == 'cnn':
-        model = CNN(**model_args)   
-    
-    return model
-
-def get_model_bis(model_type, model_args):
-    # model
-    model = None
-    if model_type == 'ffdnn':
-        model = FFDNN(**model_args)  
-    if model_type == 'tdnn':
-        model = CNN(**model_args)    
-    if model_type == 'cnn':
-        model = CNN(**model_args)   
+        model = FFDNN(**model_args)
+    if model_type == 'simple-tdnn':
+        model = SimpleTDNN(**model_args) 
+    if model_type == 'tdnn-lstm':
+        model = TdnnLstm_icefall(**model_args) 
     
     return model
     
 def get_criterion(training_args):
     criterion = None
     if training_args['criterion'] == 'crossentropy':
-        criterion = torch.torch.nn.CrossEntropyLoss(**training_args['criterion_args'])
+        criterion = torch.nn.CrossEntropyLoss(**training_args['criterion_args'])
     return criterion
 
 def get_optimizer(training_args, model):
     optimizer = None
     if training_args['optimizer'] == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), **training_args['optimizer_args'])
+    if training_args['optimizer'] == 'adamw':
+        optimizer = torch.optim.AdamW(model.parameters(), **training_args['optimizer_args'])
     if training_args['optimizer'] == 'sgd':
         optimizer = torch.optim.SGD(model.parameters(), **training_args['optimizer_args'])
     return optimizer
@@ -462,3 +465,96 @@ def get_scheduler(training_args, optimizer):
     if training_args['scheduler'] == 'plateau':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **training_args['scheduler_args'])    
     return scheduler
+
+
+class TdnnLstm_icefall(torch.nn.Module):
+    
+    def __init__(self, in_dim, out_dim, subsampling_factor) -> None:
+        """
+        Args:
+          num_features:
+            The input dimension of the model.
+          num_classes:
+            The output dimension of the model.
+          subsampling_factor:
+            It reduces the number of output frames by this factor.
+        """
+        super().__init__()
+        self.num_features = in_dim
+        self.num_classes = out_dim
+        self.subsampling_factor = subsampling_factor
+        
+        self.tdnn = torch.nn.Sequential(
+            torch.nn.Conv1d(
+                in_channels=self.num_features,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+            torch.nn.Conv1d(
+                in_channels=512,
+                out_channels=512,
+                kernel_size=3,
+                stride=self.subsampling_factor,  # stride: subsampling_factor!
+            ),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.BatchNorm1d(num_features=512, affine=False),
+        )
+        self.lstms = torch.nn.ModuleList(
+            [
+                torch.nn.LSTM(input_size=512, hidden_size=512, num_layers=1)
+                for _ in range(4)
+            ]
+        )
+        self.lstm_bnorms = torch.nn.ModuleList(
+            [torch.nn.BatchNorm1d(num_features=512, affine=False) for _ in range(5)]
+        )
+        self.dropout = torch.nn.Dropout(0.2)
+        self.linear = torch.nn.Linear(in_features=512, out_features=self.num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+          x:
+            Its shape is [N, C, T]
+        Returns:
+          The output tensor has shape [N, T, C]
+        """
+        x = self.tdnn(x)
+        x = x.permute(2, 0, 1)  # (N, C, T) -> (T, N, C) -> how LSTM expects it
+        for lstm, bnorm in zip(self.lstms, self.lstm_bnorms):
+            x_new, _ = lstm(x)
+            x_new = bnorm(x_new.permute(1, 2, 0)).permute(
+                2, 0, 1
+            )  # (T, N, C) -> (N, C, T) -> (T, N, C)
+            x_new = self.dropout(x_new)
+            x = x_new + x  # skip connections
+        x = x.transpose(
+            1, 0
+        )  # (T, N, C) -> (N, T, C) -> linear expects "features" in the last dim
+        x = self.linear(x)
+        x = torch.nn.functional.log_softmax(x, dim=-1)
+        return x
+
+  
