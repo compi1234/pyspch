@@ -166,9 +166,19 @@ class SimpleTDNN(torch.nn.Module):
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
 
+   
+## Load network weights
+
+def load_weights(model, new_state_dict, use_match=False):
+    if use_match:
+        # get matched entries (check layer sizes)
+        old_state_dict = model.state_dict()
+        dict_with_matched_keys = {k:v for k,v in new_state_dict.items() if k in old_state_dict 
+                                  and v.size() == old_state_dict[k].size()}
+        new_state_dict = old_state_dict.update(dict_with_matched_keys)
         
-        
-     
+    return model.load_state_dict(new_state_dict)
+
 
 ## Modify neural network layers
 
