@@ -18,9 +18,13 @@ def time_dom3(y,shift=0.01,length=0.03,sr=8000,pad=True,preemp=0.0):
         pad    boolean for padding (default is True)
         preemp default = 0.0
         
-    returns rms  (in amplitude)
+    returns rms   (in amplitude)
             pitch (in Hz)
             zcr   (rate is 'per second')
+            
+    Note: convert RMS to energy per sample
+        E (per sample) = rms**2
+        Energy in dB:  10*log10(E)
     '''
     n_shift = int(shift*sr)
     n_length = int(length*sr)
@@ -31,3 +35,20 @@ def time_dom3(y,shift=0.01,length=0.03,sr=8000,pad=True,preemp=0.0):
                                sr=sr, fmin = 50., fmax=450.) 
     rms = librosa.feature.rms(y=y1,frame_length=n_length,hop_length=n_shift,center=False)      
     return(rms,pitch[0],zcr/shift)
+
+
+def energy(y,sr=8000,shift=0.01,length=0.03,pad=True,preemp=0.0,mode='dB'):
+    n_shift = int(shift*sr)
+    n_length = int(length*sr)
+    if pad is True:  pad = (n_length-n_shift)//2
+    y1 = preemp_pad(y,pad=pad,preemp=preemp)   
+    
+    rms = librosa.feature.rms(y=y1,frame_length=n_length,hop_length=n_shift,center=False)   
+
+    mode = mode.lower()
+    if mode == 'magnitude':
+        return(rms)
+    elif mode == 'power':
+        return(rms**2)
+    elif mode == 'db':
+        return(10.*np.log10(rms**2))

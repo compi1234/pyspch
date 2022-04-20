@@ -1,7 +1,7 @@
-numpy >= 1.19.0
+numpy >= 1.19
 scipy >= 1.4.0
 pandas >= 1.1
-librosa >= 0.8.0
+librosa >= 0.9
 numba
 soundfile >= 0.10.0
 matplotlib >= 3.4
