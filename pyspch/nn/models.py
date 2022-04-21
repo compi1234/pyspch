@@ -500,11 +500,11 @@ def read_checkpoint(filename):
     setup = {k: v for k, v in chpt.items() if k in setup_keys}
     # model
     lab2idx = chpt['lab2idx']
-    model = pyspch.nn.get_model(chpt['model_args'])
+    model = get_model(chpt['model_args'])
     # criterion + optimizer + learning rate-scheduler
-    criterion = pyspch.nn.get_criterion(chpt['training_args'])
-    optimizer = pyspch.nn.get_optimizer(chpt['training_args'], model) 
-    scheduler = pyspch.nn.get_scheduler(chpt['training_args'], optimizer)
+    criterion = get_criterion(chpt['training_args'])
+    optimizer = get_optimizer(chpt['training_args'], model) 
+    scheduler = get_scheduler(chpt['training_args'], optimizer)
     # load state dictionaries
     model.load_state_dict(chpt['model_state_dict'])
     optimizer.load_state_dict(chpt['optimizer_state_dict'])
