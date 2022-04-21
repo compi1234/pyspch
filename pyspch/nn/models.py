@@ -176,9 +176,8 @@ def load_weights(model, new_state_dict, use_match=False):
         dict_with_matched_keys = {k:v for k,v in new_state_dict.items() if k in old_state_dict 
                                   and v.size() == old_state_dict[k].size()}
         new_state_dict = old_state_dict.update(dict_with_matched_keys)
-        
-    return model.load_state_dict(new_state_dict)
-
+    
+    model.load_state_dict(new_state_dict)    
 
 ## Modify neural network layers
 
@@ -476,6 +475,42 @@ def get_scheduler(training_args, optimizer):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **training_args['scheduler_args'])    
     return scheduler
 
+def write_checkpoint(filename, setup, lab2idx, model, optimizer=None, scheduler=None):
+    # state dictionaries
+    model_sd = model.state_dict() if model is not None else None
+    optimizer_sd = optimizer.state_dict() if optimizer is not None else None
+    scheduler_sd = scheduler.state_dict() if scheduler is not None else None
+    # save checkpoint
+    torch.save(({
+        'feature_args': setup['feature_args'],
+        'sampler_args': setup['sampler_args'],
+        'model_args': setup['model_args'], 
+        'training_args': setup['training_args'],
+        'lab2idx': lab2idx,
+        'model_state_dict': model_sd,
+        'optimizer_state_dict': optimizer_sd,
+        'scheduler_args': scheduler_sd
+        }), filename)
+    
+def read_checkpoint(filename):
+    # read checkpoint
+    chpt = torch.load(filename)
+    # setup
+    setup_keys = ['feature_args', 'sampler_args', 'model_args', 'training_args']
+    setup = {k: v for k, v in chpt.items() if k in setup_keys}
+    # model
+    lab2idx = chpt['lab2idx']
+    model = pyspch.nn.get_model(chpt['model_args'])
+    # criterion + optimizer + learning rate-scheduler
+    criterion = pyspch.nn.get_criterion(chpt['training_args'])
+    optimizer = pyspch.nn.get_optimizer(chpt['training_args'], model) 
+    scheduler = pyspch.nn.get_scheduler(chpt['training_args'], optimizer)
+    # load state dictionaries
+    model.load_state_dict(chpt['model_state_dict'])
+    optimizer.load_state_dict(chpt['optimizer_state_dict'])
+    scheduler.load_state_dict(chpt['scheduler_args'])
+    
+    return setup, lab2idx, model, optimizer, scheduler
 
 class TdnnLstm_icefall(torch.nn.Module):
     
