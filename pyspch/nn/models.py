@@ -492,7 +492,7 @@ def write_checkpoint(filename, setup, lab2idx, model, optimizer=None, scheduler=
         'scheduler_args': scheduler_sd
         }), filename)
     
-def read_checkpoint(filename):
+def read_checkpoint(filename, device):
     # read checkpoint
     chpt = torch.load(filename)
     # setup
@@ -506,11 +506,11 @@ def read_checkpoint(filename):
     optimizer = get_optimizer(chpt['training_args'], model) 
     scheduler = get_scheduler(chpt['training_args'], optimizer)
     # load state dictionaries
-    model.load_state_dict(chpt['model_state_dict'])
-    optimizer.load_state_dict(chpt['optimizer_state_dict'])
-    scheduler.load_state_dict(chpt['scheduler_args'])
+    model.load_state_dict(chpt['model_state_dict'], map_location=device)
+    optimizer.load_state_dict(chpt['optimizer_state_dict'], map_location=device)
+    scheduler.load_state_dict(chpt['scheduler_args'], map_location=device)
     
-    return setup, lab2idx, model, optimizer, scheduler
+    return setup, lab2idx, model, criterion, optimizer, scheduler
 
 class TdnnLstm_icefall(torch.nn.Module):
     
