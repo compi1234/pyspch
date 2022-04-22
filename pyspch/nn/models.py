@@ -494,7 +494,7 @@ def write_checkpoint(filename, setup, lab2idx, model, optimizer=None, scheduler=
     
 def read_checkpoint(filename, device):
     # read checkpoint
-    chpt = torch.load(filename)
+    chpt = torch.load(filename, map_location=device)
     # setup
     setup_keys = ['feature_args', 'sampler_args', 'model_args', 'training_args']
     setup = {k: v for k, v in chpt.items() if k in setup_keys}
@@ -506,9 +506,9 @@ def read_checkpoint(filename, device):
     optimizer = get_optimizer(chpt['training_args'], model) 
     scheduler = get_scheduler(chpt['training_args'], optimizer)
     # load state dictionaries
-    model.load_state_dict(chpt['model_state_dict'], map_location=device)
-    optimizer.load_state_dict(chpt['optimizer_state_dict'], map_location=device)
-    scheduler.load_state_dict(chpt['scheduler_args'], map_location=device)
+    model.load_state_dict(chpt['model_state_dict'])
+    optimizer.load_state_dict(chpt['optimizer_state_dict'])
+    scheduler.load_state_dict(chpt['scheduler_args'])
     
     return setup, lab2idx, model, criterion, optimizer, scheduler
 
