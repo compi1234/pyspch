@@ -278,7 +278,7 @@ def train(model, train_dl, criterion, optimizer,
                 new_lr = scheduler.get_last_lr()
                 logging.info("\t -- new lr: %.6f" % (new_lr))        
          
-    return train_losses, valid_losses, end_epoch
+    return train_losses, valid_losses, end_epoch + 1
 
 ## Evaluation with DataLoader (iterator)
 

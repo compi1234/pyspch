@@ -95,10 +95,10 @@ class SpchDataset(Dataset):
         else:
             splice_idcs = self.sampler[idx]
             input = self.input[idx + splice_idcs]
-            if self.sampler_args['mode'] == 'flatten1d':
+            if self.sampler_args['mode'] == 'flatten':
                 input = torch.flatten(input, end_dim=1)
-            if self.sampler_args['mode'] == 'flatten2d':
-                input = input.permute(1, 0) #torch.flatten(input, end_dim=-2)
+            if self.sampler_args['mode'] == 'keep':
+                input = input.permute(1, 0) # torch.flatten(input, end_dim=-2)
         # target
         target = self.target[idx]
         return input, target 
