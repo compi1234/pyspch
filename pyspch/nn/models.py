@@ -166,7 +166,6 @@ class SimpleTDNN(torch.nn.Module):
         predictions = torch.argmax(outputs, dim=-1)
         return outputs, predictions
 
-   
 ## Load network weights
 
 def load_weights(model, new_state_dict, use_match=False):
@@ -179,6 +178,9 @@ def load_weights(model, new_state_dict, use_match=False):
     
     model.load_state_dict(new_state_dict)    
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 ## Modify neural network layers
 
 def init_weights(m):
@@ -190,6 +192,7 @@ def set_dropout(m, p=0.1):
         if isinstance(child, torch.torch.nn.Dropout):
             child.p = p
         set_dropout(child, drop_rate=p)
+
 
 ## Neural network training 
 
@@ -475,7 +478,10 @@ def get_scheduler(training_args, optimizer):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **training_args['scheduler_args'])    
     return scheduler
 
+# Checkpoints
+
 def write_checkpoint(filename, setup, lab2idx, model, optimizer=None, scheduler=None):
+
     # state dictionaries
     model_sd = model.state_dict() if model is not None else None
     optimizer_sd = optimizer.state_dict() if optimizer is not None else None
@@ -511,6 +517,8 @@ def read_checkpoint(filename, device):
     scheduler.load_state_dict(chpt['scheduler_args'])
     
     return setup, lab2idx, model, criterion, optimizer, scheduler
+
+# Special models
 
 class TdnnLstm_icefall(torch.nn.Module):
     

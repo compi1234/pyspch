@@ -22,14 +22,18 @@ class SpchData(object):
     
     def __init__(self, corpus):
         # attributes
-        self.corpus = corpus
+        self.corpus = corpus # list of file_id's
         self.signals = None
         self.features = None
         self.labels = None
         self.lengths = None
         # write/read
         self.write_fnc = lambda file, array: np.save(file + '.npy', array)
-        self.read_fnc = lambda file: np.load(read_fobj(file + '.npy'))       
+        self.read_fnc = lambda file: np.load(read_fobj(file + '.npy'))  
+        
+        #TODO 
+        # lengths -> n_frames 
+        # alligned (align)    
 
     # General    
     def read(self, path, attr_name=None):
@@ -109,6 +113,7 @@ class SpchData(object):
             self.lengths = self.get_length('features')
         else:
             print("First set self.features or self.lengths")
+            
         for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
             segfname = os.path.join(seg_path, fname + extension)
@@ -177,23 +182,20 @@ class SpchData(object):
     def get_set(self, name='labels'):
         attr = getattr(self, name)
         return set(itertools.chain.from_iterable(attr))
-    
-      
+         
     # Dataframe
-    def to_dataframe(self):
+    def to_dataframe(self, attributes=['corpus', 'features', 'labels']):
         df_dict = {}
-        attributes = ['corpus', 'signals', 'features', 'labels']
         for attr in attributes:
             df_dict[attr] = getattr(self, attr)
             
         return pd.DataFrame(df_dict)
         
-def DataFrame_to_SpchData(df, delete_df=True):
+def DataFrame_to_SpchData(df, delete_df=True, attributes=['corpus', 'features', 'labels']):
     # initialize with corpus
     corpus = df['corpus'].to_list()
     spchdata = SpchData(corpus)
     # other attributes
-    attributes = ['corpus', 'signals', 'features', 'labels']
     attributes = [attr for attr in attributes if attr in df.columns]
     for attr in attributes:
         setattr(spchdata, attr, df[attr].to_list())
