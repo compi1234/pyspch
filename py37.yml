@@ -29,6 +29,6 @@ dependencies:
     - nbstripout==0.3.*
     - music21==5.7.*
     - pretty_midi==0.2.*
-    - librosa==0.8.*
+    - librosa==0.9.*
     - soundfile==0.10.*
     - sounddevice==0.4.*
