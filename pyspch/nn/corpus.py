@@ -138,7 +138,7 @@ class SpchData(object):
     
     def modify_labels(self, lab2lab_dct):
         for i, label in enumerate(self.labels):
-            self.labels[i] = [lab2lab_dct[lab] for lab in self.labels]   
+            self.labels[i] = [lab2lab_dct[lab] for lab in label]   
             
     def write_labels(self, seg_path):
         for fname, seg in zip(self.corpus, self.labels):
