@@ -135,7 +135,11 @@ class SpchData(object):
         for meta_label, length in zip(meta_labels, self.lengths):
             label = [meta_label] * length
             self.labels.append(np.array(label))
-               
+    
+    def modify_labels(self, lab2lab_dct):
+        for i, label in enumerate(self.labels):
+            self.labels[i] = [lab2lab_dct[lab] for lab in labels]   
+            
     def write_labels(self, seg_path):
         for fname, seg in zip(self.corpus, self.labels):
             segfname = os.path.join(seg_path, fname)
@@ -182,6 +186,12 @@ class SpchData(object):
     def get_set(self, name='labels'):
         attr = getattr(self, name)
         return set(itertools.chain.from_iterable(attr))
+    
+    def get_features_as_numpy(self):
+        return np.hstack(self.features).T
+
+    def get_labels_as_numpy(self):
+        return np.hstack(self.labels)
          
     # Dataframe
     def to_dataframe(self, attributes=['corpus', 'features', 'labels']):
@@ -190,6 +200,8 @@ class SpchData(object):
             df_dict[attr] = getattr(self, attr)
             
         return pd.DataFrame(df_dict)
+    
+    
         
 def DataFrame_to_SpchData(df, delete_df=True, attributes=['corpus', 'features', 'labels']):
     # initialize with corpus
