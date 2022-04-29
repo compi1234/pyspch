@@ -18,48 +18,52 @@ from ..sp import feature_extraction
 
 class SpchData(object):
     
-    def __init__(self, file_ids):
+    def __init__(self, corpus):
         # attributes
-        self.file_ids = file_ids # list of file_id's
+        self.corpus = corpus # list of file_id's
         self.signals = None
         self.features = None
         self.labels = None
-        self.n_frames = None
+        self.lengths = None
         # write/read
         self.write_fnc = lambda file, array: np.save(file + '.npy', array)
         self.read_fnc = lambda file: np.load(read_fobj(file + '.npy'))  
         
+        #TODO 
+        # lengths -> n_frames 
+        # alligned (align)    
+
     # General    
     def read(self, path, attr_name=None):
         lst = []
-        for file_id in self.file_ids:
-            readfile_id = os.path.join(path, file_id)
-            arr = self.read_fnc(readfile_id)
+        for fname in self.corpus:
+            readfname = os.path.join(path, fname)
+            arr = self.read_fnc(readfname)
             lst.append(arr)
         if attr_name is not None: setattr(self, attr_name, lst)
         else: return lst
     
     def write(self, path, arr):
-        for file_id in self.file_ids:
-            writefile_id = os.path.join(path, file_id)
-            self.write_fnc(writefile_id, arr)
+        for fname in self.corpus:
+            writefname = os.path.join(path, fname)
+            self.write_fnc(writefname, arr)
 
     # Signals
     def read_signals(self, feature_path, sample_rate, extension='.wav'):
         self.signals = []
-        for file_id in self.file_ids:
+        for fname in self.corpus:
             # read wav file (enforce sample rate)
-            wavfile_id = os.path.join(feature_path, file_id + extension)
-            wavdata, _ = load(wavfile_id, sample_rate=sample_rate)
+            wavfname = os.path.join(feature_path, fname + extension)
+            wavdata, _ = load(wavfname, sample_rate=sample_rate)
             self.signals.append(wavdata)
     
     # Features       
     def extract_features(self, feature_path, feature_args, extension='.wav'):
         self.features = []
-        for file_id in self.file_ids:
+        for fname in self.corpus:
             # read wav file (enforce sample rate)
-            wavfile_id = os.path.join(feature_path, file_id + extension)
-            wavdata, _ = load(wavfile_id, sample_rate=feature_args['sample_rate'])
+            wavfname = os.path.join(feature_path, fname + extension)
+            wavdata, _ = load(wavfname, sample_rate=feature_args['sample_rate'])
             # extract feature
             feature = feature_extraction(wavdata, **feature_args)
             self.features.append(feature)
@@ -76,15 +80,15 @@ class SpchData(object):
             self.features[i] = feature_extraction(spg=feature, **modify_feature_args)
     
     def write_features(self, feature_path):
-        for file_id, feature in zip(self.file_ids, self.features):
-            featurefile_id = os.path.join(feature_path, file_id)
-            self.write_fnc(featurefile_id, feature)  
+        for fname, feature in zip(self.corpus, self.features):
+            featurefname = os.path.join(feature_path, fname)
+            self.write_fnc(featurefname, feature)  
             
     def read_features(self, feature_path, modify_feature_args={}):
         self.features = []
-        for file_id in self.file_ids:
-            featurefile_id = os.path.join(feature_path, file_id)
-            feature = self.read_fnc(featurefile_id)
+        for fname in self.corpus:
+            featurefname = os.path.join(feature_path, fname)
+            feature = self.read_fnc(featurefname)
             # modify feature on the fly (can save memory)
             if modify_feature_args:
                 feature = feature_extraction(spg=feature, **modify_feature_args)
@@ -93,57 +97,57 @@ class SpchData(object):
     # Labels   
     def extract_labels(self, seg_path, shift, extension='.phn'):
         self.labels = [] 
-        for file_id in self.file_ids:
+        for fname in self.corpus:
             # read segmentation 
-            segfile_id = os.path.join(seg_path, file_id + extension)
-            seg_df = read_seg_file(segfile_id)
+            segfname = os.path.join(seg_path, fname + extension)
+            seg_df = read_seg_file(segfname)
             # extract labels
             label = seg2lbls(seg_df, shift)
             self.labels.append(np.array(label))
     
     def extract_alligned_labels(self, seg_path, shift, pad_lbl='', extension='.phn'):
         self.labels = [] 
-        if self.features and self.n_frames:
-            self.n_frames = self.get_nframes('features')
+        if self.features and self.lengths:
+            self.lengths = self.get_length('features')
         else:
-            print("First set self.features or self.n_frames")
+            print("First set self.features or self.lengths")
             
-        for file_id, n_frames in zip(self.file_ids, self.n_frames):
+        for fname, length in zip(self.corpus, self.lengths):
             # read segmentation 
-            segfile_id = os.path.join(seg_path, file_id + extension)
-            seg_df = read_seg_file(segfile_id)
+            segfname = os.path.join(seg_path, fname + extension)
+            seg_df = read_seg_file(segfname)
             # extract labels
-            label = seg2lbls(seg_df, shift, n_frames=n_frames, end_time=None, pad_lbl=pad_lbl)
+            label = seg2lbls(seg_df, shift, n_frames=length, end_time=None, pad_lbl=pad_lbl)
             self.labels.append(np.array(label))       
  
-    def extract_labels_from_meta(self, meta: pd.DataFrame, col_file_id=0, col_label=-1):
-        # filter meta data with file_ids
-        meta_filtered = meta[meta[col_file_id].isin(self.file_ids)]
+    def extract_labels_from_meta(self, meta: pd.DataFrame, col_fname=0, col_label=-1):
+        # filter meta data with corpus
+        meta_filtered = meta[meta[col_fname].isin(self.corpus)]
         meta_labels = meta_filtered[col_label]
         # extract labels
         self.labels = []
-        if self.features and self.n_frames:
-            self.n_frames = self.get_nframes('features')
+        if self.features and self.lengths:
+            self.lengths = self.get_length('features')
         else:
-            print("First set self.features or self.n_frames")
-        for meta_label, n_frames in zip(meta_labels, self.n_frames):
-            label = [meta_label] * n_frames
+            print("First set self.features or self.lengths")
+        for meta_label, length in zip(meta_labels, self.lengths):
+            label = [meta_label] * length
             self.labels.append(np.array(label))
     
     def modify_labels(self, lab2lab_dct):
         for i, label in enumerate(self.labels):
-            self.labels[i] = [lab2lab_dct[lab] for lab in self.labels]   
+            self.labels[i] = [lab2lab_dct[lab] for lab in label]   
             
     def write_labels(self, seg_path):
-        for file_id, seg in zip(self.file_ids, self.labels):
-            segfile_id = os.path.join(seg_path, file_id)
-            self.write_fnc(segfile_id, seg)  
+        for fname, seg in zip(self.corpus, self.labels):
+            segfname = os.path.join(seg_path, fname)
+            self.write_fnc(segfname, seg)  
         
     def read_labels(self, seg_path):
         self.labels = []
-        for file_id in self.file_ids:
-            segfile_id = os.path.join(seg_path, file_id)
-            feature = self.read_fnc(segfile_id)
+        for fname in self.corpus:
+            segfname = os.path.join(seg_path, fname)
+            feature = self.read_fnc(segfname)
             self.labels.append(feature)
     
     # Filter  
@@ -154,7 +158,7 @@ class SpchData(object):
         else: 
             new = SpchData(None)
         # filter attributes
-        for name in ['file_ids', 'signals', 'features', 'labels']:
+        for name in ['corpus', 'signals', 'features', 'labels']:
             attr = getattr(self, name)
             if attr is not None:
                 new_attr = [i for (i, match) in zip(attr, bool_filter) if match]
@@ -163,16 +167,16 @@ class SpchData(object):
             return new
               
     def subset(self, subset, inplace=False):
-        filt = [ True if file_id in subset else False for file_id in self.file_ids ]
+        filt = [ True if fname in subset else False for fname in self.corpus ]
         return self.filter(filt, inplace) 
     
     def subset_with_regex(self, rgx, inplace=False):
         rgx = re.compile(rgx)
-        filt = [ True if rgx.match(file_id) else False for file_id in self.file_ids ]
+        filt = [ True if rgx.match(fname) else False for fname in self.corpus ]
         return self.filter(filt, inplace)
        
     # get from attribute
-    def get_nframes(self, name, axis=-1):
+    def get_length(self, name, axis=-1):
         attr = getattr(self, name)
         if attr is None: return []
         else: return [item.shape[axis] for item in attr]
@@ -188,7 +192,7 @@ class SpchData(object):
         return np.hstack(self.labels)
          
     # Dataframe
-    def to_dataframe(self, attributes=['file_ids', 'features', 'labels']):
+    def to_dataframe(self, attributes=['corpus', 'features', 'labels']):
         df_dict = {}
         for attr in attributes:
             df_dict[attr] = getattr(self, attr)
@@ -197,10 +201,10 @@ class SpchData(object):
     
     
         
-def DataFrame_to_SpchData(df, delete_df=True, attributes=['file_ids', 'features', 'labels']):
-    # initialize with file_ids
-    file_ids = df['file_ids'].to_list()
-    spchdata = SpchData(file_ids)
+def DataFrame_to_SpchData(df, delete_df=True, attributes=['corpus', 'features', 'labels']):
+    # initialize with corpus
+    corpus = df['corpus'].to_list()
+    spchdata = SpchData(corpus)
     # other attributes
     attributes = [attr for attr in attributes if attr in df.columns]
     for attr in attributes:
@@ -209,3 +213,4 @@ def DataFrame_to_SpchData(df, delete_df=True, attributes=['file_ids', 'features'
     if delete_df: del df
     
     return spchdata
+
