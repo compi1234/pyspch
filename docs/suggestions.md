@@ -10,6 +10,7 @@ check multiple occurence of
 
 Ipython.display : display, clear_output  seem obsolete in newest version   
 
+update referrals to Colab as colab has moved to python 3.7 and Ipython
 
 # Data objects
 
