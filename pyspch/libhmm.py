@@ -19,7 +19,13 @@ Modification History:
     obs_model.predict_log_prob(X):    computes log likelihoods for feature vector(s) X
     obs_model.predict_prob(X):        computes likelihoods for feature vector(s) X
 
+11/01/2022:
+    changed format of printing sequence probability to .2e
+    changed buffer initialization in viterbi_recursion to -np.inf for log probs
+    added .fillna("") to printing of  probs and obs_probs  dataframes
 
+25/02/2022:
+    adaptation to v0.6
         
 """
 import sys, os
@@ -33,8 +39,11 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 import copy
 
-from . import utils as u
-PROB_FLOOR = u.EPS_FLOAT
+#from pyspch.core.constants import EPS_FLOAT
+from .core.constants import EPS_FLOAT
+from .core import utils as u
+
+PROB_FLOOR = EPS_FLOAT
 
 class Obs_Dummy():
     """
@@ -184,10 +193,14 @@ class HMM():
         display(dft) 
         print("\nOBSERVATION MODEL\n=================\n")
 
+
         try:
-            self.obs_model.print_model()
+            self.obs_model.print_model(style=self.prob_style)
         except: 
-            print("Nothing to print\n")
+            try:
+                self.obs_model.print_model()
+            except:
+                print("Nothing to print\n")
             
     def observation_prob(self,X):
         """
@@ -230,7 +243,7 @@ class HMM():
         """
         
         if(self.prob_style == "log"):
-            buffer = u.logf(np.zeros(prev_buffer.shape))
+            buffer = -np.ones(prev_buffer.shape)*np.inf
             backptr = np.zeros(self.n_states,dtype=int)-1
             for to_state in range(0,self.n_states):
                 for from_state in range(0,self.n_states):
@@ -445,7 +458,7 @@ class Trellis():
         for w in what:
             if w == "obs_probs":
                 fdf = pd.DataFrame(self.obs_probs.T,
-                           columns=np.arange(self.n_samples),index = self.hmm.states )
+                           columns=np.arange(self.n_samples),index = self.hmm.states ).fillna("")
                            #index = ['S'+str(i) for i in range(self.hmm.n_states)]) 
                              
                 if(Titles): print("\nObservation Probabilities\n")
@@ -453,7 +466,7 @@ class Trellis():
 
             elif w == "probs":
                 pdf = pd.DataFrame(self.probs.T,
-                           columns=np.arange(self.n_samples),index = self.hmm.states )
+                           columns=np.arange(self.n_samples),index = self.hmm.states ).fillna("")
                            #index = ['S'+str(i) for i in range(self.hmm.n_states)])  
                 if(Titles):
                     if self.style == "Viterbi": print("\nTrellis Probabilities (Viterbi)\n")
@@ -461,7 +474,7 @@ class Trellis():
                 display(pdf)
 
             elif w== "backpointers":
-                bdf = pd.DataFrame(self.backptrs.T,
+                bdf = pd.DataFrame(self.hmm.states[self.backptrs.T],
                            columns=np.arange(self.n_samples),index = self.hmm.states )
                            #index = ['S'+str(i) for i in range(self.hmm.n_states)])  
                 if(Titles): print("\nBackpointers\n")
@@ -469,10 +482,11 @@ class Trellis():
                 
             elif w == "alignment":
                 if(Titles): print("\nAlignment\n")
-                alignment = self.backtrace()
-                display( pd.DataFrame(alignment.reshape(1,-1),index=['VIT-ALIGN']))
+                alignment = self.backtrace().reshape(1,-1)
+                al_df = pd.DataFrame(self.hmm.states[alignment],index=['VIT-ALIGN'])
+                display( xdf.append(al_df) )
             elif w == "seq_prob":       
-                print("\nSequence Probability: %.2f\n" % self.seq_prob)
+                print("\nSequence Probability: %.2e\n" % self.seq_prob)
             
             
     def plot_trellis(self,xticks=None,yticks=None,cmap=None,cmapf=None,

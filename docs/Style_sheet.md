@@ -6,23 +6,26 @@ wavdata :       numpy float 32, sampled data; size (n_samples,) or (n_channels,n
                 equivalence: y, waveform
 n_samples :     int, number of samples
 n_channels :    int, number of channels
+
 channels :      array of int's , selected channels
 sample_rate :   int, sampling frequency (default=16000)
 seconds :       float , time in seconds to record or save (default=2.0)
 io_device :     string, 'sd' for sounddevice, 'js' for javascript
 
+n_frames :      int, number of frames
 preemp :        float, preemphasis (default=0.95)
 f_length :      frame length in seconds (default=0.03)
 f_shift :       frame shift in seconds (default=0.01)
 n_length :      frame length in samples
 n_shift :       frame shift in samples
 n_fft :         int, number of fft coefficients (default=512)
-n_mels :        int, number of mel channels
+n_mels :         int, number of mel channels
 window :        string, window type (default='hamm')
-nparam :        int, number of parameters in a frame
-nfr :           int, number of frames
-frames :        (int,int), frame range
-spgdata :       numpy float 32, spectrogram like data; size (nparam, nfr)
+n_param :       int, number of parameters in a frame
+frames :        (int,int), frame range  ( should be slice ? )
+S :             numpy float 32, power spectogram; size (n_param,n_frames)
+spgdata :       numpy float 32, spectrogram like data; size (n_param, n_frames)
+mode :          string, the representation of the spectrogram, one of \['power','magnitude','dB'\]
 
 dx :            float, sample spacing on x-axis
 dy :            float, sample spacing on y-axis
@@ -38,7 +41,7 @@ xpos :          text positioning in relative units of axis width (0. .. 1.)
 ypos :          text positioning in relative units of axis height (0. .. 1.)
 
 Lines :         boolean, to draw vertical segmentation lines
-segdf :         pandas DataFrame, segmentation with fields ['t0,'t1','seg']
+segdf :         pandas DataFrame, segmentation with fields \['t0,'t1','seg'\]
 segwav :        segmentation to be added to a waveform axis
 segspg :        segmentation to be added to a spectrogram axis
 title :         string, Figure Title

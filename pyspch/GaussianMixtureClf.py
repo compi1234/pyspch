@@ -82,9 +82,9 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         for k in range(0,self.n_classes):
             self.gmm[k]._check_parameters(X)
 
-        classes = np.unique(y)
-        if(len(classes) > len(self.gmm)):
-            raise ValueError("More classes in data than in allocated GMMs")
+        #classes = np.unique(y)   # classes should have been defined at initialization time
+        #if(len(classes) > len(self.gmm)):
+        #    raise ValueError("More classes in data than in allocated GMMs")
 
         for k in range(0,self.n_classes) :
             selection = (y== self.classes[k])
@@ -126,7 +126,7 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         You can override the priors derived during training
         """
         
-        if priors == None:
+        if priors is None:
             priors = self.class_prior_
             
         if (len(priors) != self.n_classes):

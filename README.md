@@ -1,6 +1,28 @@
 # pyspch
 
-### Notes on v0.5 -- in dev  (24/11/2021)
+
+### Notes on v0.6 
+
+- major reorganization with subpackages
+    - core : for (file) I/O related stuff and general utilities; all these routines are included in the main import
+    - sp : subpackage that can be viewed as an extension to and built upon librosa, with some specific speech signal processing routines (though single channel mainly) 
+            now includes, cepstral processing, feature manipulation, time domain feature extraction, ..
+    - display : all display routines
+    - nn :   a neural net subpackage built on torch
+
+- default imports
+compatibility stays assured for python>=3.7, version numbers were raised for a few key packages:
+    + matplotlib>=3.4
+    + librosa>=0.9
+
+- Colab:
+On installing in colab a few warnings that come from matplotlib (higher version than default 3.2.2).
+From experience we know that these warnings can be neglected; though it may be best (required) to restart the runtime.
+
+
+
+
+### Notes on v0.5 -- final version for H02A6 course in 2021
 
 bumped a few minimal requirements, especially
 pandas > 1.1      to avoid read_pickle() problems

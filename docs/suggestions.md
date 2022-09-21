@@ -1,3 +1,16 @@
+# TODO 
+
+sequence data examples
+- use scipy.vq.vq for discretization
+- eliminate usage of iris dataset
+
+check multiple occurence of
+- confusion_matrix
+- mean_variance-Norm
+
+Ipython.display : display, clear_output  seem obsolete in newest version   
+
+
 # Data objects
 
 it is worth considering putting all signal data (waveforms, spectrograms) in a data object 
