@@ -21,17 +21,16 @@ setup(
     package_data = {'pyspch':['data/*']},
     
     install_requires=[
-        'numpy >= 1.19.0',
-        'scipy >= 1.4.0',
-        'pandas >= 1.3',
-        'librosa >= 0.8.1',
-        'numba',
-        'soundfile >= 0.10.0',
-        'matplotlib >= 3.2.2',
-        'ipywidgets >= 7.5.1',
+        'numpy >= 1.19.0, <1.24',
+        'scipy >= 1.4.0, < 1.8',
+        'pandas >= 1.3, <1.8 ',
+        'librosa >= 0.8.1, <0.9',
+        'soundfile >= 0.10.0, < 0.11',
+        'matplotlib >= 3.2.2, < 3.6',
+        'ipywidgets >= 7.5.1, < 9',
         'scikit-learn >= 1.0.0',
-        'seaborn >= 0.11',
-        'pydub'
+        'seaborn >= 0.11, < 1',
+        'pydub>=0.23,<0.26'
     ],
     
     python_requires='>=3.7',

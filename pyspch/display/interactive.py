@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from IPython.display import display, Audio, HTML, clear_output
 import ipywidgets as widgets
-from ipywidgets import HBox, VBox, Layout
+from ipywidgets import Box, HBox, VBox, Layout
 import librosa
 
 
@@ -31,8 +31,8 @@ def box_layout(width='',padding='1px',margin='1px',border='solid 1px black'):
         
      )
 
-class Spg1(VBox):
-    def __init__(self,shift=0.01,sample_rate=16000,dpi=100,figwidth=12.,size='100%',
+class Spg1(Box):
+    def __init__(self,shift=0.01,sample_rate=16000,dpi=100,figwidth=12.,style='horizontal',size='100%',
                 root='https://homes.esat.kuleuven.be/~spchlab/data/',
                 fname='misc/friendly.wav'):
         super().__init__()
@@ -59,6 +59,7 @@ class Spg1(VBox):
         self.autoplay = False
         self.dpi = dpi
         self.figwidth = figwidth
+        self.style = style
         self.layout.width = size
         
         self.fig_range = None
@@ -85,8 +86,9 @@ class Spg1(VBox):
         self.wg_mfcc.observe(self.mfcc_observe, 'value') 
         self.controls = VBox([ self.wg_fshift,self.wg_flength,self.wg_preemp, 
                                HBox([self.wg_melfb, self.wg_nmels]), 
-                               HBox([self.wg_mfcc, self.wg_nmfcc]) ] ,
-                               layout=box_layout(width='35%') ) 
+                               HBox([self.wg_mfcc, self.wg_nmfcc]) ] 
+                           #  , layout=box_layout(width='35%')
+                                ) 
 
         # file controls
         self.wg_root = widgets.Text(value=self.root,description="Root Dir: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
@@ -96,12 +98,12 @@ class Spg1(VBox):
         self.wg_segfname = widgets.Text(value=self.segfname,description="Seg File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
         self.wg_segfname.observe(self.segfname_observe,'value')         
         self.audio_controls = widgets.Output()
-        self.file_controls = VBox( [  self.wg_root, self.wg_fname, self.wg_segfname, self.audio_controls] ,layout=box_layout(width='35%'))
-
-        # output widget for logging messages
-        self.logscr = widgets.Output(layout=box_layout(width='30%'))
+        self.file_controls = VBox( [  self.wg_root, self.wg_fname, self.wg_segfname ] )
         
-        # construct the main screen with slider: 
+        # output widget for logging messages
+        self.logscr = widgets.Output()
+        
+        # construct the main screen and range slider: 
         self.out = widgets.Output( layout=box_layout() ) 
         self.wavrange = widgets.Output()
         self.wg_range = widgets.FloatRangeSlider(value=self.wavtimes,step=0.01,readout_format='.2f',
@@ -109,13 +111,28 @@ class Spg1(VBox):
                             description='',continuous_update=True,readout=False,
                             layout=Layout(width='98%',padding='0px 0% 0px 5%') )   
         self.wg_range.observe(self.range_observe,'value')
-        self.wg_range.layout.width='99%'
-
+        self.wg_range.layout.width='99%'    
+    
         # putting it all together
-        self.scr1 = VBox([ self.out, self.wavrange, self.wg_range ])
-        self.scr2 = HBox([ self.controls,  self.file_controls ,  self.logscr ] )
-        self.children =  [ self.scr1, self.scr2 ] 
-        
+        self.layout.display = 'flex'
+        self.layout.align_items = 'stretch'
+        if self.style == 'horizontal':        
+            self.layout.flex_flow = 'column'
+            self.controls.layout = box_layout(width='35%')
+            self.file_controls.layout =box_layout(width='35%')
+            self.logscr.layout=box_layout(width='30%')
+            self.scr1 = VBox([ self.out, self.wavrange, self.wg_range ])
+            self.scr2 = HBox([ self.controls,  self.file_controls ,  self.logscr ] )
+            self.children =  [ self.scr1, self.scr2 ] 
+        elif self.style == 'vertical':        
+            #self.controls.layout = box_layout(width='100%')
+            #self.file_controls.layout =box_layout(width='100%')
+            #self.logscr.layout=box_layout(width='100%')
+            self.scr1 = VBox([self.out] )
+            self.scr2 = VBox([ self.controls,  self.file_controls ,
+                              VBox([self.wg_range,self.wavrange,self.audio_controls]), self.logscr ] )
+            self.scr2.layout= box_layout(width='30%')
+            self.children =  [ self.scr2, self.scr1 ]         
         self.wav_update()
         self.update()
   

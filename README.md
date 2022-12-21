@@ -1,62 +1,44 @@
-# pyspch
+# pyspch: speech analysis and recognition package for teaching
+
+## What is it ?
+**pyspch** is a Python package that provides easy to use speech analysis and speech recognition functionality in Python.  
+
+The focus is on EASE of USE and SIMPLE ACCESS to the science and algorithms behind speech processing today.   This is by no means intended to be a state-of-the-art package for building speech recognition systems.
+
+The principle usage of **pyspch** is with *Jupyter Notebooks* in which small systems or demonstrators are built, such as  the suite of demonstrations and exercises in the **spchlab** repository( https://github.com/compi1234/spchlab)
 
 
-### Notes on v0.6 
-
-- major reorganization with subpackages
-    - core : for (file) I/O related stuff and general utilities; all these routines are included in the main import
-    - sp : subpackage that can be viewed as an extension to and built upon librosa, with some specific speech signal processing routines (though single channel mainly) 
-            now includes, cepstral processing, feature manipulation, time domain feature extraction, ..
-    - display : all display routines
-    - nn :   a neural net subpackage built on torch
-
-- default imports
-compatibility stays assured for python>=3.7, version numbers were raised for a few key packages:
-    + matplotlib>=3.4
-    + librosa>=0.9
-
-- Colab:
-On installing in colab a few warnings that come from matplotlib (higher version than default 3.2.2).
-From experience we know that these warnings can be neglected; though it may be best (required) to restart the runtime.
-
-
-
-
-### Notes on v0.5 -- final version for H02A6 course in 2021
-
-bumped a few minimal requirements, especially
-pandas > 1.1      to avoid read_pickle() problems
-                  while this function isn't used inside, it seems a good idea 
-
-and for the HMM part, usage of scikit-learn >= 1.0.1 is required, also implying 
-Python (>= 3.7)
-NumPy (>= 1.14.6)
-SciPy (>= 1.1.0)
-joblib (>= 0.11)
-threadpoolctl (>= 2.0.0)
-
-
-### Notes on v0.4 -- 29/09/2021
-
-- this should become the first more or less stable version to be used during the academic year 2021-2022
-- there was some restructuring in the sense that tests and demos have been moved out of the package, but are still in the project one level up
-- some of the demos - linked closely to my Speech Recognition course (H02A6) have been moved into the independent repository 'spchlab' which is linked to that course
-
+## Main features
  
-### Notes on v.03
+- Jupyter Notebook toolkit for speech visualization and audio I/O
+- speech analysis:
+    + feature extraction: MEL and CEP
+    + postprocessing and grouping
+    + spectrograms (Fourier, MEL and CEP)
+- speech recognition:
+    + dynamic time warping
+    + Bayesian classifiers
+    + Hidden Markov Models
+    + Deep Neural Nets (Multilayer Perceptrons)
 
-- there were many breaking changes in going from 01->02->03
-- the plotly backend is temporarily not supported
 
-### Known Issues with Dependencies
+## Installation
 
-- librosa  does not seem to work the latest versions of numba, llvmlite
-- numba <= 0.50 (don't know if this is the highest version, but 0.53 definitely seems incompatible with librosa)
-- llvmlite <= 0.33 (automatically with numba <= 0.50)
+The source code resides on GitHub at:
+https://github.com/compi1234/pyspch
 
-### Known Issues in v0.1
+> pip install git+https://github.com/compi1234/pyspch.git
 
-- soundfile and librosa are not supported on binder, but critical for all I/O imports
-    - need to find a way to load system library libsndfile on the lINUX servers ( maybe: sudo apt-get install libsndfile1 ; not tested yet )
-- multichannel recording in Colab not supported
-- discrepancies between mpl and plotly low level API for axis selection
+## Dependencies
+
+- recommended Python versions are 3.7, 3.8 and 3.9
+- a compatible [py37.yml](py37.yml) file is available to create a dedicated environment
+- for sake of compatibility with COLAB, a few packages are downgraded to a lower version, most notably:
+        + matplotlib  3.2.*
+        + librosa     0.8.*
+    
+- torch and torchaudio are recommended, but not required for most of the package except the nn subpackage (DNNs)
+    + installation is not included in the reference .yml file 
+    + installing with conda (do this after creating your env)
+        > conda install pytorch==1.12.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+    + You may find a more compatible version for your system on the [pytorch website]( https://pytorch.org/get-started/previous-versions/)
