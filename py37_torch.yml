@@ -5,9 +5,9 @@ channels:
   - defaults
 
 dependencies:
-# python machine learning stack and visualization - in sync with colab 09/2022
-  - python=3.7.13
-  - pip=21.1.*
+# python machine learning stack and visualization - in sync with colab 01/2023
+  - python=3.7.*
+  - pip=22.0.*
   - numpy=1.21.*
   - scipy=1.7.*
   - pandas=1.3.*
@@ -15,19 +15,21 @@ dependencies:
   - matplotlib=3.2.*
   - seaborn=0.11.*
   - plotly=5.5.*
-  - cudatoolkit=11.6
-  - pytorch::pytorch=1.12.1
-  - pytorch::torchaudio=0.12.1
+# select cudatoolkit if available on the installing hardware
+# - cudatoolkit=11.6
+# get the pytorch packages via the pytorch channel
+  - pytorch::pytorch=1.13.*
+  - pytorch::torchaudio=0.13.*
 # jupyter core and ipython
   - jupyterlab=3.4.*
   - jupyterlab_widgets=3.0.*
   - ipywidgets=8.0.*
   - nodejs
 # other signal processing and audio libs  
-  - pydub=0.23.*
-  - ffmpeg=4.2.*
-  - python-graphviz=0.16
+  - pydub=0.25.*
+  - ffmpeg=5.1.*
+  - python-graphviz=0.20.*
   - pip:
     - librosa==0.8.*
-    - soundfile==0.10.*
+    - soundfile==0.11.*
     - sounddevice==0.4.*

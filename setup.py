@@ -21,11 +21,11 @@ setup(
     package_data = {'pyspch':['data/*']},
     
     install_requires=[
-        'numpy >= 1.19.0, <1.24',
+        'numpy >= 1.19.0, <1.23',
         'scipy >= 1.4.0, < 1.8',
         'pandas >= 1.3, <1.8 ',
         'librosa >= 0.8.1, <0.9',
-        'soundfile >= 0.10.0, < 0.11',
+        'soundfile >= 0.10.0, < 0.12',
         'matplotlib >= 3.2.2, < 3.6',
         'ipywidgets >= 7.5.1, < 9',
         'scikit-learn >= 1.0.0',

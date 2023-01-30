@@ -20,16 +20,59 @@ dw_4 = {'description_width': '40%'}
 dw_3 = {'description_width': '30%'}
 dw_2 = {'description_width': '20%'}
 dw_0 = {'description_width': '0%'}
-    
+
+
 def box_layout(width='',padding='1px',margin='1px',border='solid 1px black'):
      return Layout(
         border= border,
         padding = padding,  # padding='2px 2px 2px 2px',  = white space inside; top, right, bottom, left
         margin=   margin,   # margin = '1px 1px 1px 1px', = white space around the outside
-        width = width
-
-        
+        width = width  
      )
+    
+Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23F9', 'record':'\u2b55'}
+
+def button_layout():
+    return widgets.Layout(
+        border='solid 1px black',
+        margin='5px 5px 5px 5px',
+        padding='5px 5px 5px 5px',
+        width = '50px',
+        height = '40px',
+        flex_shrink =2
+     )    
+
+class PlayPauseButtons(widgets.HBox):
+    '''
+    PlayPauseButton generates a simple widget with 2 buttons for Playing sound and Pausing it .  The widget is a handy replacement for the standard HTML5 audio control as it is smaller (and has fewer controls)
+    
+    usage: 
+    > audio_buttons = PlayPauseButtons(data=wavdata,sample_rate=sr,border='')
+    
+    '''
+    def __init__(self,data,sample_rate=8000,width='125px',border=''):
+        super().__init__()
+        self.data = data
+        self.sample_rate = sample_rate
+        self.wg_play_button = widgets.Button(description=Symbols['play'],layout=button_layout())
+        self.wg_pause_button = widgets.Button(description=Symbols['pause'],layout=button_layout())
+        
+        self.wg_play_box = widgets.VBox([self.wg_play_button])
+        self.wg_pause_box = widgets.VBox([self.wg_pause_button])
+           
+        self.wg_play_button.on_click(self.play_sound)
+        self.wg_pause_button.on_click(self.pause_sound)    
+        self.layout= box_layout(width=width,border=border)
+        
+        self.children = [
+                self.wg_play_box,
+                self.wg_pause_box] 
+        
+    def play_sound(self,b):
+        Spch.audio.play(self.data,sample_rate=self.sample_rate,wait=False)
+            
+    def pause_sound(self,b):
+        Spch.audio.stop()
 
 class Spg1(Box):
     def __init__(self,shift=0.01,sample_rate=16000,dpi=100,figwidth=12.,style='horizontal',size='100%',
@@ -38,9 +81,9 @@ class Spg1(Box):
         super().__init__()
         self.sample_rate = sample_rate
         self.shift = shift
-        self.length = 0.03
+        self.length = 0.025
         self.preemp = 0.97
-        self.nmels = 40
+        self.nmels = 80
         self.melfb = False
         self.nmfcc = 12
         self.mfcc = False
@@ -66,8 +109,10 @@ class Spg1(Box):
         self.fig_main = None
 
         # spectrogram controls
-        self.wg_fshift = widgets.FloatSlider(value=self.shift,min=0.005,max=0.050,step=0.005,description="Shift(msec)",readout_format='.3f',style=dw_3)
-        self.wg_flength = widgets.FloatSlider(value=self.length,min=0.005,max=0.200,step=0.005,description="Length(msec)",readout_format='.3f',style=dw_3)
+        #self.wg_fshift = widgets.FloatSlider(value=self.shift,min=0.005,max=0.050,step=0.005,description="Shift(msec)",readout_format='.3f',style=dw_3)
+        #self.wg_flength = widgets.FloatSlider(value=self.length,min=0.005,max=0.200,step=0.005,description="Length(msec)",readout_format='.3f',style=dw_3)
+        self.wg_fshift = widgets.FloatSlider(value=1000*self.shift,min=5,max=50,step=5,description="Shift(msec)",style=dw_3)
+        self.wg_flength = widgets.FloatSlider(value=1000*self.length,min=5,max=200,step=5,description="Length(msec)",style=dw_3)
         self.wg_preemp = widgets.FloatSlider(value=self.preemp,min=0.0,max=1.0,step=0.01,description="Preemphasis",style=dw_3)
         self.wg_melfb = widgets.Checkbox(value=self.melfb,description='Mel Filterbank',indent=True,style=dw_0)
         self.wg_nmels = widgets.IntSlider(value=self.nmels,min=10,max=128,step=1,description="#b",style=dw_2)
@@ -154,20 +199,27 @@ class Spg1(Box):
             display(self.fig_range)        
         
     def update(self):     
+        # round shift, length to sample
+        self.shift = round(float(self.sample_rate)*self.shift)/self.sample_rate
+        self.length = round(float(self.sample_rate)*self.length)/self.sample_rate
+        self.seltimes = [ round(float(self.sample_rate)*self.seltimes[0])/self.sample_rate,
+                         round(float(self.sample_rate)*self.seltimes[1])/self.sample_rate]
         if self.length < 0.002: self.length=0.002
         if self.shift > self.length: self.shift = self.length
         self.n_shift = int(self.shift*self.sample_rate)
         self.frames = [int(self.seltimes[0]/self.shift), int(self.seltimes[1]/self.shift)]
-                  
+        
         self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=' ',xlabel=None,xticks=False,
                             figsize=(self.figwidth,1.0),dpi=self.dpi)
-        self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#222')
-        self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#222')
+        self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#333',ec="#333",fill=True)
+        self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#333',ec="#333",fill=True)
         
         self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
         self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
-        
+        #with self.logscr:
+        #    print(self.shift,self.n_shift,self.spg.shape)
+    
         # get segmentation
         try:
             seg1= core.read_seg_file(self.root+self.segfname)
@@ -189,7 +241,8 @@ class Spg1(Box):
         with self.audio_controls:
             clear_output(wait=True)
             sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))
+            display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))            
+            #display(PlayPauseButton(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rates))
             
     def plot1(self):
         img_ftrs = []
@@ -239,11 +292,11 @@ class Spg1(Box):
         self.autoplay = change.new
         
     def fshift_observe(self,change):
-        self.shift = change.new
+        self.shift = change.new/1000.
         self.update()
         
     def flength_observe(self,change):
-        self.length = change.new
+        self.length = change.new/1000.
         self.update()
         
     def preemp_observe(self,change):
@@ -281,9 +334,9 @@ class Spg2(VBox):
         super().__init__()
         self.sample_rate = 1
         self.shift = 0.01
-        self.length = 0.03
+        self.length = 0.025
         self.preemp = 0.97
-        self.nmels = 40
+        self.nmels = 80
         self.melfb = False
         self.nmfcc = 12
         self.mfcc = False
@@ -303,14 +356,16 @@ class Spg2(VBox):
         self.dpi = dpi
         self.figwidth = figwidth
         #self.layout.width = size
-        self.fig_ratio = .66
+        self.fig_ratio = .66     # LHS display vs RHS
         self.fig_range = None
         self.fig_main = None
         self.fig_rhs = None
 
         # spectrogram controls
-        self.wg_fshift = widgets.FloatSlider(value=self.shift,min=0.005,max=0.050,step=0.005,description="Shift(msec)",readout_format='.3f',style=dw_3)
-        self.wg_flength = widgets.FloatSlider(value=self.length,min=0.005,max=0.200,step=0.005,description="Length(msec)",readout_format='.3f',style=dw_3)
+        #self.wg_fshift = widgets.FloatSlider(value=self.shift,min=0.005,max=0.050,step=0.005,description="Shift(msec)",readout_format='.3f',style=dw_3)
+        #self.wg_flength = widgets.FloatSlider(value=self.length,min=0.005,max=0.200,step=0.005,description="Length(msec)",readout_format='.3f',style=dw_3)
+        self.wg_fshift = widgets.FloatSlider(value=1000*self.shift,min=5,max=50,step=5,description="Shift(msec)",style=dw_3)
+        self.wg_flength = widgets.FloatSlider(value=1000*self.length,min=5,max=200,step=5,description="Length(msec)",style=dw_3)
         self.wg_preemp = widgets.FloatSlider(value=self.preemp,min=0.0,max=1.0,step=0.01,description="Preemphasis",style=dw_3)
         self.wg_melfb = widgets.Checkbox(value=self.melfb,description='Mel Filterbank',indent=True,style=dw_0)
         self.wg_nmels = widgets.IntSlider(value=self.nmels,min=10,max=128,step=1,description="#b",style=dw_3)
@@ -381,6 +436,11 @@ class Spg2(VBox):
                         figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)       
         
     def update(self):     
+        # round shift, length to sample
+        self.shift = round(float(self.sample_rate)*self.shift)/self.sample_rate
+        self.length = round(float(self.sample_rate)*self.length)/self.sample_rate
+        self.seltimes = [ round(float(self.sample_rate)*self.seltimes[0])/self.sample_rate,
+                         round(float(self.sample_rate)*self.seltimes[1])/self.sample_rate]
         if self.length < 0.002: self.length=0.002
         if self.shift > self.length: self.shift = self.length
         self.nshift = int(self.shift*self.sample_rate)
@@ -423,12 +483,12 @@ class Spg2(VBox):
    
         self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
                     dy=self.sample_rate/(2*(self.nparam-1)),img_ftrs=img_ftrs,img_labels=img_labels,
-                    figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
+                    figsize=(self.fig_ratio*self.figwidth,0.5*self.figwidth),dpi=self.dpi)
         for seg in segs:
             self.fig_main.add_seg_plot(seg,iax=0,ypos=0.85,color="#444",size=12)
             self.fig_main.add_seg_plot(seg,iax=1,ypos=None,color="#222")
         
-        self.fig_main.add_vrect(self.seltimes[0],self.seltimes[1],iax=0,color='#F22')
+        #self.fig_main.add_vrect(self.seltimes[0],self.seltimes[1],iax=0,color='#F22')
         self.fig_main.add_vrect(self.wintimes[0],self.wintimes[1],iax=0,color='#2F2')
         self.fig_main.add_vrect(self.seltimes[0],self.seltimes[1],iax=1,color='#222')
         for i in range(len(img_ftrs)):
@@ -479,12 +539,12 @@ class Spg2(VBox):
         self.autoplay = change.new
         
     def fshift_observe(self,change):
-        self.shift = change.new
-        self.wg_range.step = change.new
+        self.shift = change.new/1000.
+        self.wg_range.step = change.new/1000.
         self.update()
         
     def flength_observe(self,change):
-        self.length = change.new
+        self.length = change.new/1000.
         self.update()
         
     def preemp_observe(self,change):
