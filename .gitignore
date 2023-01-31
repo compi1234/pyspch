@@ -10,3 +10,5 @@ pyspch/nn/utils.py
 pyspch/nn/plot.py
 pyspch/nn/models_tryout.py
 pyspch/nn/gym.py
+.DS_Store
+pyspch/.DS_Store
