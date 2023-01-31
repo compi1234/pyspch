@@ -14,17 +14,17 @@ dependencies:
   - scikit-learn=1.0.*
   - matplotlib=3.4.*
   - seaborn=0.11.*
-  - plotly=5.5.*
+#  - plotly=5.5.*
 # jupyter core and ipython
   - jupyterlab=3.4.*
   - jupyterlab_widgets=3.0.*
   - ipywidgets=8.0.*           #colab: 7.7.1
   - nodejs
 # other signal processing and audio libs  
+  - librosa==0.8.1
   - pydub=0.25.*
   - ffmpeg=5.1.*
+  - librosa==0.8.1
   - python-graphviz=0.16
-  - pip:
-    - librosa==0.8.*
-    - soundfile==0.11.*
-    - sounddevice==0.4.*
+  - pysoundfile==0.11.*
+  - python-sounddevice==0.4.*
