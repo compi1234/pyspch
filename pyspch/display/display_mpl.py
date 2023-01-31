@@ -94,7 +94,10 @@ class SpchFig(Figure):
         converts axis grid specification to axis number
         '''
         if isinstance(iax,list): # row*col spec
-            ii = iax[0]*self.axes[0].numCols + iax[1]
+            # deprecated in matplotlib 3.4
+            # ii = iax[0]*self.axes[0].numCols + iax[1]
+            nc = self.axes[0].get_gridspec().ncols
+            ii = iax[0]*nc + iax[1]
             ax = self.axes[ii]
         else: # rows only
             ax = self.axes[iax]
