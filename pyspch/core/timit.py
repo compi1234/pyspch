@@ -5,6 +5,8 @@ including conversion of TIMIT phone sets
 26/01/2022:  Some corrections in the mapping definitions
 
 21/02/2022:  Addition of TIMIT-41 symbol set, ie. CMU + SIL + CL
+06/02/2023:  Allowing equivalence names TIMIT41 or CMU
+
 
 TIMIT PHONE SETS:   
 The different phone sets defined here all use ARPABET notations but differ slightly in the phonetic detail that is maintained.   
@@ -21,10 +23,13 @@ TIMIT39: alphabet typically used for SCORING in ASR experiments with TIMIT
         - 3 silence-like labels are folded onto SIL
         - 6 phone like labels are folded onto a similar phone
 
-TIMIT41: ad hoc alphabet, similar to TIMIT39, that comes as close as possible to the CMU alphabet
-    - closures are mapped to 'cl'  (this is an additional symbol vs. CMU)
-    - AO and ZH are preserved
-    - DX is folded onto T
+CMU or TIMIT41: CMU39 + sil + cl
+    - phones are identical to CMU39 + 'sil' + 'cl' ('cl' is optional and does not appear in CMU)
+    - comparing to TIMIT48
+        - closures are mapped to 'cl'  (this is an additional symbol vs. CMU)
+        - DX is folded onto T
+    - comparing to TIMIT39
+        - AO and ZH are preserved
     
 REMARK: it should be understood that the above alphabet mappings do NOT IMPLY that TIMIT transcriptions / segmenations 
  can be mapped to good CMU transcriptions / segmentations
@@ -57,6 +62,7 @@ TIMIT39 = ['aa','ae', 'ah','aw','er','ay','b','ch','d','dh','dx','eh',
  'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
  'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','sil']
 
+CMU = TIMIT41
 
 # TIMIT 61 -> 48
 ################
@@ -137,7 +143,8 @@ def get_timit_alphabet(labset="timit61"):
         "timit61": TIMIT61,
         "timit48": TIMIT48,
         "timit39": TIMIT39,
-        "timit41": TIMIT41
+        "timit41": TIMIT41,
+        "cmu":CMU
         }
     
     return(timit_map[labset])
@@ -150,7 +157,7 @@ def get_timit_mapping(set1="timit61",set2="timit41"):
     fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
     timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
     #timit_map
-    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
+    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3,"cmu":3}
     
     col_set1 = col_map[set1.lower()]
     col_set2 = col_map[set2.lower()]

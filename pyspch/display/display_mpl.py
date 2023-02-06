@@ -61,8 +61,13 @@ def invert_xy_line2D(ax,swap_labels=True):
 #######################################################################################
 class SpchFig(Figure):
     '''
-    The SpchFig class creates an 2D array of plots (nrows x ncols)
-    The axis numbering is from top to bottom, left to right
+    The SpchFig class creates an 2D array of plots (nrows x ncols) [default 2x1]
+    The axis numbering is from top to bottom, left to right, thus
+    
+            0,0    0,1    0,2
+            1,0    1,1    1,2
+            ...
+            
     '''
     
     def __init__(self,row_heights=[1.,1.],col_widths=[1.],sharex=False,sharey=False,**kwargs):

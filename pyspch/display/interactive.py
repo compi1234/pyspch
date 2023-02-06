@@ -6,10 +6,10 @@ from ipywidgets import Box, HBox, VBox, Layout
 import librosa
 
 
-from .. import core
-#from ..sp import spectrogram, spg2mel, cepstrum
-from .. import sp #sp import spectrogram, spg2mel, cepstrum
+from .. import core as Spch     # .audio
+from .. import sp       # spectrogram, spg2mel, cepstrum
 from .display import SpchFig, PlotWaveform, PlotSpg, PlotSpgFtrs
+
 
 import matplotlib.pyplot as plt
 
@@ -22,12 +22,13 @@ dw_2 = {'description_width': '20%'}
 dw_0 = {'description_width': '0%'}
 
 
-def box_layout(width='',padding='1px',margin='1px',border='solid 1px black'):
+def box_layout(width='',height='',padding='1px',margin='1px',border='solid 1px black'):
      return Layout(
         border= border,
         padding = padding,  # padding='2px 2px 2px 2px',  = white space inside; top, right, bottom, left
         margin=   margin,   # margin = '1px 1px 1px 1px', = white space around the outside
-        width = width  
+        width = width,
+        height = height
      )
     
 Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23F9', 'record':'\u2b55'}
@@ -42,15 +43,16 @@ def button_layout():
         flex_shrink =2
      )    
 
-class PlayPauseButtons(widgets.HBox):
+class MiniPlayer(widgets.HBox):
     '''
-    PlayPauseButton generates a simple widget with 2 buttons for Playing sound and Pausing it .  The widget is a handy replacement for the standard HTML5 audio control as it is smaller (and has fewer controls)
+    MiniPlayer generates a simple widget with 2 buttons for Playing sound and Pausing it .  The widget is a handy replacement for the standard HTML5 audio control as it is smaller (and has fewer controls)
     
     usage: 
-    > audio_buttons = PlayPauseButtons(data=wavdata,sample_rate=sr,border='')
+    > Player1 = MiniPlayer(data=wavdata,sample_rate=sr,border='')
+    > display(Player1)
     
     '''
-    def __init__(self,data,sample_rate=8000,width='125px',border=''):
+    def __init__(self,data,sample_rate=8000,width=None,border='',logscr=False):
         super().__init__()
         self.data = data
         self.sample_rate = sample_rate
@@ -61,26 +63,62 @@ class PlayPauseButtons(widgets.HBox):
         self.wg_pause_box = widgets.VBox([self.wg_pause_button])
            
         self.wg_play_button.on_click(self.play_sound)
-        self.wg_pause_button.on_click(self.pause_sound)    
+        self.wg_pause_button.on_click(self.pause_sound) 
+        if width is not None:
+            if logscr: width = '500px'
+            else: width = '125px'
         self.layout= box_layout(width=width,border=border)
-        
-        self.children = [
-                self.wg_play_box,
-                self.wg_pause_box] 
+        self.logscr = widgets.Output(layout=box_layout(border='1px solid blue',width='250px'))
+        if logscr:
+            self.children = [self.wg_play_box,self.wg_pause_box,self.logscr]
+        else:
+            self.children = [self.wg_play_box,self.wg_pause_box]              
         
     def play_sound(self,b):
+        with self.logscr:
+            print("Playing")
         Spch.audio.play(self.data,sample_rate=self.sample_rate,wait=False)
             
     def pause_sound(self,b):
+        with self.logscr:
+            print("Stop Playing")
         Spch.audio.stop()
+        
 
-class Spg1(Box):
-    def __init__(self,shift=0.01,sample_rate=16000,dpi=100,figwidth=12.,style='horizontal',size='100%',
+class iSpectrogram(Box):
+    '''
+    iSpectrogram is an interactive spectrogram GUI where you can view:
+        - as a basis: waveform and spectrogram
+        - further spectral / cepstral analysis
+        - optionally overlay with a segmentation
+         
+    
+    User controls include:
+    - file selection
+    - spectrogram parameters
+    - postprocessing options
+    - a double slider for selecting a part of the file frame
+    
+    iSpectrogram can be run in 'horizontal' style (default) with the controls below the spectrogram view,
+    or in 'vertical' style with the controls left of the spectrogram view
+    
+    input:
+    ------
+    style        str, must be 'horizontal'(default) or 'vertical'
+    size         str, default '100%'
+    figwidth     float, figure with in inch (default=12.0)
+    dpi          int, mpl figure parameter (default=100)
+    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/'
+    fname        str, filename, default = misc/friendly.wav'
+    
+    '''
+    
+    def __init__(self,dpi=100,figwidth=12.,style='horizontal',size='100%',
                 root='https://homes.esat.kuleuven.be/~spchlab/data/',
                 fname='misc/friendly.wav'):
         super().__init__()
-        self.sample_rate = sample_rate
-        self.shift = shift
+        self.sample_rate = 16000.
+        self.shift = 0.01
         self.length = 0.025
         self.preemp = 0.97
         self.nmels = 80
@@ -96,7 +134,7 @@ class Spg1(Box):
         self.frames = [0, 1]
         self.spg = None
         self.spgmel = None
-        self.segs = None
+        self.seg = None
         self.nparam = 0
         self.nfr = 0
         self.autoplay = False
@@ -109,8 +147,6 @@ class Spg1(Box):
         self.fig_main = None
 
         # spectrogram controls
-        #self.wg_fshift = widgets.FloatSlider(value=self.shift,min=0.005,max=0.050,step=0.005,description="Shift(msec)",readout_format='.3f',style=dw_3)
-        #self.wg_flength = widgets.FloatSlider(value=self.length,min=0.005,max=0.200,step=0.005,description="Length(msec)",readout_format='.3f',style=dw_3)
         self.wg_fshift = widgets.FloatSlider(value=1000*self.shift,min=5,max=50,step=5,description="Shift(msec)",style=dw_3)
         self.wg_flength = widgets.FloatSlider(value=1000*self.length,min=5,max=200,step=5,description="Length(msec)",style=dw_3)
         self.wg_preemp = widgets.FloatSlider(value=self.preemp,min=0.0,max=1.0,step=0.01,description="Preemphasis",style=dw_3)
@@ -132,15 +168,17 @@ class Spg1(Box):
         self.controls = VBox([ self.wg_fshift,self.wg_flength,self.wg_preemp, 
                                HBox([self.wg_melfb, self.wg_nmels]), 
                                HBox([self.wg_mfcc, self.wg_nmfcc]) ] 
-                           #  , layout=box_layout(width='35%')
                                 ) 
 
         # file controls
-        self.wg_root = widgets.Text(value=self.root,description="Root Dir: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
+        self.wg_root = widgets.Text(value=self.root,
+                        description="Root Dir: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
         self.wg_root.observe(self.root_observe,'value') 
-        self.wg_fname = widgets.Text(value=self.fname,description="Wav File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
+        self.wg_fname = widgets.Text(value=self.fname,
+                        description="Wav File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
         self.wg_fname.observe(self.fname_observe,'value') 
-        self.wg_segfname = widgets.Text(value=self.segfname,description="Seg File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
+        self.wg_segfname = widgets.Text(value=self.segfname,
+                        description="Seg File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
         self.wg_segfname.observe(self.segfname_observe,'value')         
         self.audio_controls = widgets.Output()
         self.file_controls = VBox( [  self.wg_root, self.wg_fname, self.wg_segfname ] )
@@ -165,9 +203,10 @@ class Spg1(Box):
             self.layout.flex_flow = 'column'
             self.controls.layout = box_layout(width='35%')
             self.file_controls.layout =box_layout(width='35%')
-            self.logscr.layout=box_layout(width='30%')
+            self.logscr.layout=box_layout(height='70%')
             self.scr1 = VBox([ self.out, self.wavrange, self.wg_range ])
-            self.scr2 = HBox([ self.controls,  self.file_controls ,  self.logscr ] )
+            self.scr2 = HBox([ self.controls,  self.file_controls, 
+                              VBox([ self.audio_controls,  self.logscr ], layout=box_layout(width='30% ')) ])
             self.children =  [ self.scr1, self.scr2 ] 
         elif self.style == 'vertical':        
             #self.controls.layout = box_layout(width='100%')
@@ -185,7 +224,7 @@ class Spg1(Box):
         fname = self.root+self.fname
         #with self.logscr:
         #    print("audio file name",fname)
-        self.wavdata, self.sample_rate = core.audio.load(fname)
+        self.wavdata, self.sample_rate = Spch.audio.load(fname)
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.wg_range.min = self.wavtimes[0]
         self.wg_range.max = self.wavtimes[1]
@@ -197,6 +236,12 @@ class Spg1(Box):
         with self.wavrange:
             clear_output(wait=True)
             display(self.fig_range)        
+
+    def seg_update(self):
+        # get segmentation
+        # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
+        dt = 1/self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
+        self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
         
     def update(self):     
         # round shift, length to sample
@@ -214,19 +259,12 @@ class Spg1(Box):
         self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#333',ec="#333",fill=True)
         self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#333',ec="#333",fill=True)
         
-        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,
+                                  f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
         self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         #with self.logscr:
         #    print(self.shift,self.n_shift,self.spg.shape)
-    
-        # get segmentation
-        try:
-            seg1= core.read_seg_file(self.root+self.segfname)
-            self.segs = [seg1] if seg1 is not None else []
-        except:
-            self.segs = []
-        
 
         self.plot1()
             
@@ -241,8 +279,8 @@ class Spg1(Box):
         with self.audio_controls:
             clear_output(wait=True)
             sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))            
-            #display(PlayPauseButton(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rates))
+            display(MiniPlayer(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rate))
+            #display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))           
             
     def plot1(self):
         img_ftrs = []
@@ -264,17 +302,18 @@ class Spg1(Box):
             img_ftrs += [ mfccs ]
             img_labels += [ceptype+str(mfccs.shape[0])]
    
-        self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
+        self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,
+                    sample_rate=self.sample_rate,shift=self.shift,
                     dy=self.sample_rate/(2*(self.nparam-1)),frames=self.frames,img_ftrs=img_ftrs,img_labels=img_labels,
                     figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
-        for seg in self.segs:
-            self.fig_main.add_seg_plot(seg,iax=0,ypos=0.85,color="#444",size=12)
-            self.fig_main.add_seg_plot(seg,iax=1,ypos=None,color="#222")
-            for i in range(len(img_ftrs)):
-                self.fig_main.add_seg_plot(seg,iax=2+i,ypos=None,color="#222")
 
-    def plot2(self):
-        self.fig = SpchFig()
+        self.fig_main.add_seg_plot(self.seg,iax=0,ypos=0.85,color="#444",size=12)
+        self.fig_main.add_seg_plot(self.seg,iax=1,ypos=None,color="#222")
+        for i in range(len(img_ftrs)):
+            self.fig_main.add_seg_plot(self.seg,iax=2+i,ypos=None,color="#222")
+
+    #def plot2(self):
+    #    self.fig = SpchFig()
             
     def root_observe(self,change):
         self.root=change.new
@@ -286,6 +325,7 @@ class Spg1(Box):
         
     def segfname_observe(self,change):
         self.segfname=change.new
+        self.seg_update()
         self.update()
         
     def autoplay_observe(self,change):
@@ -327,7 +367,31 @@ class Spg1(Box):
 #########################################################
 ########  Spg2
 #########################################################
-class Spg2(VBox):
+class iSpectrogram2(VBox):
+    '''
+    iSpectrogram2 is an interactive spectrogram GUI where you can view:
+        - as a basis: waveform and spectrogram
+        - further spectral / cepstral analysis
+        - optionally overlay with a segmentation
+        
+    iSpectrogram2 has in the left hand pane a classical spectrogram view and in
+    the right hand pane the view of single frame/slice.  
+    
+    User controls include:
+    - file selection
+    - spectrogram parameters
+    - postprocessing options
+    - slider for frame selection
+
+    input:
+    ------
+    size         str, default '100%'
+    figwidth     float, figure with in inch (default=12.0)
+    dpi          int, mpl figure parameter (default=100)
+    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/'
+    fname        str, filename, default = misc/friendly.wav'
+        
+    '''
     def __init__(self,dpi=100,figwidth=12.,size='100%',
                 root='https://homes.esat.kuleuven.be/~spchlab/data/',
                 fname='misc/friendly.wav'):
@@ -348,6 +412,7 @@ class Spg2(VBox):
         self.seltimes = self.wavtimes 
         self.frames = [0, 1]
         self.frame = 0
+        self.seg = None
         self.spg = None
         self.spgmel = None
         self.nparam = 0
@@ -422,7 +487,7 @@ class Spg2(VBox):
         self.update()
   
     def wav_update(self):
-        self.wavdata, self.sample_rate = core.audio.load(self.root+self.fname)  
+        self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.frames = [0, int(self.wavtimes[1]/self.shift)]
         self.wg_range.min = self.wavtimes[0]
@@ -434,6 +499,11 @@ class Spg2(VBox):
 
         self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
                         figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)       
+    def seg_update(self):
+        # get segmentation
+        # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
+        dt = 1/self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
+        self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
         
     def update(self):     
         # round shift, length to sample
@@ -453,7 +523,8 @@ class Spg2(VBox):
         self.winsamples = [self.selsamples[0]-nextend, self.selsamples[1]+nextend]
         self.wintimes = [self.winsamples[0]/self.sample_rate, self.winsamples[1]/self.sample_rate]
         
-        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
+        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,
+                                  f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
         self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         img_ftrs = []
@@ -476,7 +547,7 @@ class Spg2(VBox):
             img_labels += [ceptype+str(mfccs.shape[0])]
         # add segmentation
         try:
-            seg1= core.read_seg_file(self.root+self.segfname)
+            seg1= Spch.read_seg_file(self.root+self.segfname)
             segs = [seg1] if seg1 is not None else []
         except:
             segs = []
@@ -484,9 +555,8 @@ class Spg2(VBox):
         self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
                     dy=self.sample_rate/(2*(self.nparam-1)),img_ftrs=img_ftrs,img_labels=img_labels,
                     figsize=(self.fig_ratio*self.figwidth,0.5*self.figwidth),dpi=self.dpi)
-        for seg in segs:
-            self.fig_main.add_seg_plot(seg,iax=0,ypos=0.85,color="#444",size=12)
-            self.fig_main.add_seg_plot(seg,iax=1,ypos=None,color="#222")
+        self.fig_main.add_seg_plot(self.seg,iax=0,ypos=0.85,color="#444",size=12)
+        self.fig_main.add_seg_plot(self.seg,iax=1,ypos=None,color="#222")
         
         #self.fig_main.add_vrect(self.seltimes[0],self.seltimes[1],iax=0,color='#F22')
         self.fig_main.add_vrect(self.wintimes[0],self.wintimes[1],iax=0,color='#2F2')
@@ -508,7 +578,8 @@ class Spg2(VBox):
         with self.audio_controls:
             clear_output(wait=True)
             #sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            display(Audio(data=self.wavdata,rate=self.sample_rate,autoplay=self.autoplay))
+            display( MiniPlayer(data=self.wavdata,sample_rate=self.sample_rate) )
+            #display(Audio(data=self.wavdata,rate=self.sample_rate,autoplay=self.autoplay))
 
     def plot_rhs(self,ftrs,labels):
         nftrs=0 if ftrs is None else len(ftrs)
@@ -533,6 +604,7 @@ class Spg2(VBox):
         
     def segfname_observe(self,change):
         self.segfname=change.new
+        self.seg_update()
         self.update()
         
     def autoplay_observe(self,change):
