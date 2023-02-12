@@ -3,8 +3,22 @@
 
 import pandas as pd
 
-    
-def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0','F1','F2','F3'],Debug=False):
+def dummy_hil():
+    return('bo')
+
+hil2arpa_dic = {'iy':'iy','ih':'ih','eh':'eh','ae':'ae','ah':'aa','aw':'ao','oo':'uh','uw':'uw','uh':'ah','er':'er',
+           'ei':'ey','oa':'ow'}
+
+def hil2arpa(df,UPPER=False):
+    '''
+    converts the phoneme notatation from Hillenbrand to ARPABET
+    in a hillenbrand style dataframe
+    '''
+    df_out = df.replace({"vowel": hil2arpa_dic})
+    if(UPPER): df_out['vowel'] = df_out['vowel'].str.upper()
+    return( df_out )
+
+def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0','F1','F2','F3'],symbols='hillenbrand',Debug=False):
 
     '''
     The function fetch_hillenbrand() loads the Hillenbrand dataset in a similar way as the datasets in sklearn.
@@ -41,7 +55,7 @@ def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0',
         genders:  list of selected genders  (default=all, options are 'adults','children','male','female' or list of 'm','f','b','g')
         vowels:   list of selected vowels   (default=all, options are 'vowels6', 'vowels3' or list)
         columns:  list of selected columns  (default=['gid','vid','f0','F1','F2','F3'])
-        Debug:    False(def) or True
+        symbols: str (default='hillenbrand', alternative ['hillenbrand','arpa','ARPA'] 
         
     Returns
     -------
@@ -63,11 +77,27 @@ def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0',
     hildata.rename(columns={'gid':'gender'},inplace=True)
     hildata.rename(columns={'sid':'spkid'},inplace=True)
     hildata.rename(index={'fid':'fileid'},inplace=True)
-    return(select_hillenbrand(hildata,genders=genders,vowels=vowels,columns=columns))
     
+    df = select_hillenbrand(hildata,genders=genders,vowels=vowels,columns=columns)
+    if symbols == 'arpa':
+        return(hil2arpa(df,UPPER=False))
+    elif symbols == 'ARPA':
+        return(hil2arpa(df,UPPER=True))
+    else:
+        return(df)
+
     
 def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
-
+    '''
+    select subset of hillenbrand database
+    
+    Input:
+    df     dataframe as read by fetch_hillenbrand()
+    genders   list of genders or name
+    vowels    list of vowels or name
+    columns   list of selected columns
+    '''
+    
     allcolumns = list(df.columns.values)
         
     # select the appropriate data records
@@ -107,3 +137,6 @@ def select_hillenbrand(df,genders=[],vowels=[],columns='all'):
         df2 =  df1.loc[ df1['vowel'].isin(vowels) ]           
     
     return( df2[ columns] )
+
+
+
