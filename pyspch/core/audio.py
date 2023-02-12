@@ -58,7 +58,7 @@ if _IO_ENV_ is None:
         import sounddevice as sd
         _IO_ENV_ = "sd"
     except:
-        print("ERROR(audio): sounddevice module not found, pls. install if you need local audio\n  Alternatively you can run your notebook in colab")
+        print("WARNING(audio): sounddevice module not found, pls. install if you need local audio\n  Alternatively you can run your notebook in colab")
         
 try:    
     import soundfile as sf

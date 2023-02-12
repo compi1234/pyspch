@@ -15,23 +15,22 @@ setup(
     packages = find_packages(),
     # add spch_version to the required install modules
     py_modules = ['spch_version'],
-    # a dictionary refering to required data not in .py files
+    # a dictionary referring to required data not in .py files
     
     # include_package_data=True  
     package_data = {'pyspch':['data/*']},
     
     install_requires=[
         'numpy >= 1.19.0',
-        'scipy >= 1.4.0',
-        'pandas >= 1.3',
-        'librosa >= 0.8.1',
-        'numba',
-        'soundfile >= 0.10.0',
-        'matplotlib >= 3.2.2',
-        'ipywidgets >= 7.5.1',
+        'scipy >= 1.4.0 ',
+        'pandas >= 1.3 ',
+        'librosa >= 0.8.1, <0.9',
+        'soundfile >= 0.10.0, < 0.12',
+        'matplotlib >= 3.4, < 4',
+        'ipywidgets >= 7.5.1, < 9',
         'scikit-learn >= 1.0.0',
         'seaborn >= 0.11',
-        'pydub'
+        'pydub>=0.23,<0.26'
     ],
     
     python_requires='>=3.7',

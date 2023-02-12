@@ -5,6 +5,8 @@ including conversion of TIMIT phone sets
 26/01/2022:  Some corrections in the mapping definitions
 
 21/02/2022:  Addition of TIMIT-41 symbol set, ie. CMU + SIL + CL
+06/02/2023:  Allowing equivalence names TIMIT41 or CMU
+
 
 TIMIT PHONE SETS:   
 The different phone sets defined here all use ARPABET notations but differ slightly in the phonetic detail that is maintained.   
@@ -21,10 +23,13 @@ TIMIT39: alphabet typically used for SCORING in ASR experiments with TIMIT
         - 3 silence-like labels are folded onto SIL
         - 6 phone like labels are folded onto a similar phone
 
-TIMIT41: ad hoc alphabet, similar to TIMIT39, that comes as close as possible to the CMU alphabet
-    - closures are mapped to 'cl'  (this is an additional symbol vs. CMU)
-    - AO and ZH are preserved
-    - DX is folded onto T
+CMU or TIMIT41: CMU39 + sil + cl
+    - phones are identical to CMU39 + 'sil' + 'cl' ('cl' is optional and does not appear in CMU)
+    - comparing to TIMIT48
+        - closures are mapped to 'cl'  (this is an additional symbol vs. CMU)
+        - DX is folded onto T
+    - comparing to TIMIT39
+        - AO and ZH are preserved
     
 REMARK: it should be understood that the above alphabet mappings do NOT IMPLY that TIMIT transcriptions / segmenations 
  can be mapped to good CMU transcriptions / segmentations
@@ -37,6 +42,21 @@ import numpy as np
 import pandas as pd
 import pkg_resources
 from .file_tools import *
+
+
+#### EXAMPLE WORDS for ARPABET PHONEMES (CMU set)
+arpabet2word={"aa":"balm","ae":"bat","ah":"butt","ao":"bought","aw":"bout",
+              "ay":"bite","b":"bite","ch":"church","d":"die","dh":"thy",
+              "eh":"bet","er":"bird","ey":"bait","f":"fight","g":"guy",
+              "hh":"high","ih":"bit","iy":"beat","jh":"jive","k":"kite",
+              "l":"lie","m":"my","n":"nigh","ng":"sing","ow":"boat","oy":"boy",
+               "p":"pie","r":"rye","s":"sigh","sh":"shy","t":"tie","th":"thigh",
+               "uh":"book","uw":"boot","v":"vie","w":"why","y":"yacht","z":"zoo",
+                     "zh":"pleasure"}
+pb2word={"aa":"hod","ae":"had","ah":"hud","ao":"hawed","ay":"hide",
+              "eh":"head","er":"heard","ey":"haid","ih":"hid","iy":"heed",
+        "uh":"hood","uw":"who'd"}
+                
 
 ######## TIMIT MAPPINGS   61-> 48 -> 39 ##########################
 
@@ -57,6 +77,7 @@ TIMIT39 = ['aa','ae', 'ah','aw','er','ay','b','ch','d','dh','dx','eh',
  'm','ng','ey','f','g','hh','ih','iy','jh','k','l','n','ow',
  'oy','p','r','s','sh','t','th','uh','uw','v','w','y','z','sil']
 
+CMU = TIMIT41
 
 # TIMIT 61 -> 48
 ################
@@ -128,6 +149,13 @@ timit61_41_diff ={
 # TIMIT ALPHABETS and MAPPINGS
 ####################################################################
 
+def get_arpa_word(label):
+    '''
+    return a word example for an arpabet symbol
+    '''
+    
+    return(arpabet2word[label])
+
 def get_timit_alphabet(labset="timit61"):
     '''
     gets one of the various TIMIT alphabets
@@ -137,20 +165,27 @@ def get_timit_alphabet(labset="timit61"):
         "timit61": TIMIT61,
         "timit48": TIMIT48,
         "timit39": TIMIT39,
-        "timit41": TIMIT41
+        "timit41": TIMIT41,
+        "cmu":CMU
         }
     
     return(timit_map[labset])
 
-def get_timit_mapping(set1="timit61",set2="timit41"):
+def get_timit_mapping(mapping=None,set1="timit61",set2="cmu"):
     '''
     makes a mapping dictionary between various TIMIT alphabets
-    acceptable names: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
+    acceptable names for the sets are: timit61, timit48, timit41, timit39  (upper or lowercase allowed)
+    a mapping specification of the form "set1_set2" overrides the set1/set2 definitions
+    
+    default: "timit61" to "cmu"
     '''
+    
+    if mapping is not None:
+        set1,set2 = mapping.split("_")
+    
     fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
     timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
-    #timit_map
-    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3}
+    col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3,"cmu":3}
     
     col_set1 = col_map[set1.lower()]
     col_set2 = col_map[set2.lower()]
@@ -285,7 +320,7 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     fname(str):   file name
     dt(int or float):    sample period to be applied (default=1.)
     fmt (str) :   format for timings (default=None, i.e. inferred from input/dt)
-    xlat (str) :  optional phoneme mapping
+    xlat (str) :  optional phoneme mapping. e.g. "timit61_cmu"
     
     Returns:
     --------
@@ -343,12 +378,13 @@ def xlat_seg(isegdf,xlat=None):
    
     """
 
-    if(xlat is None):        xlat_dict = None
-    elif(xlat == 'timit61_48') : xlat_dict = timit61_48_diff
-    elif(xlat == 'timit61_41') : xlat_dict = timit61_41_diff
-    elif(xlat == 'timit61_39') : xlat_dict = timit61_39_diff
-    else: xlat_dict = xlat
-        
+    if(xlat is None):        
+        xlat_dict = None
+    elif isinstance(xlat,dict):  
+        xlat_dict = xlat
+    else:
+        xlat_dict = get_timit_mapping(xlat)    
+
     ww=isegdf.seg
     t0=isegdf.t0
     t1=isegdf.t1

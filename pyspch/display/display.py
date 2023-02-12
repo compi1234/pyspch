@@ -92,7 +92,7 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
     
     Parameters:
     -----------
-    wavdata:     waveform data (optional)
+    wavdata:     waveform data (optional), a 1D numpy array [nsamples]
     spgdata:     spectrogram data (required), numpy array [nparam, nfr] 
     segwav:      segmentation to be added to the waveform plot (optional)
     segspg:      segmentation to be added to the spectrogram plot (optional)
@@ -118,8 +118,6 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
     nparam,nfr = spgdata.shape
     if frames is None: frames = [0,nfr]          
     frame_range = np.arange(frames[0],frames[1])
-    n_shift = int(shift*sample_rate)
-    sample_range = np.arange(frames[0]*n_shift,frames[1]*n_shift)
     if dy==None: dy = (sample_rate/2)/(nparam+1)  #assume standard spectrogram
             
     # 2. set up the figure and axis            
@@ -140,6 +138,10 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
         
     
     if wavdata is not None:
+        n_shift = int(shift*sample_rate)
+        # add one extra sample in waveform plot for perfect alignment (if available)
+        sample_range = np.arange(frames[0]*n_shift,
+                            min(frames[1]*n_shift+1,len(wavdata)) )
         fig.add_line_plot(wavdata[sample_range],iax=0,x=sample_range/sample_rate)
         if segwav is not None:
             fig.add_seg_plot(segwav,iax=0,ypos=0.8,color='#CC0000',size=16)
@@ -155,8 +157,8 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
 # An Extended Plotting Routine for time aligned
 
 def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
-            spglabel='Frequency (Hz)',line_labels=None, img_labels=None,
-            sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,**kwargs):
+            spglabel='Frequency',line_labels=None, img_labels=None,
+            sample_rate=1.,shift=0.01,dy=1,frames=None,Legend=False,**kwargs):
     '''
     General Purpose multi-tier plotting routine of speech signals.
     The figure contains
@@ -165,6 +167,9 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
      - img features (list, optional)
      - line features (list, optional)
     '''
+    if (wavdata is None) or (spgdata is None):
+        raise TypeError("PlotSpgFtrs: both wavdata and spgdata are mandatory")
+        
     colors=['#000000','#0000CC','#00AA00','#CC0000','#CCAA00','#CC00CC']
     (nparam,nfr)= spgdata.shape
     if frames is None: frames = [0,nfr]
@@ -172,7 +177,8 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
     frame_times = frame_range*shift + 0.5*shift
     n_shift = int(shift*sample_rate)
     if dy==None: dy = (sample_rate/2)/(nparam-1)  #assume standard spectrogram
-    sample_range = np.arange(frames[0]*n_shift,frames[1]*n_shift)
+    sample_range = np.arange(frames[0]*n_shift,
+                        min(frames[1]*n_shift+1,len(wavdata)) )
     nsegs = len(segdata) if segdata is not None else 0
     nlin_ftrs = len(line_ftrs) if line_ftrs is not None else 0  
     nimg_ftrs = len(img_ftrs) if img_ftrs is not None else 0 

@@ -16,6 +16,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec 
 from matplotlib.figure import Figure     
+from matplotlib import ticker
 
 os.environ['PYSPCH_BACKEND'] = "mpl"
 
@@ -59,6 +60,16 @@ def invert_xy_line2D(ax,swap_labels=True):
 # Define the SpchFig class as a superclass of matplotlib Figure
 #######################################################################################
 class SpchFig(Figure):
+    '''
+    The SpchFig class creates an 2D array of plots (nrows x ncols) [default 2x1]
+    The axis numbering is from top to bottom, left to right, thus
+    
+            0,0    0,1    0,2
+            1,0    1,1    1,2
+            ...
+            
+    '''
+    
     def __init__(self,row_heights=[1.,1.],col_widths=[1.],sharex=False,sharey=False,**kwargs):
         fig_kwargs={'constrained_layout':True,'figsize':(12,6),'dpi':72}
         fig_kwargs.update(kwargs)
@@ -88,7 +99,10 @@ class SpchFig(Figure):
         converts axis grid specification to axis number
         '''
         if isinstance(iax,list): # row*col spec
-            ii = iax[0]*self.axes[0].numCols + iax[1]
+            # deprecated in matplotlib 3.4
+            # ii = iax[0]*self.axes[0].numCols + iax[1]
+            nc = self.axes[0].get_gridspec().ncols
+            ii = iax[0]*nc + iax[1]
             ax = self.axes[ii]
         else: # rows only
             ax = self.axes[iax]
@@ -157,20 +171,26 @@ class SpchFig(Figure):
             invert_xy_line2D(ax,swap_labels=True)
 
 
-    def add_img_plot(self,img,iax=0,x0=None,y0=None,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,**kwargs):
+    def add_img_plot(self,img,iax=0,x0=None,y0=None,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,xtick_align='center',ytick_align='center',**kwargs):
         ''' Add an image plot (spectrogram style)
 
         Parameters
         ----------
         iax :    axis number (default=0)
         img :    image, a (nrows x ncols) numpy array
-        x,y:     coordinates for X and Y axis points, if None dx,dy are used
-        x0, y0:  starting values on x and y axis; if None use dx/2 and dy/2 to center
-        dx, dy : int/float (default = 1) 
+        x,y:     coordinates for X and Y axis points, if None inferred from dx,dy
+        x0, y0:  starting values on x and y axis; these are the centerpoints of the patches; default = index positions
+                    (USED TO BE:  dx/2 and dy/2 )
+        dx, dy : int/float (default = 1, i.e. indices) 
 
         xticks : (boolean) - label the x-axis ticks
         xlabel : string (default=None)
         ylabel : string (default=None)
+        
+        xtick_align : default = None , 'center'
+                other options: 'edge'
+        ytick_align : default = None , 'center'
+                other options: 'edge'
 
         **kwargs: extra arguments to pass / override defaults in ax.colormesh()
 
@@ -193,12 +213,28 @@ class SpchFig(Figure):
         #    y=  np.arange(nr) * dy  + y0
 
         # give x,y as edges, thus dim+1 vs. img
-        if x0 is None : x0 = -.5*dx
-        if y0 is None : y0 = -.5*dy
-        x = x0 + dx * np.arange(nc+1)
-        y = y0 + dy * np.arange(nr+1)
+        #if x0 is None : x0 = .5*dx
+        #if y0 is None : y0 = .5*dy
+        # convert from center points to edge defintions for pcolormesh
+        #x = x0 -.5*dx + dx * np.arange(nc+1)
+        #y = y0 -.5*dy + dy * np.arange(nr+1)
+        
+        # adjusted 24/01/2023
+        # assume x and y are center positions
+        if x is None:
+            if x0 is None: x0 = 0
+            x = np.arange(nc)*dx + x0
+        if y is None:
+            if y0 is None: y0 = 0
+            y = np.arange(nr)*dy + y0            
         ax.pcolormesh(x,y,img,**params)
-
+        if xtick_align is None: xtick_align = 'center'
+        if xtick_align == 'edge':
+            ax.xaxis.set_major_locator(ticker.IndexLocator(base=round(nc/8)*dx,offset=0))
+        if ytick_align is None: ytick_align = 'center'
+        if ytick_align == 'edge':
+            ax.yaxis.set_major_locator(ticker.IndexLocator(base=round(nr/8)*dx,offset=0))
+            
         if(xticks): ax.tick_params(axis='x',labelbottom=True)
         else:       ax.tick_params(axis='x',labelrotation=0.0,labelbottom=False,bottom=True)         
         if xlabel is not None: ax.set_xlabel(xlabel)

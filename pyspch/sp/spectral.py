@@ -66,8 +66,10 @@ def spectrogram(y,sample_rate=16000,f_shift=0.01,f_length=0.03,preemp=0.97,windo
     output:
       spectrogram  numpy array of size [n_freq,n_frames] 
     '''
-    n_shift = int(float(sample_rate)*f_shift)
-    n_length = int(float(sample_rate)*f_length)
+    # 26/01/2023: rounding to sample added to improve behavior for non-multiple shifts, lengths 
+    n_shift = int(round(float(sample_rate)*f_shift))
+    n_length = int(round(float(sample_rate)*f_length))
+
     n_fft = 2**math.ceil(math.log2(n_length))
     pad = (n_fft-n_shift)//2
     y_pre = preemp_pad(y,pad=pad,preemp=preemp)
