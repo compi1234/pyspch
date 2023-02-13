@@ -51,6 +51,10 @@ class MiniPlayer(widgets.HBox):
     > Player1 = MiniPlayer(data=wavdata,sample_rate=sr,border='')
     > display(Player1)
     
+    IMPORTANT LIMITATION/BUG:
+      Currently this only works if you stream your audio directly to your sound device.
+      In Google Colab the playing is always handled by the HTML5 Audio element 
+      and this will actually result in a double display of an audio widget
     '''
     def __init__(self,data,sample_rate=8000,width=None,border='',logscr=False):
         super().__init__()
@@ -279,8 +283,8 @@ class iSpectrogram(Box):
         with self.audio_controls:
             clear_output(wait=True)
             sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            display(MiniPlayer(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rate))
-            #display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))           
+            #display(MiniPlayer(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rate))
+            display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))           
             
     def plot1(self):
         img_ftrs = []
@@ -578,8 +582,9 @@ class iSpectrogram2(VBox):
         with self.audio_controls:
             clear_output(wait=True)
             #sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            display( MiniPlayer(data=self.wavdata,sample_rate=self.sample_rate) )
-            #display(Audio(data=self.wavdata,rate=self.sample_rate,autoplay=self.autoplay))
+            # Miniplayer not working as desired on Colab
+            #display( MiniPlayer(data=self.wavdata,sample_rate=self.sample_rate) )
+            display(Audio(data=self.wavdata,rate=self.sample_rate))
 
     def plot_rhs(self,ftrs,labels):
         nftrs=0 if ftrs is None else len(ftrs)
