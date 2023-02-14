@@ -171,13 +171,13 @@ class SpchFig(Figure):
             invert_xy_line2D(ax,swap_labels=True)
 
 
-    def add_img_plot(self,img,iax=0,x0=None,y0=None,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,xtick_align='center',ytick_align='center',**kwargs):
+    def add_img_plot(self,img,iax=0,x0=0,y0=0,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,xtick_align='center',ytick_align='center',**kwargs):
         ''' Add an image plot (spectrogram style)
 
         Parameters
         ----------
         iax :    axis number (default=0)
-        img :    image, a (nrows x ncols) numpy array
+        img :    image, a (nrows x ncols) numpy array  [or (,ncols)]
         x,y:     coordinates for X and Y axis points, if None inferred from dx,dy
         x0, y0:  starting values on x and y axis; these are the centerpoints of the patches; default = index positions
                     (USED TO BE:  dx/2 and dy/2 )
@@ -195,12 +195,21 @@ class SpchFig(Figure):
         **kwargs: extra arguments to pass / override defaults in ax.colormesh()
 
         '''
+        
+        if x is not None:
+            print("WARNING(add_img_plot): specifying x is OBSOLETE - Resetting !!")
+            x = None
+        if y is not None:
+            y = None
+            print("WARNING(add_img_plot): specifying y is OBSOLETE - Resetting !!")
 
         ax = self.get_axis(iax)
         ax.Init = True
+        # resize a 1D data array to a horizontal strip
+        if img.ndim == 1: img=img.reshape(-1,1)
         (nr,nc)= img.shape
 
-        params={'cmap':'jet','shading':'auto'}
+        params={'cmap':'jet','shading':'flat'}
         params.update(kwargs)
 
         # code before v0.6
@@ -221,12 +230,21 @@ class SpchFig(Figure):
         
         # adjusted 24/01/2023
         # assume x and y are center positions
-        if x is None:
-            if x0 is None: x0 = 0
-            x = np.arange(nc)*dx + x0
-        if y is None:
-            if y0 is None: y0 = 0
-            y = np.arange(nr)*dy + y0            
+        #if x is None:
+        #    if x0 is None: x0 = 0
+        #    x = np.arange(nc)*dx + x0
+        #if y is None:
+        #    if y0 is None: y0 = 0
+        #    y = np.arange(nr)*dy + y0   
+        
+        # give x,y as edges, thus dim+1 vs. img
+        # 
+        #if x0 is None : x0 = .5*dx
+        #if y0 is None : y0 = .5*dy
+        # convert from center points to edge defintions for pcolormesh
+        # and flat shading option
+        x = x0 -.5*dx + dx * np.arange(nc+1)
+        y = y0 -.5*dy + dy * np.arange(nr+1)        
         ax.pcolormesh(x,y,img,**params)
         if xtick_align is None: xtick_align = 'center'
         if xtick_align == 'edge':
