@@ -153,12 +153,12 @@ def play(wavdata,sample_rate=16000, channels=None, wait=False):
             print("Warning: you are using IPython<6 which will auto-normalize audio output")
             kwargs = {}
         if n_channels == 1:
-            display(Audio(data=play_data[0],rate=sample_rate,**kwargs))
+            display(Audio(data=play_data[0],rate=sample_rate,autoplay=True,**kwargs))
         elif n_channels == 2:
-            display(Audio(data=(play_data[0],play_data[1]),rate=sample_rate,**kwargs))
+            display(Audio(data=(play_data[0],play_data[1]),rate=sample_rate,autoplay=True,**kwargs))
         else:
             print("Warning(play): Too many channels requested, I will play the first channel only")
-            display(Audio(data=play_data[0],rate=sample_rate))
+            display(Audio(data=play_data[0],rate=sample_rate,autoplay=True))
 
 def stop():
     global _IO_ENV_
