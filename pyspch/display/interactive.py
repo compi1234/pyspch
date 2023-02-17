@@ -7,7 +7,7 @@ import librosa
 
 
 from .. import core as Spch     # .audio
-from .. import sp       # spectrogram, spg2mel, cepstrum
+from .. import sp as Sps      # spectrogram, spg2mel, cepstrum
 from .display import SpchFig, PlotWaveform, PlotSpg, PlotSpgFtrs
 
 
@@ -21,9 +21,13 @@ dw_3 = {'description_width': '30%'}
 dw_2 = {'description_width': '20%'}
 dw_0 = {'description_width': '0%'}
 
+Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23F9', 'record':'\u2b55'}
 
-def box_layout(width='',height='',padding='1px',margin='1px',border='solid 1px black'):
-     return Layout(
+def box_layout(width='',height='',padding='1px',margin='0px',border='solid 1px black'):
+     return widgets.Layout(
+        display='flex',
+        flex_flow='row',
+        align_items='center',
         border= border,
         padding = padding,  # padding='2px 2px 2px 2px',  = white space inside; top, right, bottom, left
         margin=   margin,   # margin = '1px 1px 1px 1px', = white space around the outside
@@ -31,18 +35,18 @@ def box_layout(width='',height='',padding='1px',margin='1px',border='solid 1px b
         height = height
      )
     
-Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23F9', 'record':'\u2b55'}
-
-def button_layout():
+def button_layout(padding='5px',margin='2px 5px 2px 5px',width='40px'):
     return widgets.Layout(
         border='solid 1px black',
-        margin='5px 5px 5px 5px',
-        padding='5px 5px 5px 5px',
-        width = '50px',
+        margin=margin,
+        padding=padding,
+        width = width,
         height = '40px',
         flex_shrink =2
-     )    
+     )
 
+
+    
 class MiniPlayer(widgets.HBox):
     '''
     MiniPlayer generates a simple widget with 2 buttons for Playing sound and Pausing it .  The widget is a handy replacement for the standard HTML5 audio control as it is smaller (and has fewer controls)
@@ -263,9 +267,9 @@ class iSpectrogram(Box):
         self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#333',ec="#333",fill=True)
         self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#333',ec="#333",fill=True)
         
-        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,
+        self.spg = Sps.spectrogram(self.wavdata,sample_rate=self.sample_rate,
                                   f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         #with self.logscr:
         #    print(self.shift,self.n_shift,self.spg.shape)
@@ -301,7 +305,7 @@ class iSpectrogram(Box):
             ceptype = 'cep'
         # add (mel) cepstral view
         if self.mfcc:
-            mfccs = sp.cepstrum(S=S,n_cep=self.nmfcc)
+            mfccs = Sps.cepstrum(S=S,n_cep=self.nmfcc)
             # mfccs = librosa.feature.mfcc(S=self.spgmel,sr=self.sample_rate,n_mfcc=self.nmfcc,dct_type=3) 
             img_ftrs += [ mfccs ]
             img_labels += [ceptype+str(mfccs.shape[0])]
@@ -527,9 +531,9 @@ class iSpectrogram2(VBox):
         self.winsamples = [self.selsamples[0]-nextend, self.selsamples[1]+nextend]
         self.wintimes = [self.winsamples[0]/self.sample_rate, self.winsamples[1]/self.sample_rate]
         
-        self.spg = sp.spectrogram(self.wavdata,sample_rate=self.sample_rate,
+        self.spg = Sps.spectrogram(self.wavdata,sample_rate=self.sample_rate,
                                   f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = sp.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
+        self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         img_ftrs = []
         img_labels = []
@@ -545,7 +549,7 @@ class iSpectrogram2(VBox):
             ceptype = 'cep'
         # add (mel) cepstral view
         if self.mfcc:
-            mfccs = sp.cepstrum(S=S,n_cep=self.nmfcc)
+            mfccs = Sps.cepstrum(S=S,n_cep=self.nmfcc)
             # mfccs = librosa.feature.mfcc(S=self.spgmel,sr=self.sample_rate,n_mfcc=self.nmfcc,dct_type=3) 
             img_ftrs += [ mfccs ]
             img_labels += [ceptype+str(mfccs.shape[0])]
@@ -647,3 +651,128 @@ class iSpectrogram2(VBox):
     def range_observe(self,change):
         self.seltime = self.wg_range.value
         self.update()
+        
+
+class iRecorder(widgets.VBox):
+    '''
+    iRecorder is a GUI for speech recordings
+    '''
+    def __init__(self,sample_rate=16000,figsize=(12,3),dpi=72):
+        super().__init__()
+        
+        sample_rates = [8000,11025,16000,22050,44100,48000]
+        self.data = np.zeros(1024,dtype='float32')
+        
+        self.sample_rate = sample_rate
+        self.rec_time = 3.0
+        self.start_time = 0.0
+        self.end_time = self.rec_time
+        self.line_color = '#0000ff'
+        self.figsize = figsize
+        self.dpi = dpi
+        self.filename = ""
+        
+        self.wg_play_button = widgets.Button(description=Symbols['play'],layout=button_layout())
+        self.wg_record_button = widgets.Button(description=Symbols['record'],layout=button_layout())
+        self.wg_pause_button = widgets.Button(description=Symbols['pause'],layout=button_layout())
+        self.wg_clear_log_button = widgets.Button(description='Clear log')
+        self.wg_save_button = widgets.Button(description='Save',layout=button_layout(width='120px'))
+        self.wg_filename = widgets.Text(value=self.filename,description="File: ",
+                                    style={'description_width': '15%'},continuous_update=False)
+
+        self.wg_rectime = widgets.FloatSlider(   value=2.0, min=0.5, max= 10., step=0.5,
+            readout_format="2.1f",
+            description='Rec Time (sec):',style={'description_width': '30%'}, disabled=False)
+        self.wg_samplerate = widgets.Dropdown(options=sample_rates,value=self.sample_rate,
+                                              description="Sampling Rate",style={'description_width': '30%'})
+
+        self.wg_start_time = widgets.FloatSlider(value=self.start_time, min=0., max= self.rec_time, 
+            description='From (sec):',style={'description_width': '30%'}, disabled=False)
+        
+        self.wg_end_time = widgets.FloatSlider(value=self.rec_time, min=0., max= self.rec_time, 
+            description='To (sec):',style={'description_width': '30%'}, disabled=False)        
+        
+        self.out = widgets.Output(layout=box_layout())
+        self.record_box = widgets.HBox( 
+                        [self.wg_play_button,self.wg_record_button,self.wg_pause_button,
+                          self.wg_rectime,self.wg_samplerate],layout=box_layout(padding='10px'))
+        self.save_box = widgets.HBox([
+            self.wg_save_button, self.wg_filename,
+            self.wg_start_time, self.wg_end_time],layout=box_layout(padding='10px'))
+        self.logscr = widgets.Output()
+        self.logscr_box = widgets.VBox([self.wg_clear_log_button,self.logscr],layout=box_layout(padding='10px'))
+        self.UI = widgets.VBox([self.record_box,self.save_box],
+                                layout=box_layout())
+
+        # add as children
+        self.children = [self.out, self.record_box,self.save_box, self.logscr_box] 
+        
+        self.wg_play_button.on_click(self.play_sound)       
+        self.wg_record_button.on_click(self.record_sound)
+        self.wg_pause_button.on_click(self.pause_sound)
+        self.wg_clear_log_button.on_click(self.clear_log)
+        self.wg_save_button.on_click(self.save_sound)
+        self.wg_rectime.observe(self.rectime_observe,'value')
+        self.wg_samplerate.observe(self.samplerate_observe,'value')
+        self.wg_filename.observe(self.filename_observe,'value')
+        self.wg_start_time.observe(self.start_time_observe,'value')
+        self.wg_end_time.observe(self.end_time_observe,'value')
+                
+        self.plot_data()
+        plt.close()
+
+
+    def plot_data(self):
+        with self.out:
+            clear_output(wait=True)
+            spg = Sps.spectrogram(self.data,sample_rate=self.sample_rate)
+            self.fig = PlotSpg(spgdata=spg,wavdata=self.data,sample_rate=self.sample_rate,figsize=self.figsize,dpi=self.dpi)
+            display(self.fig)
+        
+    def rectime_observe(self,change):
+        self.rec_time = change.new
+        self.wg_start_time.max = self.rec_time
+        self.wg_end_time.max = self.rec_time
+        
+    def samplerate_observe(self,change):
+        self.sample_rate = change.new
+
+    def filename_observe(self,change):
+        self.filename = change.new
+        
+    def start_time_observe(self,change):
+        self.start_time = change.new
+        
+    def end_time_observe(self,change):
+        self.end_time = change.new
+        
+    def pause_sound(self,b):  
+        with self.logscr:
+            Spch.audio.stop()
+            
+    def play_sound(self,b):
+        Spch.audio.play(self.data,sample_rate=self.sample_rate,wait=False)
+
+    def record_sound(self,b):      
+        with self.logscr:
+            clear_output()
+            self.data = Spch.audio.record(self.rec_time,self.sample_rate,n_channels=1)
+        self.plot_data()
+        # self.play_sound(b)
+        
+    def save_sound(self,b):
+        with self.logscr: 
+            #print(self.start_time,self.end_time)
+            i1 = int(self.start_time*self.sample_rate)
+            i2 = int(self.end_time*self.sample_rate)
+            if self.filename == "":
+                print("You must specify a filename to save your data")
+            else:
+                print("saving data samples[%d:%d]  to %s"%(i1,i2,self.filename ) )
+                Spch.audio.save(self.filename,self.data[i1:i2],self.sample_rate)
+        
+    def clear_log(self,b):
+        with self.logscr: clear_output()
+            
+
+            
