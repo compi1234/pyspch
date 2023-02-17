@@ -203,9 +203,9 @@ def record(seconds=2.,sample_rate=16000,n_channels=1):
 # record using sounddevice
 def _record_sd(seconds,sample_rate,n_channels=1):
         data = sd.rec(int(seconds*sample_rate),samplerate=sample_rate,channels=n_channels)
-        print('recording started for %.2f seconds on %d channel(s)' % (seconds,n_channels) )
+        print('Recording now for %.2f seconds on %d channel(s)' % (seconds,n_channels) )
         sd.wait()  # waits for recording to complete, otherwise you get nonsense
-        print('recording finished')
+        print('Recording complete')
         return(data) 
         
 
@@ -259,11 +259,11 @@ def _record_colab(seconds,sample_rate, n_channels: int = None,):
         [samples], otherwise [channels, samples].
       """
 
-      print('Starting recording for {} seconds...'.format(seconds))
+      print('Recording now for {} seconds...'.format(seconds))
       display(Javascript(_RECORD_JS))
       # using Google Colab's eval_js to return the data !!
       s = output.eval_js('record(%d)' % (seconds*1000.))
-      print('Finished recording!')
+      print('Recording Complete!')
       audio_bytes = b64decode(s.split(',')[1])
 
       # Parse and normalize the audio.
