@@ -16,8 +16,7 @@
 # Dependencies: 
 #   - soundfile >= 0.9 
 #   - pydub
-#   - librosa = 0.8.0
-#   - numba>= 0.43.0,<= 0.48.0
+#   - librosa >= 0.8.0
 #   - (Google Colab): soundfile and pydub may need to be installed before you can use this
 #
 # Credits:
@@ -92,11 +91,15 @@ def load(resource,sample_rate=None,**kwargs):
             sampling rate of returned signal
     '''
     
-    fobj = read_fobj(resource)
-    data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
-    # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
-    # can resolve this 
-    return(np.clip(data,-1.,1.),sample_rate)
+    try:
+        fobj = read_fobj(resource)
+        data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
+        # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
+        # can resolve this 
+        return(np.clip(data,-1.,1.),sample_rate)
+    except:
+        print("Warning(load): could not load the audio resource")
+        return(None,1)
 
     # similar code with soundfile (without sample rate conversion as in librosa)
     # src_data, src_sample_rate = sf.read(fp,dtype='float32',always_2d=always_2d,**kwargs)
