@@ -473,13 +473,12 @@ class iSpectrogram2(VBox):
                                   layout=box_layout(width='50%'))
         
         # slider and audio controls 
-        self.wg_range = widgets.FloatSlider(value=self.frame,step=self.shift,
+        self.wg_slider = widgets.FloatSlider(value=self.frame,step=self.shift,
                             min=self.wavtimes[0],max=self.wavtimes[1],
                             description='',continuous_update=True,readout=False,
                             layout = box_layout(width=str(100.*self.fig_ratio)+"%" ,padding='0px 2px 0px 4%'),margin='0px' )
 
-        self.wg_range.observe(self.range_observe,'value')
-        self.slider_controls = self.wg_range
+        self.wg_slider.observe(self.slider_observe,'value')
                 
         # Main and log Outputs: 
         self.out = widgets.Output( layout=Layout(width=str(100.*self.fig_ratio)+"%") )
@@ -487,48 +486,68 @@ class iSpectrogram2(VBox):
         self.logscr = widgets.Output()
 
         # putting it all together
-        self.children =  [ VBox([ HBox([  self.out, self.out2 ] ), self.slider_controls ], layout=box_layout()),
+        self.children =  [ VBox([ HBox([  self.out, self.out2 ] ), self.wg_slider ], layout=box_layout()),
                           HBox([   self.controls,  self.file_controls ]  ), 
                            self.logscr ]
-        
         self.wav_update()
         self.update()
   
     def wav_update(self):
+        with self.logscr:
+            print("reading fname: ",self.root + self.fname)
         self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
         if self.wavdata is None:
             return
-        self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
+        self.sample_period = 1./self.sample_rate
+        #self.wavsamples = [0,len(self.wavdata)]
+        self.wavtimes = [0., len(self.wavdata)*self.sample_period]
         self.frames = [0, int(self.wavtimes[1]/self.shift)]
-        self.wg_range.min = self.wavtimes[0]
-        self.wg_range.max = self.wavtimes[1]
-        
-        self.wg_range.value = (self.wavtimes[1]+self.wavtimes[0])/2
-        self.frame = int(self.wg_range.value/self.shift)
+        try:
+            ## WARNING !!!
+            ## The sequence of executing the following lines matters 
+            ## as the observers() may come in between and behave unpredictably
+            ## as you are forceably changing widget properties 
+            ##
+            self.wg_slider.value = (self.wavtimes[1]+self.wavtimes[0])/2.
+            self.wg_slider.max = self.wavtimes[1]
+            self.wg_slider.min = self.wavtimes[0]
+        except:
+            with self.logscr:
+                print("problem resetting slider, pls. try moving slider towards 0")
+                print("current slider min-max:",self.wg_slider.min,self.wg_slider.max)
+        self.frame = int(self.wg_slider.value/self.shift)                
+        self.seltime = self.frame*self.shift
         self.seltimes = self.wavtimes
-
-        self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
-                        figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)       
+            
+        #self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
+        #                figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)  
+        
     def seg_update(self):
         # get segmentation
         # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
-        dt = 1/self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
+        dt = 1./self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
         self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
-        
-    def update(self):  
+    
+    def update(self,msg=None): 
+        # uncomment the following lines to debug the observers
+        # if msg is not None:
+        #    with self.logscr:
+        #        print("Updating : ",msg)
         if self.wavdata is None:
+            with self.logscr:
+                print("No wavdata to update from")
             return
         # round shift, length to sample
-        self.shift = round(float(self.sample_rate)*self.shift)/self.sample_rate
-        self.length = round(float(self.sample_rate)*self.length)/self.sample_rate
+        self.shift = round(float(self.sample_rate)*self.shift)*self.sample_period
+        self.length = round(float(self.sample_rate)*self.length)*self.sample_period
         self.seltimes = [ round(float(self.sample_rate)*self.seltimes[0])/self.sample_rate,
                          round(float(self.sample_rate)*self.seltimes[1])/self.sample_rate]
         if self.length < 0.002: self.length=0.002
         if self.shift > self.length: self.shift = self.length
-        self.nshift = int(self.shift*self.sample_rate)
+        self.nshift = round(self.shift*self.sample_rate)
         
         self.frame = int(self.seltime/self.shift)
-        nextend = int((self.length-self.shift)*self.sample_rate/2)
+        nextend = int((self.length-self.shift)*self.sample_rate/2.)
 
         self.seltimes = [self.frame*self.shift, (self.frame+1)*self.shift]
         self.selsamples = [self.frame*self.nshift, (self.frame+1)*self.nshift]
@@ -580,7 +599,6 @@ class iSpectrogram2(VBox):
             
         with self.out:
             clear_output(wait=True)
-
             display(self.fig_main)
             
         with self.out2:
@@ -595,6 +613,7 @@ class iSpectrogram2(VBox):
             display(Audio(data=self.wavdata,rate=self.sample_rate))
 
     def plot_rhs(self,ftrs,labels):
+            
         nftrs=0 if ftrs is None else len(ftrs)
         self.fig_rhs = SpchFig(row_heights=[1.,3.]+nftrs*[3.],figsize=((1.-self.fig_ratio)*self.figwidth,0.5*self.figwidth),dpi=self.dpi)
         sample_range = np.arange(self.winsamples[0],self.winsamples[1])
@@ -612,8 +631,6 @@ class iSpectrogram2(VBox):
         
     def fname_observe(self,change):
         self.fname=change.new
-        with self.logscr:
-            print("reading fname: ",self.root + self.fname)
         self.wav_update()
         self.update()
         
@@ -627,36 +644,36 @@ class iSpectrogram2(VBox):
         
     def fshift_observe(self,change):
         self.shift = change.new/1000.
-        self.wg_range.step = change.new/1000.
-        self.update()
+        self.wg_slider.step = self.shift
+        self.update(msg="updating fshift")
         
     def flength_observe(self,change):
         self.length = change.new/1000.
-        self.update()
+        self.update(msg="updating flength")
         
     def preemp_observe(self,change):
         self.preemp = change.new
-        self.update()
+        self.update(msg="updating preemp")
 
     def nmels_observe(self,change):
         self.nmels = change.new
-        self.update()
+        self.update(msg="updating nmels")
     
     def melfb_observe(self,obj):
         self.melfb = obj.new
-        self.update()
+        self.update(msg="updating melfb")
         
     def nmfcc_observe(self,change):
         self.nmfcc = change.new
-        self.update()
-    
-    def mfcc_observe(self,obj):
-        self.mfcc = obj.new
-        self.update()
-       
-    def range_observe(self,change):
-        self.seltime = self.wg_range.value
-        self.update()
+        self.update(msg="updating nmfcc")
+        
+    def mfcc_observe(self,change):
+        self.mfcc = change.new
+        self.update(msg="updating mfcc")   
+        
+    def slider_observe(self,change):
+        self.seltime = change.new
+        self.update(msg="updating slider " + str(self.seltime))
         
 
 class iRecorder(widgets.VBox):

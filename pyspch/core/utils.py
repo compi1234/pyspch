@@ -27,7 +27,17 @@ def check_colab():
 ##################################################
 
 def seconds_to_samples(seconds,sample_rate=8000):
-    return int(round(float(sample_rate)*seconds))
+    '''
+    convert time in seconds to closest int sample index
+    '''    
+    return round(float(sample_rate)*seconds)
+
+def round_to_samples(seconds,sample_rate=8000):
+    '''
+    floating point rounding of time in seconds synchronized to sampling rate
+    '''
+    samples = round(float(sample_rate)*seconds)
+    return float(samples)/float(sample_rate)
 
 def next_power_of_2(x):  
     return 1 if x == 0 else 2**(x - 1).bit_length()

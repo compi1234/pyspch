@@ -25,7 +25,7 @@ setup(
         'scipy >= 1.4.0 ',
         'pandas >= 1.3 ',
         'librosa >= 0.8.1, <0.9',
-        'soundfile >= 0.10.0, < 0.12',
+        'soundfile >= 0.10.0',
         'matplotlib >= 3.4, < 4',
         'ipywidgets >= 7.5.1, < 9',
         'scikit-learn >= 1.0.0',
