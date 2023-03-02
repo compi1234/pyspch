@@ -25,9 +25,9 @@ Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23
 
 def box_layout(width='',height='',padding='1px',margin='0px',border='solid 1px black'):
      return widgets.Layout(
-        display='flex',
-        flex_flow='row',
-        align_items='center',
+#        display='flex',
+#        flex_flow='row',
+#        align_items='center',
         border= border,
         padding = padding,  # padding='2px 2px 2px 2px',  = white space inside; top, right, bottom, left
         margin=   margin,   # margin = '1px 1px 1px 1px', = white space around the outside
@@ -476,7 +476,7 @@ class iSpectrogram2(VBox):
         self.wg_range = widgets.FloatSlider(value=self.frame,step=self.shift,
                             min=self.wavtimes[0],max=self.wavtimes[1],
                             description='',continuous_update=True,readout=False,
-                            layout = box_layout(width=str(100.*self.fig_ratio)+"%" ,padding='0px 2px 0px 4%') )
+                            layout = box_layout(width=str(100.*self.fig_ratio)+"%" ,padding='0px 2px 0px 4%'),margin='0px' )
 
         self.wg_range.observe(self.range_observe,'value')
         self.slider_controls = self.wg_range
@@ -496,6 +496,8 @@ class iSpectrogram2(VBox):
   
     def wav_update(self):
         self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
+        if self.wavdata is None:
+            return
         self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
         self.frames = [0, int(self.wavtimes[1]/self.shift)]
         self.wg_range.min = self.wavtimes[0]
@@ -513,7 +515,9 @@ class iSpectrogram2(VBox):
         dt = 1/self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
         self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
         
-    def update(self):     
+    def update(self):  
+        if self.wavdata is None:
+            return
         # round shift, length to sample
         self.shift = round(float(self.sample_rate)*self.shift)/self.sample_rate
         self.length = round(float(self.sample_rate)*self.length)/self.sample_rate
@@ -608,6 +612,8 @@ class iSpectrogram2(VBox):
         
     def fname_observe(self,change):
         self.fname=change.new
+        with self.logscr:
+            print("reading fname: ",self.root + self.fname)
         self.wav_update()
         self.update()
         

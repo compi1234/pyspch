@@ -16,8 +16,7 @@
 # Dependencies: 
 #   - soundfile >= 0.9 
 #   - pydub
-#   - librosa = 0.8.0
-#   - numba>= 0.43.0,<= 0.48.0
+#   - librosa >= 0.8.0
 #   - (Google Colab): soundfile and pydub may need to be installed before you can use this
 #
 # Credits:
@@ -92,11 +91,15 @@ def load(resource,sample_rate=None,**kwargs):
             sampling rate of returned signal
     '''
     
-    fobj = read_fobj(resource)
-    data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
-    # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
-    # can resolve this 
-    return(np.clip(data,-1.,1.),sample_rate)
+    try:
+        fobj = read_fobj(resource)
+        data, sample_rate = librosa.load(fobj,dtype='float32',sr=sample_rate,**kwargs)
+        # sample rate conversion may result in values exceeding +-1, so a little bit of clipping
+        # can resolve this 
+        return(np.clip(data,-1.,1.),sample_rate)
+    except:
+        print("Warning(load): could not load the audio resource")
+        return(None,1)
 
     # similar code with soundfile (without sample rate conversion as in librosa)
     # src_data, src_sample_rate = sf.read(fp,dtype='float32',always_2d=always_2d,**kwargs)
@@ -168,7 +171,7 @@ def stop():
         print("STOP the PLAYER")
   
     
-def record(seconds=2.,sample_rate=16000,n_channels=1):
+def record(seconds=2.,sample_rate=16000,n_channels=1,PROMPT=False):
     """
     This routine checks the global variable _IO_ENV_, which is defined on loading
     the audio module, to know where to put output / get input  
@@ -181,7 +184,9 @@ def record(seconds=2.,sample_rate=16000,n_channels=1):
             sampling rate (default=16000)
         n_channels : int
             number of channels to record (default=1)
-
+        PROMPT:      bool (default=False)
+            if True, then prompts just before and after recording
+        
             
     Returns
     -------
@@ -189,12 +194,18 @@ def record(seconds=2.,sample_rate=16000,n_channels=1):
             the waveform data scaled to [-1., 1.]
 
     """
+    if PROMPT:
+        print('Recording now for %.2f seconds on %d channel(s)' % (seconds,n_channels) )
+    #####
     if _IO_ENV_ =='sd':
         data = _record_sd(seconds,sample_rate,n_channels=n_channels)
     elif _IO_ENV_ == 'colab':
         data = _record_colab(seconds,sample_rate,n_channels = n_channels)
     else:
         print("ERROR(record): unknown _IO_ENV_ to record from ")
+    #####
+    if PROMPT:
+        print('Recording complete')
     # return 1D data for mono, 
     data = data.T
     if(data.shape[0]==1): return(data.ravel())
@@ -203,9 +214,9 @@ def record(seconds=2.,sample_rate=16000,n_channels=1):
 # record using sounddevice
 def _record_sd(seconds,sample_rate,n_channels=1):
         data = sd.rec(int(seconds*sample_rate),samplerate=sample_rate,channels=n_channels)
-        print('Recording now for %.2f seconds on %d channel(s)' % (seconds,n_channels) )
+        #print('Recording now for %.2f seconds on %d channel(s)' % (seconds,n_channels) )
         sd.wait()  # waits for recording to complete, otherwise you get nonsense
-        print('Recording complete')
+        #print('Recording complete')
         return(data) 
         
 
@@ -259,11 +270,11 @@ def _record_colab(seconds,sample_rate, n_channels: int = None,):
         [samples], otherwise [channels, samples].
       """
 
-      print('Recording now for {} seconds...'.format(seconds))
+      #print('Recording now for {} seconds...'.format(seconds))
       display(Javascript(_RECORD_JS))
       # using Google Colab's eval_js to return the data !!
       s = output.eval_js('record(%d)' % (seconds*1000.))
-      print('Recording Complete!')
+      #print('Recording Complete!')
       audio_bytes = b64decode(s.split(',')[1])
 
       # Parse and normalize the audio.

@@ -141,7 +141,7 @@ class SpchFig(Figure):
         ax = self.get_axis(iax)
         ax.Init = True
         if(y.ndim == 1): y=y.reshape(-1,y.size)
-        nftrs,npts= y.shape
+        _,npts= y.shape
 
         if x is None: 
             x = x0+np.arange(npts) * dx

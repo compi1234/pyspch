@@ -30,9 +30,11 @@ def read_fobj(resource):
     '''
     opens a file like object for reading from either a filename (local) or a URL resource
     and reads all data into a BytesIO object
-    '''    
-    return(io.BytesIO(open_fobj(resource).read()))
-
+    '''  
+    try:
+        return(io.BytesIO(open_fobj(resource).read()))
+    except:
+        return(None)
     
 def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
     '''
@@ -45,20 +47,26 @@ def read_dataframe(resource,sep='\t',names=None,dtype=None,strip=True):
         dtype   dtype conversion to enforce (Default is None)
         strip   Boolean, strip white space at edges of a datafield (Default is True)
     '''
-    df = pd.read_csv(resource,sep=sep,header=None,names=names,dtype=dtype)
-    # this will convert object dtypes to string (most of the time)
-    df = df.convert_dtypes()
-    # optionally strip trailing white spaces on string fields
-    if strip:
-        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-    return(df)
+    try:
+        df = pd.read_csv(resource,sep=sep,header=None,names=names,dtype=dtype)
+        # this will convert object dtypes to string (most of the time)
+        df = df.convert_dtypes()
+        # optionally strip trailing white spaces on string fields
+        if strip:
+            df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        return(df)
+    except:
+        return(None)
 
 
 def read_data_file(resource,encoding='utf-8',maxcols=None,as_cols=False):
     '''
     print('DEPRECATION WARNING:  - pls. use read_txt() instead')
     '''
-    return(read_txt(resource,encoding=encoding,maxcols=maxcols,as_cols=as_cols))
+    try:
+        return(read_txt(resource,encoding=encoding,maxcols=maxcols,as_cols=as_cols))
+    except:
+        return(None)
 
 def read_txt(resource,encoding='utf-8',maxcols=None,as_cols=False):
     '''
