@@ -26,8 +26,14 @@ def check_colab():
 # PART I:  MATH UTILITIES
 ##################################################
 
+def seconds_to_samples(seconds,sample_rate=8000):
+    return int(round(float(sample_rate)*seconds))
+
 def next_power_of_2(x):  
     return 1 if x == 0 else 2**(x - 1).bit_length()
+
+def next_power_of_10(x):  
+    return(10. ** math.ceil(math.log10(x)))
 
 def normalize(x, axis=0):
     """Normalizes a multidimensional input array so that the values sums to 1 along the specified axis

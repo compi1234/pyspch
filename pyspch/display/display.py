@@ -179,6 +179,10 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
     if dy==None: dy = (sample_rate/2)/(nparam-1)  #assume standard spectrogram
     sample_range = np.arange(frames[0]*n_shift,
                         min(frames[1]*n_shift+1,len(wavdata)) )
+    # there should be check for singletons here
+    #if segdata is not None: segdata = list(segdata)
+    #if line_ftrs is not None: line_ftrs = list(line_ftrs)
+    #if img_ftrs is not None: img_ftrs = list(img_ftrs)
     nsegs = len(segdata) if segdata is not None else 0
     nlin_ftrs = len(line_ftrs) if line_ftrs is not None else 0  
     nimg_ftrs = len(img_ftrs) if img_ftrs is not None else 0 

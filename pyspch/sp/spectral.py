@@ -84,7 +84,7 @@ def spectrogram(y,sample_rate=16000,f_shift=0.01,f_length=0.03,preemp=0.97,windo
     
 ##############################
 
-def spg2mel(S,n_mels=80,sample_rate=16000,fmin=40.,fmax=None,mode='dB'):
+def spg2mel(S,n_mels=80,sample_rate=16000,fmin=None,fmax=None,mode='dB'):
     '''
     convert standard (power) spectrogram to mel (power) spectrogram
     mode is selectable
@@ -92,12 +92,20 @@ def spg2mel(S,n_mels=80,sample_rate=16000,fmin=40.,fmax=None,mode='dB'):
     fmin   lowest edge of lowest filterband, defaults to 40Hz
     fmax   highest edge of highest filterband, if None, defaults to 0.45*sr
 
-    The librosa fmin (0Hz), fmax (0.5*sr) defaults favor a 'wide' frequency range, suitable for HIFI recordings but susceptible to low frequency humm and high frequency anti-aliasing effects
+    The librosa fmin (0Hz), fmax (0.5*sr) defaults favor a 'wide' frequency range, suitable for HIFI recordings 
+        but susceptible to low frequency humm and high frequency anti-aliasing effects
     Therefore our defaults are just a bit more conservative.
+    
+    NOTE (changed 1/3/2023):  
+        - default parameters are now : fmin = 0., fmax = 0.5 *sr  
+        - used to be: fmin = 40., fmax= 0.45*sr
+        These new parameters are fine, but in most situations it will be advised to drop (at least) first and last channel
+        
     '''
 
     S = set_mode(S,mode,'power')
-    if fmax is None : fmax = 0.45*sample_rate 
+    if fmin is None : fmin = 0.
+    if fmax is None : fmax = 0.5*sample_rate 
     S_mel = librosa.feature.melspectrogram(
          S=S,n_mels=n_mels,sr=sample_rate,fmin=fmin,fmax=fmax,
                     )
@@ -144,9 +152,9 @@ def melcepstrum(y=None,S=None,n_cep=13,n_mels=80,sample_rate=16000,fmin=40.,fmax
         otherwise the truncated cepstrum
     
     Arguments:
-    y :       waveform to compute mel cepstrum from, if None use spg
+    y :       waveform to compute mel cepstrum from, if None use S
                 default spectrogram parameters will be used 
-    spg :     log-spectrogram nd.array of size (n_param,n_fr), if None y must be specified
+    S :     log-spectrogram nd.array of size (n_param,n_fr), if None y must be specified
     n_cep :   number of cepstral coefficients to return (default = 13)
     
     Returns:
@@ -174,8 +182,8 @@ def cep_lifter(cep,n_lifter=None,n_spec=128):
     '''
     cep_lifter computes the spectral envelope and/or residue from the cepstrum
         1. first the cep input is zero padded to n_spec size
-        2. the 0-padded is split in an envelope and residue part, as specified by n_lifter
-        3. A a DCT is performed to both components
+        2. the 0-padded cepstrum is split in an envelope and residue part, as specified by n_lifter
+        3. A DCT is performed to both components
         
     If no lifter is specified then just the cepstral envelope is returned
     

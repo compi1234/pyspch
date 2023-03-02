@@ -3,6 +3,7 @@
 import math
 import numpy as np
 from scipy import signal
+from .spectral import *
 
 def synth_fourier(freqs = [200.], amps = [1.], phis = None, dur = 0.5,sample_rate=8000.):
     '''
@@ -116,4 +117,26 @@ def synth_signal(sigtype='sin', freq=200.0, amp=1.0, phi=0.0, sample_rate=8000.,
         print( 'signal: Unrecognized signal type')
     return amp*y, t
 
+
+def synth_griffinlim(S,sample_rate=8000,shift=0.01,mode='dB'):
+    '''
+    Griffin Lim Synthesis
+    
+    Input:
+    ------
+        S:           Spectrogram (n_coeff,n_frames)
+        sample_rate: sampling rate (default=8000)
+        shift:       frame shift in seconds (default=0.01)
+        mode:        power mode of spectrogram (default='dB')
+        
+    Returns:
+    --------
+        y:           synthesized signal
+    '''
+    
+    # convert input spectrogram to magnitude spectrogram
+    S_mag = set_mode(S,mode,'magnitude')
+    hop_length = int(shift*sample_rate)
+    y = librosa.griffinlim(S_mag,hop_length=hop_length)
+    return(y)
 

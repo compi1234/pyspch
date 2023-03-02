@@ -612,6 +612,8 @@ class iSpectrogram2(VBox):
         
     def fname_observe(self,change):
         self.fname=change.new
+        with self.logscr:
+            print("reading fname: ",self.root + self.fname)
         self.wav_update()
         self.update()
         
