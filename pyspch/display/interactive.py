@@ -23,7 +23,7 @@ dw_0 = {'description_width': '0%'}
 
 Symbols = { 'play':'\u25b6','reverse':'\u25C0' , 'pause':'\u23F8', 'stop': '\u23F9', 'record':'\u2b55'}
 
-def box_layout(width='',height='',padding='1px',margin='0px',border='solid 1px black'):
+def box_layout(padding='1px',margin='0px',border='solid 1px black',**kwargs):
      return widgets.Layout(
 #        display='flex',
 #        flex_flow='row',
@@ -31,8 +31,7 @@ def box_layout(width='',height='',padding='1px',margin='0px',border='solid 1px b
         border= border,
         padding = padding,  # padding='2px 2px 2px 2px',  = white space inside; top, right, bottom, left
         margin=   margin,   # margin = '1px 1px 1px 1px', = white space around the outside
-        width = width,
-        height = height
+         **kwargs
      )
     
 def button_layout(padding='5px',margin='2px 5px 2px 5px',width='40px'):
