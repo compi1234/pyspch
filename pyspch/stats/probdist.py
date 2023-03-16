@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 23 13:41:29 2019
 
-@author: compi
+Defining classes of pdf's and probability distributions commonly used in GENERATIVE models for statistical machine learning and classification such as HMM's, Bayesian Classification, Decision Trees, ...
 
-We define a set of multi-class probability densities that can be used
-for likelihood computations in HMM's, Bayesian Classification and Decision Tree development.
-
-The densities are built up from scratch or are wrappers around existing sklearn classifiers and/or distribution models.
-   
-The API follows in great lines the API of Naive Bayesian classifiers (_BaseNB) in
-sklearn.  However, while the general framework is intended to support GENERATIVE (BAYESIAN) models,  there is no NAIVE premise (EG. GMM models explicitly deal with feature correlation)
+The API is modeled after sklearn (i.c. _BaseNB, the Naive Bayesian classifiers)
+The models are built from scratch or are wrappers around existing sklearn classifiers and/or distribution models.
  
 Following Models are currently supported:
 
@@ -60,6 +54,14 @@ History:
 11/01/2022: added 'style' option for printing of logprobs in class=Discrete, module=print_model()
 
 """
+##################################################################################
+### The code below is to avoid memory leaks in sklearn KMEANS on windows machines 
+### "UserWarning: KMeans is known to have a memory leak on Windows with MKL, 
+###   when there are less chunks than available threads. 
+###   You can avoid it by setting the environment variable OMP_NUM_THREADS=2.
+import os
+os.environ["OMP_NUM_THREADS"] = '1'
+##################################################################################
 
 import numpy as np
 import pandas as pd
@@ -69,7 +71,7 @@ from sklearn.naive_bayes import GaussianNB, CategoricalNB
 import matplotlib.pyplot as plt
 from scipy.special import logsumexp
 from scipy.stats import norm
-from . import core as Spch
+from .. import core as Spch
 
 # reusable initialization routine for classes and priors
 def _init_classes_(n_classes=None,classes=None,priors=None):
@@ -178,31 +180,42 @@ class Discrete():
         
     '''
     
-    def __init__(self,alpha=1.0,feature_probs=None,labels=None,classes=None,priors=None):
-    
+    def __init__(self,alpha=1.0,feature_probs=None,n_categories=None,labels=None,classes=None,priors=None):
+        ''' 
+        initialization looking in order at feature_probs, labels, n_categories
+        to determine model dimensions
+        
+        if labels is None, we will assume that all labels are numerical values in range of n_categories
+        '''
+        
         self.feature_prob_ = feature_probs
         self.alpha = alpha
         self.class_prior_ = None
-        
-        # dummy initialization
-        if feature_probs is None : 
-            self.n_features = 0
-            self.n_classes = None
+        self.labels = labels
+        self.n_classes = None
 
         # initialization from feature_probs
-        else: 
+        if feature_probs is not None: 
             self.n_features = len(self.feature_prob_)
             self.n_categories = np.zeros((self.n_features,),'int32')
             self.n_classes = self.feature_prob_[0].shape[0]
             for i in range(self.n_features):
                 self.n_categories[i] = self.feature_prob_[i].shape[1]               
-            if labels is None:
-                self.labels=[]
-                for i in range(self.n_features):
-                    self.labels.append( np.arange(self.n_categories[i]).astype('str') )
-            else:
-                self.labels = labels
-            
+        elif labels is not None: #initialize from labels or n_categories
+            # check that labels is list of lists
+            if not all(isinstance(elem, list) for elem in labels):
+                self.labels = [labels]
+            else: self.labels = labels
+            self.n_features = len(self.labels)
+            self.n_categories = np.zeros((self.n_features,),'int32')
+            for i in range(self.n_features):
+                self.n_categories[i] = len(self.labels[i])
+        elif n_categories is not None: #initialize from n_categories
+            self.n_categories = np.asarray(n_categories)
+            self.n_features = len(n_categories)
+        else:
+            error("Discrete(): can not initialize; at least feature_probs, labels or n_categories needs to be specified")
+           
         self.n_classes, self.classes_, self.priors = _init_classes_(n_classes=self.n_classes,classes=classes,priors=priors)   
 
             
@@ -268,13 +281,17 @@ class Discrete():
         return Spch.logf(self.predict_ftr_prob(X))        
     
     def print_model(self,labels=None,style='lin'):
+        if labels is None: 
+            labels = []
+            for j in range(self.n_features):
+                labels.append([str(i) for i in range(self.n_categories[j])])
         for j in range(self.n_features):
             print("++ Feature (%d) ++\n "%j)
-            labels = self.labels[j]  
+            lbls = labels[j]
             if style == 'lin': ftr_prob = self.feature_prob_[j].T
             elif style == 'log': ftr_prob = Spch.logf(self.feature_prob_[j].T)
             featprob_df = pd.DataFrame(ftr_prob,columns=self.classes_,
-                     index= ['P('+labels[i]+'|.)' for i in range(0,self.n_categories[j])])
+                     index= ['P('+lbls[i]+'|.)' for i in range(0,self.n_categories[j])])
             display(featprob_df)
 
     def plot_model(self,figsize=(14,6)):
@@ -289,8 +306,25 @@ class Discrete():
             ax[j].legend(np.arange(self.n_classes))
             ax[j].set_title('Likelihoods for Feature %d'%j)
 
-    def fit(self,X,y):
+    def fit(self,X,y,floor=1.e-3):
         print("sorry")
+        if self.n_classes is None:  # you need to initialize from data
+            self.classes = np.unique(y)
+            self.n_classes = len(self.classes)
+        if self.labels is None:
+            Xindx = X
+        else: # expecting numeric labels in each category
+            Xindx = self.lbl2indx(X)
+        self.feature_probs = []
+        self.counts = []
+        for j in range(self.n_features):
+            XX = Xindx[:,j]
+            counts = np.zeros(self.n_categories[j],'int')
+            for i in XX:
+                counts[i] += 1
+            sum_of_counts = float(np.sum(counts))
+            self.feature_probs.append(counts.astype(float)/sum_of_counts)
+            self.counts.append(counts)
         return
 
         
@@ -383,13 +417,19 @@ class Gaussian(GaussianNB):
             self.class_prior_ = np.array(class_prior)
         
         
-    def predict_prob(self,X):
+    def predict_ftr_prob(self,X):
         return np.exp(self.predict_log_prob(X))
         
     # sklearn computes the joint feature likelihood and class prior
-    def predict_log_prob(self,X):
+    def predict_ftr_log_prob(self,X):
         return (self._joint_log_likelihood(X)-np.log(self.class_prior_))
-        
+
+    def predict_prob(self,X):
+        return self.predict_ftr_prob(X)
+    def predict_log_prob(self,X):
+        return self.predict_ftr_log_prob(X)
+    
+    
     def print_model(self):
         try: 
             print('Means')
@@ -496,7 +536,7 @@ class GMM(BaseEstimator, ClassifierMixin):
         self.class_prior_ = self.class_count_ / len(y)
         self.data_range_ = np.vstack((np.min(X,axis=0),np.max(X,axis=0)))
         
-    def predict_log_prob(self,X):
+    def predict_ftr_log_prob(self,X):
         """ Log Likelihoods of  X  for each class
         
             Returns
@@ -510,11 +550,15 @@ class GMM(BaseEstimator, ClassifierMixin):
             Xprob[:,k]= self.gmm[k].score_samples(X)      
         return Xprob
 
-    def predict_prob(self,X):
+    def predict_ftr_prob(self,X):
         """ Compute Likelihoods per class
         """
-        return np.exp(self.predict_log_prob(X))
+        return np.exp(self.predict_ftr_log_prob(X))
 
+    def predict_prob(self,X):
+        return self.predict_ftr_prob(X)
+    def predict_log_prob(self,X):
+        return self.predict_ftr_log_prob(X)    
         
     def predict_log_proba(self, X, priors = None):
         """ 
@@ -535,7 +579,7 @@ class GMM(BaseEstimator, ClassifierMixin):
         if (len(priors) != self.n_classes):
             raise ValueError("Dimensions of priors do not match number of classes")
             
-        likelihoods = self.predict_prob(X)
+        likelihoods = self.predict_ftr_prob(X)
         nsamples = X.shape[0]
         total_likelihood = np.zeros(nsamples)
         posteriors = np.zeros((nsamples,self.n_classes))
@@ -566,10 +610,10 @@ class GMM(BaseEstimator, ClassifierMixin):
                 for kk in range(self.n_components):
                     print( self.gmm[k].weights_[kk], self.gmm[k].means_[kk],np.sqrt(self.gmm[k].covariances_[kk]) ) 
             print("")
-    def print(self):
-        print_model(self)
+    #def print(self):
+    #    print_model(self)
         
-    def plot_prob(self):
+    def plot_ftr_prob(self):
         """ 
         plot the likelihood distributions 
         ... untested 
@@ -584,7 +628,7 @@ class GMM(BaseEstimator, ClassifierMixin):
             x = np.linspace(self.data_range_[0,0],self.data_range_[1,0],num=npts)
             y = np.linspace(self.data_range_[0,1],self.data_range_[1,1],num=npts)
             xx,yy = np.meshgrid(x,y, sparse=True)
-            z = self.predict_prob(np.vstack(xx,yy))
+            z = self.predict_ftr_prob(np.vstack(xx,yy))
             h = plt.contourf(x,y,z)
             plt.show()
         else:

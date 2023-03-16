@@ -90,17 +90,18 @@ def load_data(name,root='pkg_resources',**kwargs):
         elif name == 'hillenbrand':
             data =  fetch_hillenbrand(**kwargs) 
         elif name == 'tinytimit':
+            # returning in ARPABET notation 'aa','iy','uw' instead of stored 'a','i','uw'
             tinytimit =  'https://homes.esat.kuleuven.be/~spchlab/data/timit/features/tinytimit/'
             data_raw = load_data('a-i-uw-800.mat', root=tinytimit)
             data = data_raw
             norm_fac = 40.0
             X_train=data_raw['ALLtrain'].T - norm_fac
             X_test=data_raw['ALLtest'].T - norm_fac
-            y_train =np.full((2400,),'a',dtype='<U2')
-            y_train[800:1600] =np.full((800,),'i',dtype='<U2')
+            y_train =np.full((2400,),'aa',dtype='<U2')
+            y_train[800:1600] =np.full((800,),'iy',dtype='<U2')
             y_train[1600:2400] =np.full((800,),'uw',dtype='<U2')
-            y_test =np.full((600,),'a',dtype='<U2')
-            y_test[200:400] =np.full((200,),'i',dtype='<U2')
+            y_test =np.full((600,),'aa',dtype='<U2')
+            y_test[200:400] =np.full((200,),'iy',dtype='<U2')
             y_test[400:600] =np.full((200,),'uw',dtype='<U2')
             data = (X_train, X_test, y_train, y_test)
         return data
