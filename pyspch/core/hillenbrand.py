@@ -3,8 +3,6 @@
 
 import pandas as pd
 
-def dummy_hil():
-    return('bo')
 
 hil2arpa_dic = {'iy':'iy','ih':'ih','eh':'eh','ae':'ae','ah':'aa','aw':'ao','oo':'uh','uw':'uw','uh':'ah','er':'er',
            'ei':'ey','oa':'ow'}
@@ -55,7 +53,8 @@ def fetch_hillenbrand(genders='all',vowels='all',columns=['gender','vowel','f0',
         genders:  list of selected genders  (default=all, options are 'adults','children','male','female' or list of 'm','f','b','g')
         vowels:   list of selected vowels   (default=all, options are 'vowels6', 'vowels3' or list)
         columns:  list of selected columns  (default=['gid','vid','f0','F1','F2','F3'])
-        symbols: str (default='hillenbrand', alternative ['hillenbrand','arpa','ARPA'] 
+        symbols:  str (default='hillenbrand', alternative ['hillenbrand','arpa','ARPA'] 
+            NOTE: The conversion to ARPA happens AFTER vowel selection; hence selection needs to be done with the Hillenbrand notations !!
         
     Returns
     -------

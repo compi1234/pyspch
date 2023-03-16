@@ -40,8 +40,8 @@ import seaborn as sns
 import copy
 
 #from pyspch.core.constants import EPS_FLOAT
-from .core.constants import EPS_FLOAT
-from .core import utils as u
+from ..core.constants import EPS_FLOAT
+from ..core import utils as u
 
 PROB_FLOOR = EPS_FLOAT
 
@@ -454,7 +454,8 @@ class Trellis():
                 indx = [ 'x['+str(i)+']' for i in range(Xd.shape[1]) ]
             xdf = pd.DataFrame(Xd.T,index=['X'])
             display(xdf)
-                
+        else: xdf = []
+        
         for w in what:
             if w == "obs_probs":
                 fdf = pd.DataFrame(self.obs_probs.T,

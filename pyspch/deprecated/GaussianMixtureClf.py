@@ -98,7 +98,7 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         self.data_range_ = np.vstack((np.min(X,axis=0),np.max(X,axis=0)))
         
     def predict_log_prob(self,X):
-        """ Likelihoods of  X  for each class
+        """ Log-Likelihoods of  X  per class
         
             Returns
             -------
@@ -114,7 +114,8 @@ class GaussianMixtureClf(BaseEstimator, ClassifierMixin):
         return Xprob
 
     def predict_prob(self,X):
-        """ Log-Probability estimates (likelihoods) per class
+        """ 
+        Probability estimates (likelihoods) per class
         """
         return np.exp(self.predict_log_prob(X))
 
