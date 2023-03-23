@@ -179,9 +179,15 @@ def get_timit_mapping(mapping=None,set1="timit61",set2="cmu"):
     
     default: "timit61" to "cmu"
     '''
-    
+
+    xlat_dict = None
     if mapping is not None:
-        set1,set2 = mapping.split("_")
+        # first 3 are legacy code -- subject to deprecation
+        if(mapping == 'timit61_48') : xlat_dict = timit61_48_diff
+        elif(mapping == 'timit61_41') : xlat_dict = timit61_41_diff
+        elif(mapping == 'timit61_39') : xlat_dict = timit61_39_diff
+        else: set1,set2 = mapping.split("_")
+        if xlat_dict is not None: return(xlat_dict)
     
     fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
     timit_map = read_data_file(fname, maxcols = 4, as_cols=True)

@@ -169,13 +169,14 @@ def seg2lbls(seg, shift=0.01, n_frames=None, end_time=None, pad_lbl=None):
 ##################################################
 
 # Pretty Print routine makes for confusion matrices
-def plot_confusion_matrix(cm,labels=[],title='Confusion Matrix\n',figsize=(4,4),**kwargs):
+def plot_confusion_matrix(cm,labels=[],title='Confusion Matrix\n',figsize=(4,4),norm=False,**kwargs):
     '''
     Plot a Confusion Matrix
     
     Arguments
         cm        confusion matrix, np.array or DataFrame
         labels    Default = []
+        norm      boolean (default=False), normalize rows to fractions
         title     Default = 'Confusion Matrix'
         figsize   Default = (4,4)
         **kwargs  extra arguments to pass to sns.heatmap()
@@ -195,6 +196,10 @@ def plot_confusion_matrix(cm,labels=[],title='Confusion Matrix\n',figsize=(4,4),
         }
     
     heatmap_args.update(kwargs)
+    if norm: 
+        cm = cm / cm.sum(axis=1)[:,None] 
+        heatmap_args['fmt'] = '.2f'
+    
     f,ax = plt.subplots(figsize=figsize)
     sns.heatmap(cm, **heatmap_args)
     ax.tick_params(axis='y',labelrotation=0.0,left=True)
