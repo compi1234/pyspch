@@ -52,7 +52,8 @@ Additional Methods
 History:
 =========
 11/01/2022: added 'style' option for printing of logprobs in class=Discrete, module=print_model()
-
+20/03/2023: added 'llscore', 'bic' and ''ll_and_bic' methods to class GMM
+21/03/2023: bug_fix in GMM.print_model() avoid sqrt() of negative correlation coefficients
 """
 ##################################################################################
 ### The code below is to avoid memory leaks in sklearn KMEANS on windows machines 
@@ -476,21 +477,21 @@ class GMM(BaseEstimator, ClassifierMixin):
     
     
     """   
-    def __init__(self, n_components=1 ,classes=[0,1], max_iter=10, tol=1.e-3):
+    def __init__(self, n_components=1 ,classes=[0,1], max_iter=10, **kwargs):
         self.n_components = n_components
         self.max_iter = max_iter
-        self.tol = tol
-
         self.data_range_ = None
-
         self.classes = classes
         self.n_components=n_components
         self.n_classes = len(self.classes)
         self.class_count_ = np.zeros(self.n_classes,dtype='float64')
         self.class_prior_ = np.ones(self.n_classes,dtype='float64')/float(self.n_classes)
+
         
-        self.gmm = [GaussianMixture(max_iter=self.max_iter,tol=self.tol,random_state=1,n_components=self.n_components, 
-                        covariance_type='diag',init_params='kmeans') for k in range(0,self.n_classes)]   
+        gmm_kwargs=dict(covariance_type='diag',init_params='kmeans',random_state=1)
+        gmm_kwargs.update(kwargs)
+        self.gmm = [GaussianMixture(max_iter=self.max_iter,n_components=self.n_components, 
+                        **gmm_kwargs) for k in range(0,self.n_classes)]   
 
 
         
@@ -501,6 +502,32 @@ class GMM(BaseEstimator, ClassifierMixin):
             raise ValueError("Initialized GMM shape(%d,_) does not match n_classes(%d) "
                 % (len(self.gmm), self.n_classes) )
     
+    def llscore(self, X, y):
+        ''' 
+        likelihood score per sample for given data
+        '''
+        ll = 0.
+        for k in range(0,self.n_classes) :
+            ll_k = self.gmm[k].score(X[y== self.classes[k],: ])
+            ll += ll_k * sum(y==self.classes[k])
+        return(ll/len(y))
+    
+    def bic(self,X,y):
+        '''
+        bic score for model given the data
+        '''
+        nparam = ((2*X.shape[1]+1)*self.n_components -1 ) * self.n_classes
+        bic = -2*self.llscore(X,y)*len(y) + (np.log(X.shape[0])* nparam)
+        return(bic)
+    
+    def ll_and_bic(self,X,y):
+        '''
+        bic score for model given the data
+        '''
+        ll = self.llscore(X,y)
+        nparam = ((2*X.shape[1]+1)*self.n_components -1 ) * self.n_classes
+        bic = -2*ll*len(y) + (np.log(X.shape[0])* nparam)
+        return(ll,bic)
         
     def fit(self, X, y):
         """Fit GMM with EM for each class.
@@ -604,11 +631,11 @@ class GMM(BaseEstimator, ClassifierMixin):
             if  self.gmm[k].means_.shape[1] == 1 :
                 df = pd.DataFrame(data={'weights':self.gmm[k].weights_.reshape(-1), 
                                     'mean':self.gmm[k].means_.reshape(-1), 
-                                    'std_dev':np.sqrt(self.gmm[k].covariances_).reshape(-1)})
+                                    'cov':  (self.gmm[k].covariances_).reshape(-1)})
                 print(df)
             else:
                 for kk in range(self.n_components):
-                    print( self.gmm[k].weights_[kk], self.gmm[k].means_[kk],np.sqrt(self.gmm[k].covariances_[kk]) ) 
+                    print( self.gmm[k].weights_[kk], self.gmm[k].means_[kk],(self.gmm[k].covariances_[kk]) ) 
             print("")
     #def print(self):
     #    print_model(self)
