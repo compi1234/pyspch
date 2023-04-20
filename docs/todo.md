@@ -7,6 +7,11 @@
 
 # TODO 
 
+sanity check on discrete probabilities: use of labels vs. use of indices
+- evolving standard in sklearn
+- could be with index=True/False as option
+- now most work with indices only ...
+
 package version updates v0.8 ? (yml vs colab)
 - soundfile 0.10 - 0.11
 - torchaudio 0.13 / torch 1.13 / cuda 11.6(7) ?
