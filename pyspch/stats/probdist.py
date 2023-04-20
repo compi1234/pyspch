@@ -224,8 +224,8 @@ class Discrete():
         """
         converts observation labels to array of indices
         
-        input and output have shape (n_samples,n_features)
-                                 or (n_features,)
+        input and output should be arrays of shape (n_samples,n_features)
+                                                or (n_features,)
         
         """
         return_1D = False
@@ -307,12 +307,16 @@ class Discrete():
             ax[j].legend(np.arange(self.n_classes))
             ax[j].set_title('Likelihoods for Feature %d'%j)
 
-    def fit(self,X,y,floor=1.e-3):
-        print("sorry")
+    def fit(self,X,y,floor=1.e-3,index=False):
+        '''
+        fit to discrete density observation for a set of observations and labels
+        if index==True, then observations are assumed to be observation indices
+        '''
+        #print("sorry")
         if self.n_classes is None:  # you need to initialize from data
             self.classes = np.unique(y)
             self.n_classes = len(self.classes)
-        if self.labels is None:
+        if (index == True) or (self.labels is None):
             Xindx = X
         else: # expecting numeric labels in each category
             Xindx = self.lbl2indx(X)
@@ -389,7 +393,7 @@ class Gaussian(GaussianNB):
         # initialize class means, n_classes and n_features_in_
         if (mu is None):
             if (classes is None):
-                print("You must at least specify means to import a model")
+                print("You must at least specify means to initialize a model")
                 return
             else:  # initialize classes only
                 #self.classes_ = np.array(classes)
@@ -431,14 +435,20 @@ class Gaussian(GaussianNB):
         return self.predict_ftr_log_prob(X)
     
     
-    def print_model(self):
+    def print_model(self,precision=None):
+        """ print the model """
         try: 
-            print('Means')
-            print(self.theta_)
-            print('Variance')
-            print(self.var_)   
+            if precision is not None:
+                pd.set_option('display.precision',precision)
+            df = pd.DataFrame(data={'prior':list(self.class_prior_),'mean':list(self.theta_),'var':list(self.var_)})
+            display(df)
+            #for k in range(0,self.n_classes):
+            #    print("Class[%d] (%s) with prior=%.3f" % (k,self.classes[k],self.class_prior_[k]))
+            #    print("-----------------------------------")
+            #    df = pd.DataFrame(data={'mean':self.theta_[k],'var':self.var_[k]})
+            #    print(df)
         except:
-            print('No model to print')
+            print('Could not print the model')
             
     def plot_model(self):
         nclass, n_features = self.theta_.shape

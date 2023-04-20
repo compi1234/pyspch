@@ -347,7 +347,7 @@ def text_heatmap(data,ax=None,annot=False,cmap='Blues',vmin=None,vmax=None,edgec
 
 def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ftr_annot=False, bptrs=None,
             ftr_args={},xy_args={},bptr_args={},trace_args={},
-            width_ratios=None,height_ratios=None,ftr_scale=.2,fig_width=10.,**kwargs):
+            width_ratios=None,height_ratios=None,ftr_scale=.2,fig_width=10.,fig_aspect=None,**kwargs):
     '''
     A plotting routine for sequence comparisons, allowing for the plotting
         - trellis heatmap (eg. local or global distance matrix)
@@ -386,7 +386,11 @@ def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ft
 
     
     ftr_scale   float, fraction defining space reserved for feature plots (default=0.2)
-    width_ratios, height_ratios   gridspec values overriding heuristic settings
+    fig_width   float, figure width (default=10.)
+    
+    width_ratios, height_ratios, fig_aspect   
+                these all specify the figure in more detail and are typically computed heuristic settings
+                if specified they will override the heuristic values 
 
     xy_annot    boolean for adding annotations to the trellis
                 or array of correct size containing the annotations
@@ -451,7 +455,8 @@ def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ft
     _trace_args.update(trace_args)    
     
     # setup the figure and gridspec and direction and visibility of the axes
-    fig_aspect = float(Ny+Dx)/float(Nx+Dy)
+    if fig_aspect is None:
+        fig_aspect = float(Ny+Dx)/float(Nx+Dy)
     if fig is None:
         fig = plt.figure(figsize=(fig_width,fig_width*fig_aspect) )
     gs = fig.add_gridspec(nrows=2,ncols=2,

@@ -11,8 +11,6 @@
         + librosa     0.8.*
 - COLAB's major inconsistencies with playing AUDIO are now gone as they moved to IPython 7.x
 
-
-    
 - torch and torchaudio are recommended, but not required for most of the package except the nn subpackage
     + installation is not included in the reference .yml file as things may not be perfectly coded for everyone
     + example installation when using conda (do this after creating your env

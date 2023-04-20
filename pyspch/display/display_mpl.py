@@ -171,7 +171,7 @@ class SpchFig(Figure):
             invert_xy_line2D(ax,swap_labels=True)
 
 
-    def add_img_plot(self,img,iax=0,x0=0,y0=0,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,xtick_align='center',ytick_align='center',**kwargs):
+    def add_img_plot(self,img,title=None,iax=0,x0=0,y0=0,dx=1,dy=1,x=None,y=None,xticks=True,xlabel=None,ylabel=None,xtick_align='center',ytick_align='center',**kwargs):
         ''' Add an image plot (spectrogram style)
 
         Parameters
@@ -257,7 +257,8 @@ class SpchFig(Figure):
         else:       ax.tick_params(axis='x',labelrotation=0.0,labelbottom=False,bottom=True)         
         if xlabel is not None: ax.set_xlabel(xlabel)
         if ylabel is not None: ax.set_ylabel(ylabel)
-
+        if title is not None: ax.set_title(title)
+        
     def add_waterfall2D(self,X,iax=0,ax_ref=0,x0=None,dx=.01,scale=None,colors=['r','g','b','k','y','m']):
         '''
         adds basic 2D waterfall plot in axis iax
@@ -282,7 +283,7 @@ class SpchFig(Figure):
         for i in range(0,nfr):
             ax.plot(scale*(X[:,i]-xmin)+x0+i*dx,np.arange(nparam),color=colors[i%6])
 
-    def add_seg_plot(self,seg,iax=0,xrange=None,yrange=None,ypos=0.5,Lines=True,Labels=False,color='#FF0000',size=16,ax_ref=0,txtargs={},lineargs={}):
+    def add_seg_plot(self,seg,iax=0,title=None,xrange=None,yrange=None,ypos=0.5,Lines=True,Labels=False,color='#FF0000',size=16,ax_ref=0,txtargs={},lineargs={}):
 
         '''adds a segmentation to an axis
 
@@ -370,6 +371,7 @@ class SpchFig(Figure):
             ax.tick_params(axis='y',labelleft=False,left=False) 
             ax.tick_params(axis='x',labelbottom=False,bottom=True)
 
+        if title is not None: ax.set_title(title)
 
     def add_vlines(self,x,iax=0,color='#F00',linestyle='dashed', **kwargs):
         '''
