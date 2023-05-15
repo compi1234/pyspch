@@ -26,7 +26,13 @@ Modification History:
 
 25/02/2022:
     adaptation to v0.6
-        
+
+11/05/2023:
+    introduction of shared observations, leading to decoupling of state and observation indexing :
+     - n_classes:  number of observation classes, if None inferred from obs_model
+     - obs_indx:   index mapper from state index to observation class index
+    this also effected a small change in the initialization of state names unless specified 
+
 """
 import sys, os
 from math import ceil, pow
@@ -42,26 +48,9 @@ import copy
 #from pyspch.core.constants import EPS_FLOAT
 from ..core.constants import EPS_FLOAT
 from ..core import utils as u
+from . import probdist as Densities
 
 PROB_FLOOR = EPS_FLOAT
-
-class Obs_Dummy():
-    """
-    A dummy =feed through= observation model, assuming (linear) probs in the model
-    methods:
-
-    """
-    def __init__(self):
-        self.type = "dummy"
-        self.prob_style = "lin"
-        
-    # log-likelihood
-    def predict_log_prob(self,X):
-        return(np.log(X))
-    
-    # likelihood
-    def predict_prob(self,X):
-        return(X)
 
 
 # HMM Master Class
@@ -81,6 +70,10 @@ class HMM():
         Initial probability distribution over the states.
     states :    array, shape(n_states, )
         Names for states
+    obs_indx : array, shape(n_states, )
+        index mapping array that for each state specifies the class index to be used in the observation model
+    obs_model:  a probdist(Densities) object that accepts all essential
+        methods,  default(None) will select the dummy pass-through Probs()
         
     prob_style : string, "lin", "log" or "log10"  (some backwards compatibility for "prob" and "logprob")
         Do computations with probabilities or log-probabilities   
@@ -113,7 +106,7 @@ class HMM():
     ==========
     """
 
-    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,end_states=None,obs_model=None,prob_style="lin",prob_floor=PROB_FLOOR):
+    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,obs_indx=None,end_states=None,obs_model=None,n_classes=None,prob_style="lin",prob_floor=PROB_FLOOR):
 
         self._Debug = False
             
@@ -121,24 +114,32 @@ class HMM():
         self.prob_floor = prob_floor
         
         # initialize the observation model
-        self.obs_model = obs_model
+        if obs_model is None:
+            self.obs_model = Densities.Prob()
+        else:
+            self.obs_model = obs_model
+            self.n_classes = len(self.obs_model.classes_)
             
         # initialize  the state model
-        # either the "states" array with state names should be given or the states will be inferred from the classes in the observation model
+        # either the "states" array with state names should be given or the states will be
+        # initialized as a range of integers 
         if (states is None):
-            self.states = self.obs_model.classes_   #.astype('str')
+            self.states = np.arange(n_states)
         else:
-            self.states = np.array(states)
+            self.states = np.array(states)      
         self.n_states = len(self.states)
-
+        
+        if obs_indx is None:
+            self.obs_indx = np.arange(self.n_states)
+        else: self.obs_indx = np.array(obs_indx)
+        
         if (transmat is None):
             self.transmat = np.eye(self.n_states)
             if(self.prob_style == "log"):
                 self.transmat = u.logf(self.transmat,eps=self.prob_floor)
         else:
             if(transmat.shape != (self.n_states,self.n_states)):
-                print("ERROR(init_hmm): transition matrix of wrong size is given")
-                exit(1)
+                sys.exit("ERROR(init_hmm): transition matrix of wrong size is given")
             self.transmat = transmat
 
         if (initmat is None):
@@ -148,8 +149,7 @@ class HMM():
                 self.initmat = u.logf(self.initmat,eps=self.prob_floor)
         else:
             if(initmat.size != self.n_states):
-                print("ERROR(init_hmm): initial probability matrix of wrong size is given")
-                exit(1)
+                sys.exit("ERROR(init_hmm): initial probability matrix of wrong size is given")
             self.initmat = initmat   
 
         if end_states is None:
@@ -213,9 +213,9 @@ class HMM():
             n = 1
             if hasattr(self.obs_model,'n_features_in_'):
                 n=self.obs_model.n_features_in_
-            elif hasattr(hmm1.obs_model,'n_features_'):
+            elif hasattr(self.obs_model,'n_features_'):
                 n=self.obs_model.n_features_
-            elif hasattr(hmm1.obs_model,'n_features'):
+            elif hasattr(self.obs_model,'n_features'):
                 n=self.obs_model.n_features  
             X = X.reshape(-1,n)
 
@@ -403,8 +403,14 @@ class Trellis():
     def _observation_step(self,X):
         '''
         go to the observation model to compute b(X) of single frame
+        returns:
+        obs_probs[] as mapped onto the states by hmm.obs_indx 
+        
+        Remark: this is an efficient way of storing the obs_probs[] in the trellis,
+        but it avoids explicit knowledge of the observation model and number of classes to the HMM model
         '''
-        return( self.hmm.observation_prob(X.reshape(1,-1)).flatten() )
+        obs_probs = self.hmm.observation_prob(X.reshape(1,-1)).flatten() 
+        return( obs_probs[self.hmm.obs_indx] )
     
     def _viterbi_step(self,X):
         """
@@ -412,12 +418,12 @@ class Trellis():
         and should have dimensions (n_features,)
         """
 
-        obs_prob = self._observation_step(X)
+        obs_probs = self._observation_step(X)
         if self.n_samples == 0:
-            t_, b_ = self._step0(obs_prob) 
+            t_, b_ = self._step0(obs_probs) 
         else:
-            t_ , b_ = self.hmm.viterbi_recursion(obs_prob,self.probs[self.n_samples-1,:])
-        self.obs_probs = np.r_[self.obs_probs,[obs_prob]]       
+            t_ , b_ = self.hmm.viterbi_recursion(obs_probs,self.probs[self.n_samples-1,:])
+        self.obs_probs = np.r_[self.obs_probs,[obs_probs]]       
         self.probs = np.r_[self.probs,[self._col_norm(t_)]]
         self.backptrs = np.r_[self.backptrs,[b_]]
         self.n_samples += 1
@@ -427,18 +433,18 @@ class Trellis():
         this routine takes EXACTLY ONE observation as argument
         """
         # reshaping is done as observation_prob expects (n_samples,n_features)
-        obs_prob =  self._observation_step(X)
+        obs_probs = self._observation_step(X)
         if self.n_samples == 0:
-            t_,_ = self._step0(obs_prob) 
+            t_,_ = self._step0(obs_probs) 
         else:
             t_ = np.zeros(self.hmm.n_states)
             prev_ = self.probs[self.n_samples-1,:]
             for to_state in range(0,self.hmm.n_states):
                 for from_state in range(0,self.hmm.n_states):
                     t_[to_state] += self.hmm.transmat[from_state,to_state] * prev_[from_state]
-                t_[to_state] = t_[to_state] * obs_prob[to_state]
+                t_[to_state] = t_[to_state] * obs_probs[to_state]
 
-        self.obs_probs = np.r_[self.obs_probs,[obs_prob]]      
+        self.obs_probs = np.r_[self.obs_probs,[obs_probs]]      
         self.probs = np.r_[self.probs,[self._col_norm(t_)]]
         self.n_samples += 1    
         
