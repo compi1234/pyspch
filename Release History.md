@@ -1,6 +1,10 @@
 # pyspch
 
+### Notes on v07.03
 
+- now supports tied observations
+    + implemented via defining an obs_indx array which specifies the observation index to use in each state
+    + should be transparent for all old code as the above defaults to a 1-1 mapping
 
 ### Notes on v0.7
 
