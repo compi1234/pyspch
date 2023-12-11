@@ -1,5 +1,5 @@
 *.pyc
-.ipynb*
+.ipynb*/
 dev/
 pyspch.egg-info/
 psi-pyspch.code-workspace

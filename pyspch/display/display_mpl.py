@@ -18,6 +18,14 @@ import matplotlib.gridspec as gridspec
 from matplotlib.figure import Figure     
 from matplotlib import ticker
 
+###########################
+# 31/10/2023 for v0.8  with matplotlib v3.7
+# FutureWarnings are suppressed due to annoying warning in matplotlib's  ax.text() 
+# This is obviously NOT future proof
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+############################
+
 os.environ['PYSPCH_BACKEND'] = "mpl"
 
 

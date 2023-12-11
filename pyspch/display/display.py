@@ -23,7 +23,8 @@
 #         axis numbering and main parameters drawn from matplotlib, plotly is now secondary support
 #         low level calls now all start.  my_func(fig,iax,data, ... )
 #
-
+#  13/06/2023: prepare PlotSpgFtrs() for 2D layout
+#
 import os,sys,io 
 import scipy.signal
 
@@ -118,7 +119,7 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
     nparam,nfr = spgdata.shape
     if frames is None: frames = [0,nfr]          
     frame_range = np.arange(frames[0],frames[1])
-    if dy==None: dy = (sample_rate/2)/(nparam+1)  #assume standard spectrogram
+    if dy==None: dy = (sample_rate/2)/(nparam-1)  #assume standard spectrogram
             
     # 2. set up the figure and axis            
     if wavdata is None:
@@ -157,8 +158,8 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
 # An Extended Plotting Routine for time aligned
 
 def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
-            spglabel='Frequency',line_labels=None, img_labels=None,
-            sample_rate=1.,shift=0.01,dy=1,frames=None,Legend=False,**kwargs):
+            spglabel='Frequency (Hz)',line_labels=None, img_labels=None,
+            sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,**kwargs):
     '''
     General Purpose multi-tier plotting routine of speech signals.
     The figure contains
@@ -193,25 +194,25 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
         fig = SpchFig(row_heights=[1,3]+nsegs*[.5]+nimg_ftrs*[3.]+nlin_ftrs*[2.],**kwargs)
     else:
         fig = SpchFig(row_heights=row_heights,**kwargs)
-    iax = 0
-    fig.add_line_plot(wavdata[sample_range],iax=iax,x=sample_range/sample_rate)
-    iax = 1
-    fig.add_img_plot(spgdata[:,frame_range],iax=iax,x0=(frame_range[0]+0.5)*shift,dx=shift,dy=dy,
+    irow = 0
+    fig.add_line_plot(wavdata[sample_range],iax=[irow,0],x=sample_range/sample_rate)
+    irow = 1
+    fig.add_img_plot(spgdata[:,frame_range],iax=[irow,0],x0=(frame_range[0]+0.5)*shift,dx=shift,dy=dy,
                     ylabel=spglabel)
-
-    iax = 2
+    
+    irow = 2
     for i in range(nsegs):
         try:   
-            fig.add_seg_plot(segdata[i],iax=iax,ypos=0.5,color=colors[i],Lines=True)
+            fig.add_seg_plot(segdata[i],iax=[irow,0],ypos=0.5,color=colors[i],Lines=True)
         except:pass
-        iax += 1
+        irow += 1
         
     for i in range(nimg_ftrs):
         try:   
-            fig.add_img_plot(img_ftrs[i][:,frame_range],iax=iax,x0=(frames[0]+0.5)*shift,dx=shift,
+            fig.add_img_plot(img_ftrs[i][:,frame_range],iax=[irow,0],x0=(frames[0]+0.5)*shift,dx=shift,
                            ylabel=img_labels[i] )
         except:pass 
-        iax += 1
+        irow += 1
         
     for i in range(nlin_ftrs):
         try:   
@@ -219,107 +220,14 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
             #print("dim:",ftr.dim)
             if (ftr.ndim == 1): ftr=ftr.reshape(-1,ftr.size)
             #print("shape:",ftr.shape)
-            fig.add_line_plot(ftr[:,frame_range],iax=iax,yrange=None,x=frame_times,
+            fig.add_line_plot(ftr[:,frame_range],iax=[irow,0],yrange=None,x=frame_times,
                               ylabel=line_labels[i],color=None)
             # a seaborn alternative
             # sns.lineplot(ax=fig.axes[iax],data=line_ftrs[i][:,frame_range].T,legend=Legend);
         except:pass    
-        iax += 1
+        irow += 1
         
-    fig.get_axis(iax-1).set_xlabel('Time (sec)') 
+    fig.get_axis([irow-1,0]).set_xlabel('Time (sec)') 
 
     return fig
 
-
-
-
-
-# an older version (06/08/2021) for reference 
-def plot_spg_210806(spgdata,wavdata=None,segwav=None,
-             t0=None,sample_rate=1,centerframe_range=True,shift=0.01,y0=0,dy=1,ylabel=None,
-             frames=None,ftr_heights=None,segspg=None,title=None,**kwargs):   
-    '''Plotting routine for standard spectrogram visualization
-    
-    The screen will consists of 2+ axis
-        + 1 (TOP):     waveform data (optional)
-        + 2:  one or several spectrograms (required)
-        + 3:  a number of feature plots
-        
-    Segmentations can be overlayed on top of either waveform or (first) spectrogram data
-
-    If you need more control over the layout, then you need to use the lower level API
-    
-    Parameters:
-    -----------
-    spgdata:     spectrogram (list or singleton) data (required), numpy array [nparam, nfr] 
-    fig:         figure to plot in (default=None)
-    wavdata:     waveform data (optional)
-    sample_rate: sampling rate (default=8000)
-                 #   if None, x-axis is by index; if given, x-axis is by time
-
-    shift:       frame shift for spectrogram (default=0.01)
-
-    y0:          offset on y-axis
-    dy:          frequency shift for spectrogram (default=1)
-    
-    segwav:      segmentation to be added to the waveform plot (optional)
-    segspg:      segmentation to be added to the spectrogram plot (optional)
-                    if ftr_axis True then plotted in the feature axis otherwise overlaying with a spectrogram
-    ftr_heights  list of heights of feature axis, 1 is is same scaling as wav-axis (default=None)
-
-    frames:      (int) array [start, end], frame range to show  (optional)
-    ylabel:      label for spectrogram frequency axis
-    title:       global title for the figure
-    
-    **kwargs:    optional arguments to pass to the figure creation
-        
-    '''
-
-    # 1. argument checking and processing
-        
-    if type(spgdata) is not list: spgdata = [spgdata]
-    nparam,nfr = spgdata[0].shape
-    if frames is None: frames = [0,nfr]          
-    frame_range = np.arange(frames[0],frames[1])
-
-    
-    # 2. set up the figure and axis            
-    heights = [3.]*len(spgdata)
-    if ftr_heights is not None : heights = heights + ftr_heights
-    if wavdata is not None: heights = [1] + heights
-    nsubplots = len(heights)
-    fig = make_rows(row_heights=heights,**kwargs)
-     
-    if sample_rate == 1: # use integer indices
-        xlabel = None
-    else: # use physical indices
-        xlabel = 'Time(secs)'
-        
-    n_shift = int(shift*sample_rate)
-    
-    if wavdata is None:
-        iax_spg=0
-        iax_segspg = 0
-    else:                 
-        _samples = np.arange(frames[0]*n_shift,frames[1]*n_shift)
-        add_line_plot(fig,0,wavdata[_samples],x=_samples/sample_rate)
-        iax_spg = 1
-        iax_segspg = 1
-
-        if segwav is not None:
-            add_seg_plot(fig,0,segwav,ypos=0.8,color='#CC0000',size=16)
-  
-    for _spg in spgdata: 
-        add_img_plot(fig,iax_spg,_spg[:,frame_range],x0=frames[0]*shift+shift/2.,dx=shift,dy=dy,ylabel=ylabel,xlabel=xlabel)
-        iax_spg+=1
- 
-    if segspg is not None:
-        if ftr_heights is not None: iax = nsubplots-1
-        else: iax = iax_segspg
-        add_seg_plot(fig,iax,segspg,ypos=0.9,color='#FFFFFF',size=16)
-#                lineargs={'linestyles':'dotted','},
-#                txtargs={'color':'white','fontsize':14,'fontweight':'bold','backgroundcolor':'darkblue','rotation':'horizontal','ma':'center'}) 
-
-    update_fig(fig,{'title':title})
-    close_plot(fig)
-    return fig 

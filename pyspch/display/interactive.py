@@ -115,23 +115,23 @@ class iSpectrogram(Box):
     size         str, default '100%'
     figwidth     float, figure with in inch (default=12.0)
     dpi          int, mpl figure parameter (default=100)
-    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/'
-    fname        str, filename, default = misc/friendly.wav'
+    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/demo/'
+    fname        str, filename, default = friendly.wav'
     
     '''
     
     def __init__(self,dpi=100,figwidth=12.,style='horizontal',size='100%',
-                root='https://homes.esat.kuleuven.be/~spchlab/data/',
-                fname='misc/friendly.wav'):
+                root='https://homes.esat.kuleuven.be/~spchlab/data/demo/',
+                fname='friendly.wav',MELFB=False,MFCC=False,SEGTXT_WAV=True):
         super().__init__()
         self.sample_rate = 16000.
         self.shift = 0.01
         self.length = 0.025
         self.preemp = 0.97
         self.nmels = 80
-        self.melfb = False
+        self.melfb = MELFB
         self.nmfcc = 12
-        self.mfcc = False
+        self.mfcc = MFCC
         self.wavdata = None
         self.root = root
         self.fname = fname
@@ -152,6 +152,7 @@ class iSpectrogram(Box):
         
         self.fig_range = None
         self.fig_main = None
+        self.SEGTXT_WAV = SEGTXT_WAV
 
         # spectrogram controls
         self.wg_fshift = widgets.FloatSlider(value=1000*self.shift,min=5,max=50,step=5,description="Shift(msec)",style=dw_3)
@@ -314,8 +315,13 @@ class iSpectrogram(Box):
                     dy=self.sample_rate/(2*(self.nparam-1)),frames=self.frames,img_ftrs=img_ftrs,img_labels=img_labels,
                     figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
 
-        self.fig_main.add_seg_plot(self.seg,iax=0,ypos=0.85,color="#444",size=12)
-        self.fig_main.add_seg_plot(self.seg,iax=1,ypos=None,color="#222")
+        # plot the segmentation text either in the WAV or SPG pane
+        if(self.SEGTXT_WAV):
+            self.fig_main.add_seg_plot(self.seg,iax=0,ypos=0.85,color="#444",size=12)
+            self.fig_main.add_seg_plot(self.seg,iax=1,ypos=None,color="#222")
+        else:
+            self.fig_main.add_seg_plot(self.seg,iax=0,ypos=None,color="#222",size=12)
+            self.fig_main.add_seg_plot(self.seg,iax=1,ypos=0.90,color="#444")
         for i in range(len(img_ftrs)):
             self.fig_main.add_seg_plot(self.seg,iax=2+i,ypos=None,color="#222")
 
@@ -395,22 +401,22 @@ class iSpectrogram2(VBox):
     size         str, default '100%'
     figwidth     float, figure with in inch (default=12.0)
     dpi          int, mpl figure parameter (default=100)
-    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/'
-    fname        str, filename, default = misc/friendly.wav'
+    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/demo/'
+    fname        str, filename, default = friendly.wav'
         
     '''
     def __init__(self,dpi=100,figwidth=12.,size='100%',
-                root='https://homes.esat.kuleuven.be/~spchlab/data/',
-                fname='misc/friendly.wav'):
+                root='https://homes.esat.kuleuven.be/~spchlab/data/demo/',
+                fname='friendly.wav',MELFB=False,MFCC=False):
         super().__init__()
         self.sample_rate = 1
         self.shift = 0.01
         self.length = 0.025
         self.preemp = 0.97
         self.nmels = 80
-        self.melfb = False
+        self.melfb = MELFB
         self.nmfcc = 12
-        self.mfcc = False
+        self.mfcc = MFCC
         self.wavdata = None
         self.root = root
         self.fname = fname

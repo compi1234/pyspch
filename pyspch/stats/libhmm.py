@@ -29,7 +29,7 @@ Modification History:
 
 11/05/2023:
     introduction of shared observations, leading to decoupling of state and observation indexing :
-     - n_classes:  number of observation classes, if None inferred from obs_model
+     - n_classes:  number of observation classes, if None inferred from obs_model  (skipped right now, problem ??)
      - obs_indx:   index mapper from state index to observation class index
     this also effected a small change in the initialization of state names unless specified 
 
@@ -118,7 +118,16 @@ class HMM():
             self.obs_model = Densities.Prob()
         else:
             self.obs_model = obs_model
-            self.n_classes = len(self.obs_model.classes_)
+            # maybe the code below needs to be fixed; some models have classes_ others n_classes, others classes defined
+            if hasattr(self.obs_model,"n_classes"): 
+                self.n_classes = self.obs_model.n_classes
+            elif hasattr(self.obs_model,"classes"): 
+                self.n_classes = len(self.obs_model.classes)
+            elif hasattr(self.obs_model,"classes_"): 
+                self.n_classes = len(self.obs_model.classes_)
+            else:
+                self.n_classes = n_classes
+            #self.n_classes = len(self.obs_model.classes_)
             
         # initialize  the state model
         # either the "states" array with state names should be given or the states will be

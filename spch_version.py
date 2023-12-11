@@ -1,2 +1,2 @@
-# 0.7.3 since 15/05/2023
-__version__='0.7.3'
+# 0.8.0 in dev mode since 31/10/2023
+__version__='0.8.1'

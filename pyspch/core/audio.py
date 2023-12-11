@@ -13,10 +13,10 @@
 #     always organize data as  n_samples * ( n_channels (* sample_width) )
 #     This is more convenient for I/O, but less convenient for speech processing
 #
-# Dependencies: 
-#   - soundfile >= 0.9 
+# Dependencies (best): 
+#   - soundfile >= 0.11
 #   - pydub
-#   - librosa >= 0.8.0
+#   - librosa >= 0.10
 #   - (Google Colab): soundfile and pydub may need to be installed before you can use this
 #
 # Credits:

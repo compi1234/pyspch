@@ -31,11 +31,7 @@ https://github.com/compi1234/pyspch
 
 ## Dependencies
 
-- recommended Python versions are 3.7, 3.8 and 3.9
-- a compatible [py37.yml](py37.yml) file is available to create a dedicated environment
-- for sake of compatibility with COLAB, a few packages are downgraded to a lower version, most notably:
-        + matplotlib  3.2.*
-        + librosa     0.8.*
+- recommended Python versions are 3.9 and 3.10
     
 - torch and torchaudio are recommended, but not required for most of the package except the nn subpackage (DNNs)
     + installation is not included in the reference .yml file 

@@ -21,7 +21,7 @@ setup(
     package_data = {'pyspch':['data/*']},
     
     install_requires=[
-        'numpy >= 1.19.0',
+        'numpy >= 1.19.0, <1.22',
         'scipy >= 1.4.0 ',
         'pandas >= 1.3 ',
         'librosa >= 0.8.1, <0.9',
