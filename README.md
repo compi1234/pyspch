@@ -31,14 +31,8 @@ https://github.com/compi1234/pyspch
 
 ## Dependencies
 
-- recommended Python versions are 3.7, 3.8 and 3.9
-- a compatible [py37.yml](py37.yml) file is available to create a dedicated environment
-- for sake of compatibility with COLAB, a few packages are downgraded to a lower version, most notably:
-        + matplotlib  3.2.*
-        + librosa     0.8.*
-    
+- recommended Python versions are 3.10 or 3.9
 - torch and torchaudio are recommended, but not required for most of the package except the nn subpackage (DNNs)
-    + installation is not included in the reference .yml file 
-    + installing with conda (do this after creating your env)
-        > conda install pytorch==1.12.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+    + installing with conda on Windows (do this after creating your normal env)
+        > conda install pytorch==2.1.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia
     + You may find a more compatible version for your system on the [pytorch website]( https://pytorch.org/get-started/previous-versions/)

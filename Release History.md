@@ -1,5 +1,14 @@
 # pyspch
 
+### Notes on v0.8
+
+- this is a release with major breaking changes
+- support for Python 3.7 is dropped
+- Python 3.10 has become the reference Python release
+- the main stack consists of numpy=1.22, scikit-learn=1.2, pandas=1.5, librosa=0.10, matplotlib=3.7
+- torchaudio=2.10+cuda=11.8
+- 
+  
 ### Notes on v07.03
 
 - now supports tied observations

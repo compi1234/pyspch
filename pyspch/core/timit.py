@@ -189,7 +189,7 @@ def get_timit_mapping(mapping=None,set1="timit61",set2="cmu"):
         else: set1,set2 = mapping.split("_")
         if xlat_dict is not None: return(xlat_dict)
     
-    fname = pkg_resources.resource_filename('pyspch', 'data/timit-61-48-39-41.txt')
+    fname = pkg_resources.resource_filename('pyspch', 'data/timit/timit-61-48-39-41.txt')
     timit_map = read_data_file(fname, maxcols = 4, as_cols=True)
     col_map={"timit61":0,"timit48":1,"timit39":2,"timit41":3,"cmu":3}
     
@@ -311,7 +311,7 @@ def filter_list_timit(fnames,
 # PROCESSING of (TIMIT like) SEGMENTATION FILES
 ####################################################################
 
-def read_seg_file(fname,dt=1,fmt=None,xlat=None):
+def read_seg_file(fname,dt=1,fmt=None,xlat=None,TIMIT=False):
     """
     Routine for reading TIMIT style segmentation files, consisting of lines
         ...
@@ -323,10 +323,12 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None):
      
     Parameters:
     -----------
-    fname(str):   file name
-    dt(int or float):    sample period to be applied (default=1.)
-    fmt (str) :   format for timings (default=None, i.e. inferred from input/dt)
-    xlat (str) :  optional phoneme mapping. e.g. "timit61_cmu"
+    fname(str):       file name
+    dt(int or float): sample period to be applied (default=1.)
+    fmt (str) :       format for timings (default=None, i.e. inferred from input/dt)
+    xlat (str) :      optional phoneme mapping. e.g. "timit61_cmu"
+    TIMIT (boolean):  if True, assume that these are original TIMIT segmentation files IF 'timit' is part of the fname
+                        and override dt and xlat to dt=1/16000. and xlat= timit61_cmu
     
     Returns:
     --------
@@ -334,7 +336,11 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None):
                         if reading of the file fails, None is returned
         
     """
-    
+    if(TIMIT):
+        if "timit" in fname:
+            dt = 1./16000.
+            xlat = "timit61_cmu"
+        
     try:
         segdf = pd.read_csv(fname,delim_whitespace=True,names=['t0','t1','seg'])
         segdf['t0'] = segdf['t0']*dt 

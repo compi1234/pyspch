@@ -21,24 +21,24 @@ setup(
     package_data = {'pyspch':['data/*']},
     
     install_requires=[
-        'numpy >= 1.19.0',
-        'scipy >= 1.4.0 ',
+        'numpy >= 1.22',
+        'scipy >= 1.10 ',
         'pandas >= 1.3 ',
-        'librosa >= 0.8.1, <0.9',
-        'soundfile >= 0.10.0',
-        'matplotlib >= 3.4, < 4',
-        'ipywidgets >= 7.5.1, < 9',
-        'scikit-learn >= 1.0.0',
-        'seaborn >= 0.11',
+        'librosa >= 0.10',
+        'soundfile >= 0.11.0',
+        'matplotlib >= 3.5, < 4',
+        'ipywidgets >= 7.5.1, < 8',
+        'scikit-learn >= 1.2.0',
+        'seaborn >= 0.12',
         'pydub>=0.23,<0.26'
     ],
     
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     
     classifiers=['Development Status: Functional, Beta',
-                 'Programming Language :: Python :: 3.7',
-                 'Programming Language :: Python :: 3.8',
-                 'Programming Language :: Python :: 3.9'],
+                 'Programming Language :: Python :: 3.10',
+                 'Programming Language :: Python :: 3.9',
+                 'Programming Language :: Python :: 3.8'],
                  
 
 

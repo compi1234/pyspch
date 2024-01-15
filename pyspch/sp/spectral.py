@@ -89,23 +89,21 @@ def spg2mel(S,n_mels=80,sample_rate=16000,fmin=None,fmax=None,mode='dB'):
     convert standard (power) spectrogram to mel (power) spectrogram
     mode is selectable
     
-    fmin   lowest edge of lowest filterband, defaults to 40Hz
-    fmax   highest edge of highest filterband, if None, defaults to 0.45*sr
+    fmin   lowest edge of lowest filterband, defaults to 50Hz
+    fmax   highest edge of highest filterband, if None, defaults to 0.5*sr with a max of 6500
 
-    The librosa fmin (0Hz), fmax (0.5*sr) defaults favor a 'wide' frequency range, suitable for HIFI recordings 
-        but susceptible to low frequency humm and high frequency anti-aliasing effects
-    Therefore our defaults are just a bit more conservative.
+    These are slightly different from the librosa defaults which are fmin (0Hz), fmax (0.5*sr) 
+    We chose to be a bit more conservative and not to design filterbands in frequency ranges that very unlikely to carry useful information
     
-    NOTE (changed 1/3/2023):  
-        - default parameters are now : fmin = 0., fmax = 0.5 *sr  
-        - used to be: fmin = 40., fmax= 0.45*sr
-        These new parameters are fine, but in most situations it will be advised to drop (at least) first and last channel
+    Modification History:
+    - last changed on 23/11/2023: fmin and fmax defaults  
         
     '''
 
     S = set_mode(S,mode,'power')
-    if fmin is None : fmin = 0.
-    if fmax is None : fmax = 0.5*sample_rate 
+    if fmin is None : fmin = 50.
+    if fmax is None : 
+        fmax = 0.5*sample_rate if sample_rate<13000 else 6500
     S_mel = librosa.feature.melspectrogram(
          S=S,n_mels=n_mels,sr=sample_rate,fmin=fmin,fmax=fmax,
                     )

@@ -1,5 +1,5 @@
 *.pyc
-.ipynb*
+.ipynb*/
 dev/
 pyspch.egg-info/
 psi-pyspch.code-workspace
@@ -12,3 +12,4 @@ pyspch/nn/models_tryout.py
 pyspch/nn/gym.py
 .DS_Store
 pyspch/.DS_Store
+.ipynb_checkpoints/setup-checkpoint.py

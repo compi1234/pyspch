@@ -18,6 +18,14 @@ import matplotlib.gridspec as gridspec
 from matplotlib.figure import Figure     
 from matplotlib import ticker
 
+###########################
+# 31/10/2023 for v0.8  with matplotlib v3.7
+# FutureWarnings are suppressed due to annoying warning in matplotlib's  ax.text() 
+# This is obviously NOT future proof
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+############################
+
 os.environ['PYSPCH_BACKEND'] = "mpl"
 
 
@@ -116,7 +124,7 @@ class SpchFig(Figure):
 #
 
 
-    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,invert_xy=False,**kwargs):
+    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,invert_xy=False,color='blue',linewidth=1,**kwargs):
         """
         Add a line plot to an existing axis
 
@@ -146,7 +154,7 @@ class SpchFig(Figure):
         if x is None: 
             x = x0+np.arange(npts) * dx
 
-        ax.plot(x,y.T,**kwargs)
+        ax.plot(x,y.T,color=color,linewidth=linewidth,**kwargs)
         if xrange is None:         pass
         elif xrange == 'tight':    ax.set_xlim([x[0],x[-1]])
         else:                      ax.set_xlim(xrange)
