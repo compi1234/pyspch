@@ -24,7 +24,7 @@ def load_data(name,root='pkg_resources',**kwargs):
     
     Arguments:
         name       (str) filename of resource with extension or named resource
-        root        (str) directory (local or https: )
+        root       (str) directory (local or https: )
                     the default 'pkg_resources' reads data from
                     the package data directory
         **kwargs   (dict) passed to called reading routine
@@ -52,9 +52,11 @@ def load_data(name,root='pkg_resources',**kwargs):
 
     
     if root == "pkg_resources":
-        filename = pkg_resources.resource_filename('pyspch','data/' + name)
+        # before v08.01 'data/' was added explicitly
+        # filename = pkg_resources.resource_filename('pyspch','data/' + name)
+        filename = pkg_resources.resource_filename('pyspch',name)
     else:
-        filename = root + name
+        filename = os.path.join(root,name)    # used to be root + name
     
     _, ext = os.path.splitext(filename)
     

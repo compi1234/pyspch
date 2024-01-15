@@ -26,10 +26,10 @@ setup(
         'pandas >= 1.3 ',
         'librosa >= 0.10',
         'soundfile >= 0.11.0',
-        'matplotlib >= 3.4, < 4',
-        'ipywidgets >= 7.5.1, < 9',
-        'scikit-learn >= 1.1.0',
-        'seaborn >= 0.11',
+        'matplotlib >= 3.5, < 4',
+        'ipywidgets >= 7.7',
+        'scikit-learn >= 1.2.0',
+        'seaborn >= 0.12',
         'pydub>=0.23,<0.26'
     ],
     

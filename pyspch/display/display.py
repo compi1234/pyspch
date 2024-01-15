@@ -55,7 +55,7 @@ elif os.environ['PYSPCH_BACKEND']== "plotly":
 # HIGH LEVEL API
 #######################################################################################
 
-def PlotWaveform(waveform, sample_rate=8000, title=None, seg=None, ypos=0.8, xlabel="Time(sec)",ylabel=None,xticks=True, yticks=True,**kwargs):
+def PlotWaveform(waveform, sample_rate=8000, title=None, seg=None, ypos=0.8, xlabel="Time(sec)",ylabel=None,xticks=True, yticks=True,color='blue',linewidth=1,**kwargs):
     '''
     Multichannel waveform plotting
     
@@ -71,7 +71,7 @@ def PlotWaveform(waveform, sample_rate=8000, title=None, seg=None, ypos=0.8, xla
     fig = SpchFig(row_heights=[1.]*n_channels,**kwargs)
 
     for c in range(n_channels):
-        fig.add_line_plot(waveform[c],iax=c,x=time_axis,ylabel=ylabel,xlabel=xlabel,xticks=xticks,yticks=yticks)
+        fig.add_line_plot(waveform[c],iax=c,x=time_axis,ylabel=ylabel,xlabel=xlabel,xticks=xticks,yticks=yticks,color=color,linewidth=linewidth)
         if seg is not None:
             fig.add_seg_plot(seg,iax=c,ypos=ypos)
      
