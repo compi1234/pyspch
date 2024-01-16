@@ -7,7 +7,7 @@ setup(
     url="",
 
     author="Dirk Van Compernolle",
-    author_email="compi@esat.kuleuven.be",
+    author_email="dirk.vancompernolle@kuleuven.be",
 
     description="A loose collection of speech processing utilities",
     license = "free",
