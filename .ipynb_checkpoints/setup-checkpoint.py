@@ -17,12 +17,12 @@ setup(
     py_modules = ['spch_version'],
     
     # a dictionary referring to required data not in .py files
-    include_package_data=True  
-    package_data = {'pyspch':['data/*','data/demo/*']},
+    #include_package_data=True  
+    package_data = {'pyspch.data':['*/*']},
     
     install_requires=[
         'numpy >= 1.22',
-        'scipy >= 1.10 ',
+        'scipy >= 1.10 #',
         'pandas >= 1.3 ',
         'librosa >= 0.10',
         'soundfile >= 0.11.0',
