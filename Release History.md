@@ -1,5 +1,14 @@
 # pyspch
 
+### TBD
+- package_resources will get deprecated with Python 3.11
+
+
+
+### Notes on v08.01
+- This is an intermediate work-in-progress release frozen on 16/01/2024
+- 
+
 ### Notes on v0.8
 
 - this is a release with major breaking changes
