@@ -18,11 +18,7 @@ setup(
     
     # a dictionary referring to required data not in .py files
     #include_package_data=True  
-<<<<<<< Updated upstream
-    package_data = {'pyspch':['data/*/*']},
-=======
     package_data = {'pyspch.data':['*/*']},
->>>>>>> Stashed changes
     
     install_requires=[
         'numpy >= 1.22',
