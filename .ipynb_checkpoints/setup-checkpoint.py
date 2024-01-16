@@ -7,7 +7,7 @@ setup(
     url="",
 
     author="Dirk Van Compernolle",
-    author_email="compi@esat.kuleuven.be",
+    author_email="dirk.vancompernolle@kuleuven.be",
 
     description="A loose collection of speech processing utilities",
     license = "free",
@@ -15,10 +15,10 @@ setup(
     packages = find_packages(),
     # add spch_version to the required install modules
     py_modules = ['spch_version'],
-    # a dictionary referring to required data not in .py files
     
-    # include_package_data=True  
-    package_data = {'pyspch':['data/*']},
+    # a dictionary referring to required data not in .py files
+    include_package_data=True  
+    package_data = {'pyspch':['data/*','data/demo/*']},
     
     install_requires=[
         'numpy >= 1.22',
@@ -27,7 +27,7 @@ setup(
         'librosa >= 0.10',
         'soundfile >= 0.11.0',
         'matplotlib >= 3.5, < 4',
-        'ipywidgets >= 7.5.1, < 8',
+        'ipywidgets >= 7.7',
         'scikit-learn >= 1.2.0',
         'seaborn >= 0.12',
         'pydub>=0.23,<0.26'
