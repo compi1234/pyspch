@@ -124,7 +124,7 @@ class iSpectrogram(VBox):
     
     '''
     def __init__(self,dpi=100,figwidth=12.,rhs_ratio=0.33,type=1,seg_pane=0,
-                root='https://homes.esat.kuleuven.be/~spchlab/data/',
+                root=None,
                 fname='demo/friendly.wav',MELFB=False,CEP=False,RANGE_SLIDER=False,DEBUG=False):
         super().__init__()
         self.sample_rate = 1
@@ -137,6 +137,7 @@ class iSpectrogram(VBox):
         self.cep = CEP
         self.wavdata = None
         self.root = root
+        if self.root is None: self.root = "pkg_resources_data"
         self.fname = fname
         self.segfname = None
         self.seg_pane = seg_pane
@@ -252,8 +253,8 @@ class iSpectrogram(VBox):
   
     def wav_update(self):
         with self.logscr:
-            print("reading file: ",self.root + self.fname)
-        self.wavdata, self.sample_rate = Spch.audio.load(self.root+self.fname)  
+            print("reading file: ",self.root + " + " + self.fname)
+        self.wavdata, self.sample_rate = Spch.load_data(self.fname,root=self.root)  
         if self.wavdata is None:
             return
         self.sample_period = 1./self.sample_rate
@@ -293,8 +294,12 @@ class iSpectrogram(VBox):
     def seg_update(self):
         # get segmentation
         # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
-        dt = 1./self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
-        self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
+        # dt = 1./self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
+        # improved in v0.8.2 with dt=None, dt will be chosen according to data type of segment boundaries (samples or times)
+        #    hence only frame based segmentations can not be handled
+        with self.logscr:
+            print("reading file: ",self.root + " + " + self.segfname)
+        self.seg = Spch.data_load(self.segfname,root=self.root,dt=None)
     
     def update(self,msg=None): 
         # uncomment the following lines to debug the observers
@@ -414,6 +419,8 @@ class iSpectrogram(VBox):
 
     def root_observe(self,change):
         self.root=change.new
+        #self.wav_update()
+        #self.update()
         
     def fname_observe(self,change):
         self.fname=change.new

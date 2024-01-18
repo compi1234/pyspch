@@ -343,7 +343,7 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None):
         segdf = pd.read_csv(fname,delim_whitespace=True,names=['t0','t1','seg'])
         if dt is None:
             # infer  dt from 't0','t1' format in file   integer -> sample numbers and sr=16kHz, float -> times
-            if segdf['t0'].dtype == "int64":
+            if segdf['t0'].dtype in [ "int64", "int32","int" ]:
                 dt = 1./16000.
             else:
                 dt = 1.
