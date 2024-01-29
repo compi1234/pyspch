@@ -10,8 +10,16 @@ import scipy.io as sio
 from . import audio, timit, file_tools
 from .hillenbrand import fetch_hillenbrand
 from .sequence_data import make_seq1, make_seq1d
+
+def get_full_filename(fname,root=None):
+    if root is None: root = "pkg_resources_data"
+    if root == "pkg_resources_data":
+        filename = pkg_resources.resource_filename('pyspch',"data/"+fname)
+    else:
+        filename =  root + fname  # maybe this is better: os.path.join(root,fname)
+    return(filename)
  
-def load_data(name,root='pkg_resources',**kwargs):
+def load_data(name,root=None,**kwargs):
     '''
     A high level generic data loading function.
     Data can be loaded from the example data included in the package as well from directories on disk or URL based resources.
@@ -24,9 +32,9 @@ def load_data(name,root='pkg_resources',**kwargs):
     
     Arguments:
         name       (str) filename of resource with extension or named resource
-        root       (str) directory (local or https: )
-                    the default 'pkg_resources' reads data from
-                    the package data directory
+        root       (str) directory (local or https, default is None 
+                    the default None will refer to the data directory in the pyspch package
+                    only files in subdirs should be accessed
         **kwargs   (dict) passed to called reading routine
         
     Processing in function of extension:
@@ -45,19 +53,12 @@ def load_data(name,root='pkg_resources',**kwargs):
         reads a text files
         returns data as 
             - list of lines
-            - dataframe iff 'sep' is specified as kwarg
+            - dataframe iff 'sep' is specifined as kwarg
 
     
     '''
 
-    
-    if root == "pkg_resources":
-        # before v08.01 'data/' was added explicitly
-        # filename = pkg_resources.resource_filename('pyspch','data/' + name)
-        filename = pkg_resources.resource_filename('pyspch',name)
-    else:
-        filename = os.path.join(root,name)    # used to be root + name
-    
+    filename = get_full_filename(name,root=root)
     _, ext = os.path.splitext(filename)
     
     if ext == '.wav':        

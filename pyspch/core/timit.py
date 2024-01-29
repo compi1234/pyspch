@@ -311,7 +311,7 @@ def filter_list_timit(fnames,
 # PROCESSING of (TIMIT like) SEGMENTATION FILES
 ####################################################################
 
-def read_seg_file(fname,dt=1,fmt=None,xlat=None,TIMIT=False):
+def read_seg_file(fname,dt=1,fmt=None,xlat=None):
     """
     Routine for reading TIMIT style segmentation files, consisting of lines
         ...
@@ -324,25 +324,30 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None,TIMIT=False):
     Parameters:
     -----------
     fname(str):       file name
-    dt(int or float): sample period to be applied (default=1.)
+    dt(int or float): sample period to be applied (default=1) if None guess sample period from dtype of segmentations)
     fmt (str) :       format for timings (default=None, i.e. inferred from input/dt)
     xlat (str) :      optional phoneme mapping. e.g. "timit61_cmu"
-    TIMIT (boolean):  if True, assume that these are original TIMIT segmentation files IF 'timit' is part of the fname
-                        and override dt and xlat to dt=1/16000. and xlat= timit61_cmu
+
     
     Returns:
     --------
     segdf(DataFrame):   panda's data frame with columns [t0,t1,seg]
                         if reading of the file fails, None is returned
-        
+
+    Modification History:
+    v0.8.2:    adding dt=None as an option; if dtype as read is float dt is set to 1.0 (timings) , if dtype is int64 dt is set to 1/16000. (the assumed sample period)
     """
-    if(TIMIT):
-        if "timit" in fname:
-            dt = 1./16000.
-            xlat = "timit61_cmu"
-        
+
+
     try:
         segdf = pd.read_csv(fname,delim_whitespace=True,names=['t0','t1','seg'])
+        if dt is None:
+            # infer  dt from 't0','t1' format in file   integer -> sample numbers and sr=16kHz, float -> times
+            if segdf['t0'].dtype in [ "int64", "int32","int" ]:
+                dt = 1./16000.
+            else:
+                dt = 1.
+                
         segdf['t0'] = segdf['t0']*dt 
         segdf['t1'] = segdf['t1']*dt 
         if fmt is not None:
@@ -353,7 +358,7 @@ def read_seg_file(fname,dt=1,fmt=None,xlat=None,TIMIT=False):
         return(segdf)
     
     except:
-        print(f"WARNING(read_seg_file): reading/converting segmentation file {fname} failed")
+        # print(f"WARNING(read_seg_file): reading/converting segmentation file {fname} failed")
         return(None)
     
 def write_seg_file(fname,segdf,dt=None,fmt=None):

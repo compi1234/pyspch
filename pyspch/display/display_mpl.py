@@ -75,11 +75,14 @@ class SpchFig(Figure):
             0,0    0,1    0,2
             1,0    1,1    1,2
             ...
-            
+
+    v0.8.2.: the default dpi has been increased to 100 (from 72) 
+    default figsize is change to (12,7) from (12,6)  which is close to 16:9 aspect ratio
+    A larger figsize will yield better pictures for reusage, but might require adjusting the fonts for optimal readability
     '''
     
     def __init__(self,row_heights=[1.,1.],col_widths=[1.],sharex=False,sharey=False,**kwargs):
-        fig_kwargs={'constrained_layout':True,'figsize':(12,6),'dpi':72}
+        fig_kwargs={'constrained_layout':True,'figsize':(12,6),'dpi':100}
         fig_kwargs.update(kwargs)
         super().__init__(**fig_kwargs)
 
