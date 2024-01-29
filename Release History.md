@@ -4,10 +4,14 @@
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
 
 
+### Notes on v0.8.2
+- the iSpectrogram() interactive spectrogram is reworked considerably
+- restructuring of the ./data directory, now structured with subdirs; some calls to load_data() may be broken
+- a number of smaller bug fixes/patches
+- released on 29/01/2024
 
 ### Notes on v08.01
-- This is an intermediate work-in-progress release frozen on 16/01/2024
-- 
+- This is an intermediate work-in-progress release (with inconsistent naming) frozen on 16/01/2024
 
 ### Notes on v0.8
 
@@ -16,7 +20,7 @@
 - Python 3.10 has become the reference Python release
 - the main stack consists of numpy=1.22, scikit-learn=1.2, pandas=1.5, librosa=0.10, matplotlib=3.7
 - torchaudio=2.10+cuda=11.8
-- 
+- consolidation of test suites in the ./tests directory
   
 ### Notes on v07.03
 
