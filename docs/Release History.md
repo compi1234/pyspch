@@ -2,15 +2,17 @@
 
 ### TBD
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
-
-
+- 
+### Notes on v0.8.3
+- added the mel.py module in sp
+- added arguments (segwav) to PltSpgFtrs()
+- last loaded to main 31/01/2024
+   
 ### Notes on v0.8.2
 - the iSpectrogram() interactive spectrogram is reworked considerably
 - restructuring of the ./data directory, now structured with subdirs
-- added the mel.py module in sp
-- added arguments (segwav) to PltSpgFtrs()
 - a number of smaller bug fixes/patches
-- released on 29/01/2024 and 31/01/2024
+- frozen on 29/01/2024
 
 ### Notes on v08.01
 - This is an intermediate work-in-progress release (with inconsistent naming) frozen on 16/01/2024
