@@ -157,7 +157,7 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
 
 # An Extended Plotting Routine for time aligned
 
-def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
+def PlotSpgFtrs(wavdata=None,spgdata=None,segwav=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
             spglabel='Frequency (Hz)',line_labels=None, img_labels=None,
             sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,**kwargs):
     '''
@@ -196,6 +196,8 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segdata=None,line_ftrs=None,img_ftrs=N
         fig = SpchFig(row_heights=row_heights,**kwargs)
     irow = 0
     fig.add_line_plot(wavdata[sample_range],iax=[irow,0],x=sample_range/sample_rate)
+    if segwav is not None:
+        fig.add_seg_plot(segwav,iax=0,ypos=0.8,color='#CC0000',size=16)
     irow = 1
     fig.add_img_plot(spgdata[:,frame_range],iax=[irow,0],x0=(frame_range[0]+0.5)*shift,dx=shift,dy=dy,
                     ylabel=spglabel)
