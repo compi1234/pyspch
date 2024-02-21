@@ -11,6 +11,7 @@ Pyarrow will become a required dependency of pandas in the next major release of
 - mainly modifications on iSpectrogram
   +   added spec envelope and residue
   +   freq labels and axis in RHS  (but still missing for some in LHS plots)
+  +   merged into main 21/02/2024
     
 ### Notes on v0.8.2
 - added the mel.py module in sp
