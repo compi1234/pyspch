@@ -12,7 +12,7 @@ from .display import SpchFig, PlotWaveform, PlotSpg, PlotSpgFtrs
 
 
 import matplotlib.pyplot as plt
-
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 
 
 dw_5 = {'description_width': '50%'}
@@ -127,7 +127,7 @@ class iSpectrogram(VBox):
     '''
     def __init__(self,dpi=100,figwidth=20.,rhs_ratio=0.33,aspect_ratio=0.4,type=1,seg_pane=0,
                 root=None,
-                fname='demo/friendly.wav',MELFB=False,CEP=False,RANGE_SLIDER=False,DEBUG=False):
+                fname='demo/friendly.wav',MELFB=False,CEP=False,ENV=False,RANGE_SLIDER=False,DEBUG=False):
         super().__init__()
         self.sample_rate = 1
         self.shift = 0.01
@@ -137,6 +137,8 @@ class iSpectrogram(VBox):
         self.melfb = MELFB
         self.ncep = 12
         self.cep = CEP
+        self.env = ENV
+        self.res = False
         self.wavdata = None
         self.root = root
         if self.root is None: self.root = "pkg_resources_data"
@@ -177,10 +179,15 @@ class iSpectrogram(VBox):
         self.wg_nmels = widgets.IntSlider(value=self.nmels,min=10,max=128,step=1,description="#b",style=dw_3)
         self.wg_cep = widgets.Checkbox(value=self.cep,description='CEP/MFCC',indent=True,style=dw_0)
         self.wg_ncep = widgets.IntSlider(value=self.ncep,min=5,max=128,step=1,description="#c",style=dw_3)
+        self.wg_env = widgets.Checkbox(value=self.cep,description='ENVELOPE SPG',indent=True,style=dw_0)
+        self.wg_res = widgets.Checkbox(value=self.res,description='RESIDUE SPG',indent=True,style=dw_0)
+        self.wg_help = widgets.Button(description="Click for HELP")
+        self.wg_clear_log = widgets.Button(description='Clear log')
         self.wg_melfb.layout.width='30%'
         self.wg_nmels.layout.width='70%'
         self.wg_cep.layout.width='30%'
         self.wg_ncep.layout.width='70%'
+        self.wg_env.layout.width='30%'
         self.wg_fshift.observe(self.fshift_observe,'value')
         self.wg_flength.observe(self.flength_observe,'value')
         self.wg_preemp.observe(self.preemp_observe,'value')        
@@ -188,9 +195,18 @@ class iSpectrogram(VBox):
         self.wg_melfb.observe(self.melfb_observe, 'value') 
         self.wg_ncep.observe(self.ncep_observe,'value')
         self.wg_cep.observe(self.cep_observe, 'value') 
-        self.controls = VBox([ self.wg_fshift,self.wg_flength,self.wg_preemp, 
+        self.wg_res.observe(self.res_observe, 'value') 
+        self.wg_env.observe(self.env_observe, 'value') 
+        self.wg_help.on_click(self.help_button_clicked)
+        self.wg_clear_log.on_click(self.clear_log)
+        
+        self.controls = VBox([ self.wg_fshift,
+                               self.wg_flength,
+                               self.wg_preemp, 
                                HBox([self.wg_melfb, self.wg_nmels]), 
-                               HBox([self.wg_cep, self.wg_ncep]) ] ,
+                               HBox([self.wg_cep, self.wg_ncep]), 
+                               HBox([self.wg_env, self.wg_res])   
+                               ] ,
                                layout=box_layout() ) 
         
         # file controls
@@ -210,7 +226,8 @@ class iSpectrogram(VBox):
         self.wg_range.observe(self.range_observe,'value')
 
         
-        self.file_controls = VBox( [ self.wavrange,  self.wg_fname, self.wg_range, self.wg_segfname, self.audio_controls] ,   #wg_root used to be in here
+        self.file_controls = VBox( [ self.wavrange,  self.wg_fname, self.wg_range, self.wg_segfname, self.audio_controls,
+                                   HBox([self.wg_help, self.wg_clear_log])  ] ,   #wg_root used to be in here
                                   layout=box_layout(width='50%'))
         
 
@@ -218,13 +235,8 @@ class iSpectrogram(VBox):
         slider_padding = '0px 2px 0px 5%' #   %.1f%%' % (20.-19.*self.fig_ratio) # this is an approximate hack
         self.frame_slider = widgets.IntSlider(value=0,step=1,
                             min=0,max=1,description='',continuous_update=False,readout=False)
-        #self.frame_slider = widgets.FloatSlider(value=self.frame,step=self.shift,
-        #                    min=0.0,max=1.0,
-        #                   description='',continuous_update=False,readout=False)
         self.frame_slider.layout = Layout(width="99.5%",padding=slider_padding) 
         self.frame_slider.observe(self.frame_slider_observe,'value')
-
-        #self.scr_range = VBox([ self.wavrange ],layout=box_layout())
         
         # Create all the Outputs: 
         self.out = widgets.Output(layout=Layout(padding="0px 5px 0px 0px")) 
@@ -232,8 +244,6 @@ class iSpectrogram(VBox):
         self.logscr = widgets.Output()
 
         # putting it all together
-
-        
         if self.type == 2:  # plot including SPECTRAL SLICES
             self.out.layout.height = '95%' 
             self.out2.layout.height = '97%' 
@@ -308,10 +318,9 @@ class iSpectrogram(VBox):
         
     def seg_update(self):
         # get segmentation
-        # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
-        # dt = 1./self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
-        # improved in v0.8.2 with dt=None, dt will be chosen according to data type of segment boundaries (samples or times)
-        #    hence only frame based segmentations can not be handled
+        # dt needs to specify if segmentations are in frames or in samples but is not available, hence it must be guessed 
+        # since in v0.8.2 with dt=None, dt will be chosen according to data type of segment boundaries (samples-int or times-float)
+        # this is not 100% robust, but works most of the time 
         with self.logscr:
             print("reading file: ",self.root + " + " + self.segfname)
         self.seg = Spch.load_data(self.segfname,root=self.root,dt=None)
@@ -363,31 +372,41 @@ class iSpectrogram(VBox):
         self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
         (self.nparam,self.nfr) = self.spg.shape
         img_ftrs = []
-        img_labels = []
+        lbl_ftrs = []
+        ax_ftrs = []
         segs = []
         # add melfilterbank view
         if self.melfb:
             img_ftrs += [self.spgmel]
-            img_labels += ['mel '+str(self.nmels)]
+            lbl_ftrs += ['mel '+str(self.nmels)]
             S = self.spgmel
-            ceptype = 'cep'
+            cep_type = 'mfcc'
+            ax_ftrs += ['mel']
         else:
             S = self.spg
-            ceptype = 'cep'
+            cep_type = 'cep'
+        # compute cepstrum if needed for cepstral or envelope view
+        ceps = Sps.cepstrum(S=S) #,n_cep=self.ncep)            
+        spg_env, spg_res = Sps.cep_lifter(ceps,n_lifter=self.ncep,n_spec=S.shape[0]) 
+        ceps = ceps[0:self.ncep,:]
         # add (mel) cepstral view
         if self.cep:
-            ceps = Sps.cepstrum(S=S,n_cep=self.ncep)
             img_ftrs += [ ceps ]
-            img_labels += [ceptype+str(ceps.shape[0])]
-        # add segmentation
-        try:
-            seg1= Spch.read_seg_file(self.root+self.segfname)
-            segs = [seg1] if seg1 is not None else []
-        except:
-            segs = []
-   
+            lbl_ftrs += [cep_type+str(ceps.shape[0])]
+            ax_ftrs += [cep_type]
+        if self.env:
+            img_ftrs += [ spg_env ]
+            lbl_ftrs += ["ENVELOPE"]
+            if cep_type == 'cep': ax_ftrs += ['freq']
+            elif cep_type == 'mfcc': ax_ftrs += ['mel']
+        if self.res:
+            img_ftrs += [ spg_res ]
+            lbl_ftrs += ["RESIDUE"]
+            if cep_type == 'cep': ax_ftrs += ['freq']
+            elif cep_type == 'mfcc': ax_ftrs += ['mel']
+            
         self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,sample_rate=self.sample_rate,shift=self.shift,
-                    dy=self.sample_rate/(2*(self.nparam-1)),img_ftrs=img_ftrs,img_labels=img_labels,  frames = self.frames,
+                    dy=self.sample_rate/(2*(self.nparam-1)),img_ftrs=img_ftrs,img_labels=lbl_ftrs,  frames = self.frames,
                     figsize=(self.fig_ratio*self.figwidth,self.aspect*self.figwidth),dpi=self.dpi)
        
         for i in range(len(img_ftrs)+2):
@@ -399,13 +418,15 @@ class iSpectrogram(VBox):
         with self.wavrange:
             clear_output(wait=True)
             display(self.fig_range) 
-            
-        if self.type == 2: # additional plotting when viewing the spectral slice
+
+        #####################################
+        # spectral slice plotting in RHS pane
+        if self.type == 2: 
             self.fig_main.add_vrect(self.wintimes[0],self.wintimes[1],iax=0,color='#2F2')
             self.fig_main.add_vrect(self.frametimes[0],self.frametimes[1],iax=1,color='#222')
             for i in range(len(img_ftrs)):
                 self.fig_main.add_vrect(self.frametimes[0],self.frametimes[1],iax=i+2,color='#222')
-            self.plot_rhs(img_ftrs,img_labels)
+            self.plot_rhs(img_ftrs,lbl_ftrs,ax_ftrs)
             
         with self.out:
             clear_output(wait=True)
@@ -424,7 +445,7 @@ class iSpectrogram(VBox):
             #display( MiniPlayer(data=self.wavdata,sample_rate=self.sample_rate) )
             #display(Audio(data=self.wavdata,rate=self.sample_rate))
 
-    def plot_rhs(self,ftrs,labels):           
+    def plot_rhs(self,ftrs,labels,axlbl):           
         nftrs=0 if ftrs is None else len(ftrs)
         self.fig_rhs = SpchFig(row_heights=[1.,3.]+nftrs*[3.],figsize=((1.-self.fig_ratio)*self.figwidth,self.aspect*self.figwidth),dpi=self.dpi)
       
@@ -433,12 +454,17 @@ class iSpectrogram(VBox):
         
         sample_range = np.arange(self.framesamples[0],self.framesamples[1])
         self.fig_rhs.axes[0].plot(sample_range/self.sample_rate,self.wavdata[self.framesamples[0]:self.framesamples[1]],color='#F00',linewidth=2)
-        #self.fig_rhs.add_line_plot(self.wavdata[self.framesamples[0]:self.framesamples[1]],iax=0,x=sample_range/self.sample_rate,color='#F00',linewidth=2)  
         
         # spectral plot
         self.fig_rhs.add_line_plot(self.spg[:,self.frame],iax=1,xlabel='Freq (Hz) ',dx=self.sample_rate/(2.*(self.nparam-1)),linewidth=2)
         for i in range(nftrs):
-            self.fig_rhs.add_line_plot(ftrs[i][:,self.frame],iax=i+2,xlabel=labels[i],linewidth=2)
+            if axlbl[i] == 'freq':
+                self.fig_rhs.add_line_plot(ftrs[i][:,self.frame],iax=i+2,xlabel='Freq (Hz) ',dx=self.sample_rate/(2.*(self.nparam-1)),linewidth=2)
+            else:
+                self.fig_rhs.add_line_plot(ftrs[i][:,self.frame],iax=i+2,xlabel=labels[i],linewidth=2)
+        for i in range(1,nftrs+2):
+            self.fig_rhs.axes[i].xaxis.set_minor_locator(AutoMinorLocator())
+            self.fig_rhs.axes[i].grid(which='minor', linestyle='--', linewidth=1)
         plt.close(self.fig_rhs)
         return()
 
@@ -488,7 +514,47 @@ class iSpectrogram(VBox):
     def cep_observe(self,change):
         self.cep = change.new
         self.update(msg="updating cep")   
+
+    def env_observe(self,change):
+        self.env = change.new
+        self.update(msg="updating env spg")  
+
+    def res_observe(self,change):
+        self.res = change.new
+        self.update(msg="updating pitch spg")  
+
+    def help_button_clicked(self,b):
+        with self.logscr:
+            print("\n==================\nPROCESSING CONTROLS (left side)")
+            print("SPECTROGRAM: ")
+            print("   By Default a Fourier Spectrogram is shown in the top row")
+            print("   Shift, Length and Preemphasis are the parameters that can be set with sliders")
+            print("FEATURE EXTRACTION: ")
+            print("   More spectral/cepstral views can be added by selecting")
+            print("   Mel Filterbank / CEP / ENVELOPE / RESIDUE")
+            print("   if 'Mel Filterbank' is selected it will be shown AND used for all further processing. ")
+            print("      The number of bands is selected in '#b'")
+            print("   ENVELOPE and RESIDUE are computed using cepstral liftering/residue processing.  The liftering point is set by '#c'")
+            print("      The value set by this slider is used even if CEP/MFCC is not displayed as such")
+            print("    CAVEAT: for all FEATURE EXTRACTIONS beyond the SPECTROGRAM with plot them as a vector, i.e. value vs. index")
+            print("       We don't convert the indices to physical units !")
+            print("\n===================\nFILE CONTROLS (right side)")
+            print("   A File name (relative to a root directory) can be specified")
+            print("   The root directory is the package 'pyspch/data' directory by default")
+            print("      Another remote (URL) directory be specified at the time of calling with the 'root' argument")
+            print("   The 'Range' slider will select the specified part of the waveform")
+            print("   Optionally a segmentation file can be specified as well")
+            print("   LIMITATIONS: ")
+            print("     The interface is not 100% robust when changing wavfile/segmentationfile; some glitches and warnings may appear but should vanish later on")
+            print("\n===================\nDISPLAY WITH SPECTRAL SLICES IN RHS")
+            print("    When calling iSpectrogram(type=2) , A RHS display of spectral slices will appear")
+            print("    The slider at the bottom of the LHS spectrogram views lets you selected the frame")
+            print("\n==================================================================================\n")
+
         
+    def clear_log(self,b):
+        with self.logscr: clear_output()
+            
     def range_observe(self,change):
         self.seltimes = list(change.new)
         if self.debug:
@@ -645,311 +711,3 @@ class iRecorder(widgets.VBox):
 
 
 
-
-
-################### OBSOLETE VERSION -- WILL BE DEPRECATED SOON #########################
-
-
-
-class iSpectrogram1(Box):
-    '''
-         
-    This is a legacy version of iSpectrogram() as it was prior to v0.8
-    WILL BE DEPRECATED in the near future
-    
-    iSpectrogram1 is a spectrogram GUI where you can view:
-        - as a basis: waveform and spectrogram
-        - further mel-spectrum / cepstral analysis
-        - optionally overlay with a segmentation
-
-    
-    GUI controls include:
-    - file selection
-    - spectrogram parameters
-    - mel spectrum / cepstrum options
-    - a double slider for selecting a part of the file frame
-    
-
-        - 'style': iSpectrogram can be run in 'horizontal' style (default) with the controls below the spectrogram view,
-    or in 'vertical' style with the controls left of the spectrogram view
-        - 
-        
-    input:
-    ------
-    A number of display options need to be specified at the time of calling the GUI
-    
-    style        str, must be 'horizontal'(default) or 'vertical'
-    size         str, default '100%'
-    figwidth     float, figure with in inch (default=12.0)
-    dpi          int, mpl figure parameter (default=100)
-    SEGTXT_WAV   boolean, (default=True) when True the text of a segmentation is visualized in the 'wav'-pane, otherwise in the spectrogram pane
-
-    Defaults that can be changed in the GUI later
-    root         str, database name, default = 'https://homes.esat.kuleuven.be/~spchlab/data/'
-    fname        str, filename, default = demo/friendly.wav'
-    MELFB        boolean, shows melfilterbank analysis (default=False)
-    MFCC         boolean, shows (mel) cepstral analysis (default=False)
-    
-    
-    '''
-    
-    def __init__(self,dpi=100,figwidth=12.,style='horizontal',size='100%',
-                root='https://homes.esat.kuleuven.be/~spchlab/data/',
-                fname='demo/friendly.wav',MELFB=False,MFCC=False,SEGTXT_WAV=True):
-        super().__init__()
-        self.sample_rate = 16000.
-        self.shift = 0.01
-        self.length = 0.025
-        self.preemp = 0.97
-        self.nmels = 80
-        self.melfb = MELFB
-        self.nmfcc = 12
-        self.mfcc = MFCC
-        self.wavdata = None
-        self.root = root
-        self.fname = fname
-        self.segfname = None
-        self.wavtimes = [0., .88]
-        self.seltimes = self.wavtimes 
-        self.frames = [0, 1]
-        self.spg = None
-        self.spgmel = None
-        self.seg = None
-        self.nshift = None
-        self.nparam = 0
-        self.nfr = 0
-        self.autoplay = False
-        self.dpi = dpi
-        self.figwidth = figwidth
-        self.style = style
-        self.layout.width = size
-        
-        self.fig_range = None
-        self.fig_main = None
-        self.SEGTXT_WAV = SEGTXT_WAV
-
-        # spectrogram controls
-        self.wg_fshift = widgets.FloatSlider(value=1000*self.shift,min=5,max=50,step=5,description="Shift(msec)",style=dw_3)
-        self.wg_flength = widgets.FloatSlider(value=1000*self.length,min=5,max=200,step=5,description="Length(msec)",style=dw_3)
-        self.wg_preemp = widgets.FloatSlider(value=self.preemp,min=0.0,max=1.0,step=0.01,description="Preemphasis",style=dw_3)
-        self.wg_melfb = widgets.Checkbox(value=self.melfb,description='Mel Filterbank',indent=True,style=dw_0)
-        self.wg_nmels = widgets.IntSlider(value=self.nmels,min=10,max=128,step=1,description="#b",style=dw_2)
-        self.wg_mfcc = widgets.Checkbox(value=self.mfcc,description='Cepstra/MFCCs',indent=True,style=dw_0)
-        self.wg_nmfcc = widgets.IntSlider(value=self.nmfcc,min=5,max=128,step=1,description="#c",style=dw_2)
-        self.wg_melfb.layout.width='30%'
-        self.wg_nmels.layout.width='70%'
-        self.wg_mfcc.layout.width='30%'
-        self.wg_nmfcc.layout.width='70%'
-        self.wg_fshift.observe(self.fshift_observe,'value')
-        self.wg_flength.observe(self.flength_observe,'value')
-        self.wg_preemp.observe(self.preemp_observe,'value')        
-        self.wg_nmels.observe(self.nmels_observe,'value')
-        self.wg_melfb.observe(self.melfb_observe, 'value') 
-        self.wg_nmfcc.observe(self.nmfcc_observe,'value')
-        self.wg_mfcc.observe(self.mfcc_observe, 'value') 
-        self.controls = VBox([ self.wg_fshift,self.wg_flength,self.wg_preemp, 
-                               HBox([self.wg_melfb, self.wg_nmels]), 
-                               HBox([self.wg_mfcc, self.wg_nmfcc]) ] 
-                                ) 
-
-        # file controls
-        self.wg_root = widgets.Text(value=self.root,
-                        description="Root Dir: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
-        self.wg_root.observe(self.root_observe,'value') 
-        self.wg_fname = widgets.Text(value=self.fname,
-                        description="Wav File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
-        self.wg_fname.observe(self.fname_observe,'value') 
-        self.wg_segfname = widgets.Text(value=self.segfname,
-                        description="Seg File: ",style=dw_2,continuous_update=False,layout=Layout(width='98%'))
-        self.wg_segfname.observe(self.segfname_observe,'value')         
-        self.audio_controls = widgets.Output()
-        self.file_controls = VBox( [  self.wg_root, self.wg_fname, self.wg_segfname , self.audio_controls] )
-        
-        # output widget for logging messages
-        self.logscr = widgets.Output()
-        
-        # construct the main screen and range slider: 
-        self.out = widgets.Output( layout=box_layout() ) 
-        self.wavrange = widgets.Output(layout=Layout(width='99%'))
-        self.wg_range = widgets.FloatRangeSlider(value=self.wavtimes,step=0.01,readout_format='.2f',
-                            min=self.wavtimes[0],max=self.wavtimes[1],
-                            description='',continuous_update=True,readout=False,
-                            layout=Layout(width='98%',padding='1px 1px 1px 5%') )   
-        self.wg_range.observe(self.range_observe,'value')
-        self.wg_range.layout.width='99%'    
-    
-        # putting it all together
-        self.layout.display = 'flex'
-        self.layout.align_items = 'stretch'
-        if self.style == 'horizontal':        
-            self.layout.flex_flow = 'column'
-            self.controls.layout = box_layout(width='35%')
-            self.file_controls.layout =box_layout(width='35%')
-            self.logscr.layout=box_layout(width='30%')
-            #self.scr1 = VBox([ self.out, self.wavrange, self.wg_range ])
-            self.scr2 = VBox([ self.wavrange, self.wg_range, 
-                               HBox([ self.controls,  self.file_controls ,self.logscr ])], 
-                              layout=box_layout())
-            self.children =  [ self.out, self.scr2 ] 
-        elif self.style == 'vertical':        
-            #self.controls.layout = box_layout(width='100%')
-            #self.file_controls.layout =box_layout(width='100%')
-            #self.logscr.layout=box_layout(width='100%')
-            self.scr1 = VBox([self.out, self.logscr] )
-            self.scr2 = VBox([ self.controls,  self.file_controls ,
-                              self.wg_range,self.wavrange] ,layout=box_layout(margin='2px 2px 2px 2px') )
-            self.scr2.layout= box_layout(width='45%')
-            self.children =  [ self.scr2, self.scr1 ]         
-        self.wav_update()
-        self.update()
-  
-    def wav_update(self):
-        fname = self.root+self.fname
-        #with self.logscr:
-        #    print("audio file name",fname)
-        self.wavdata, self.sample_rate = Spch.audio.load(fname)
-        self.wavtimes = [0., len(self.wavdata)*(1./self.sample_rate)]
-        self.wg_range.min = self.wavtimes[0]
-        self.wg_range.max = self.wavtimes[1]
-        self.wg_range.value = self.wavtimes
-        self.seltimes = self.wavtimes
-        self.nshift = int(self.shift*self.sample_rate)
-        self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=None,xlabel=None,xticks=False,
-                        figsize=(self.figwidth,0.1*self.figwidth),dpi=self.dpi)
-        with self.wavrange:
-            clear_output(wait=True)
-            display(self.fig_range)        
-
-    def seg_update(self):
-        # get segmentation
-        # hack for timit segmentations  !!!! NOT ROBUST -- SHOULD BE CHANGED
-        dt = 1/self.sample_rate if self.segfname.split('/')[0]=='timit' else 1. 
-        self.seg = Spch.read_seg_file(self.root+self.segfname,dt=dt)
-        
-    def update(self):     
-        # round shift, length to sample
-        self.shift = round(float(self.sample_rate)*self.shift)/self.sample_rate
-        self.length = round(float(self.sample_rate)*self.length)/self.sample_rate
-        self.seltimes = [ round(float(self.sample_rate)*self.seltimes[0])/self.sample_rate,
-                         round(float(self.sample_rate)*self.seltimes[1])/self.sample_rate]
-        if self.length < 0.002: self.length=0.002
-        if self.shift > self.length: self.shift = self.length
-        self.n_shift = int(self.shift*self.sample_rate)
-        self.frames = [int(self.seltimes[0]/self.shift), int(self.seltimes[1]/self.shift)]
-        
-        self.fig_range = PlotWaveform(self.wavdata,sample_rate=self.sample_rate,ylabel=' ',xlabel=None,xticks=False,
-                            figsize=(self.figwidth,1.0),dpi=self.dpi)
-        self.fig_range.add_vrect(0.,self.seltimes[0],iax=0,color='#333',ec="#333",fill=True)
-        self.fig_range.add_vrect(self.seltimes[1],self.wavtimes[1],iax=0,color='#333',ec="#333",fill=True)
-        
-        self.spg = Sps.spectrogram(self.wavdata,sample_rate=self.sample_rate,
-                                  f_shift=self.shift,f_length=self.length,preemp=self.preemp,n_mels=None)
-        self.spgmel = Sps.spg2mel(self.spg,sample_rate=self.sample_rate,n_mels=self.nmels)
-        (self.nparam,self.nfr) = self.spg.shape
-        #with self.logscr:
-        #    print(self.shift,self.n_shift,self.spg.shape)
-
-        self.plot1()
-            
-        with self.wavrange:
-            clear_output(wait=True)
-            display(self.fig_range) 
-            
-        with self.out:
-            clear_output(wait=True)
-            display(self.fig_main)
-            
-        with self.audio_controls:
-            clear_output(wait=True)
-            sample_range = [int(self.seltimes[0]*self.sample_rate),int(self.seltimes[1]*self.sample_rate)]
-            #display(MiniPlayer(data=self.wavdata[sample_range[0]:sample_range[1]],sample_rate=self.sample_rate))
-            display(Audio(data=self.wavdata[sample_range[0]:sample_range[1]],rate=self.sample_rate,autoplay=self.autoplay))           
-            
-    def plot1(self):
-        img_ftrs = []
-        img_labels = []
-        
-        # add melfilterbank view
-        if self.melfb:
-            img_ftrs += [self.spgmel]
-            img_labels += ['mel '+str(self.nmels)]
-            S = self.spgmel
-            ceptype = 'mfcc'
-        else:
-            S = self.spg
-            ceptype = 'cep'
-        # add (mel) cepstral view
-        if self.mfcc:
-            mfccs = Sps.cepstrum(S=S,n_cep=self.nmfcc)
-            # mfccs = librosa.feature.mfcc(S=self.spgmel,sr=self.sample_rate,n_mfcc=self.nmfcc,dct_type=3) 
-            img_ftrs += [ mfccs ]
-            img_labels += [ceptype+str(mfccs.shape[0])]
-   
-        self.fig_main = PlotSpgFtrs(spgdata=self.spg,wavdata=self.wavdata,
-                    sample_rate=self.sample_rate,shift=self.shift,
-                    dy=self.sample_rate/(2*(self.nparam-1)),frames=self.frames,img_ftrs=img_ftrs,img_labels=img_labels,
-                    figsize=(self.figwidth,0.5*self.figwidth),dpi=self.dpi)
-
-        # plot the segmentation text either in the WAV or SPG pane
-        if(self.SEGTXT_WAV):
-            self.fig_main.add_seg_plot(self.seg,iax=0,ypos=0.85,color="#444",size=12)
-            self.fig_main.add_seg_plot(self.seg,iax=1,ypos=None,color="#222")
-        else:
-            self.fig_main.add_seg_plot(self.seg,iax=0,ypos=None,color="#222",size=12)
-            self.fig_main.add_seg_plot(self.seg,iax=1,ypos=0.90,color="#444")
-        for i in range(len(img_ftrs)):
-            self.fig_main.add_seg_plot(self.seg,iax=2+i,ypos=None,color="#222")
-
-    #def plot2(self):
-    #    self.fig = SpchFig()
-            
-    def root_observe(self,change):
-        self.root=change.new
-        
-    def fname_observe(self,change):
-        self.fname=change.new
-        self.wav_update()
-        self.update()
-        
-    def segfname_observe(self,change):
-        self.segfname=change.new
-        self.seg_update()
-        self.update()
-        
-    def autoplay_observe(self,change):
-        self.autoplay = change.new
-        
-    def fshift_observe(self,change):
-        self.shift = change.new/1000.
-        self.update()
-        
-    def flength_observe(self,change):
-        self.length = change.new/1000.
-        self.update()
-        
-    def preemp_observe(self,change):
-        self.preemp = change.new
-        self.update()
-
-    def nmels_observe(self,change):
-        self.nmels = change.new
-        self.update()
-    
-    def melfb_observe(self,obj):
-        self.melfb = obj.new
-        self.update()
-        
-    def nmfcc_observe(self,change):
-        self.nmfcc = change.new
-        self.update()
-    
-    def mfcc_observe(self,obj):
-        self.mfcc = obj.new
-        self.update()
-       
-    def range_observe(self,change):
-        self.seltimes = change.new
-        self.update()
-        
-
-            
