@@ -2,6 +2,7 @@
 
 ### TBD / work for future releases
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
+
 - Deprecation warning ahead of pandas 3.0: *C:\Users\compi\AppData\Local\Temp\ipykernel_20852\3573829142.py:6: DeprecationWarning: 
 Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),*
 
@@ -19,7 +20,9 @@ Pyarrow will become a required dependency of pandas in the next major release of
 - the iSpectrogram() interactive spectrogram is reworked considerably
 - restructuring of the ./data directory, now structured with subdirs
 - a number of smaller bug fixes/patches
-- frozen on 29/01/2024
+- added the mel.py module in sp
+- added arguments (segwav) to PltSpgFtrs()
+
 
 ### Notes on v08.01
 - This is an intermediate work-in-progress release (with inconsistent naming) frozen on 16/01/2024
