@@ -1,14 +1,21 @@
 # pyspch
 
-### TBD
+### TBD / work for future releases
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
-- 
+- Deprecation warning ahead of pandas 3.0: *C:\Users\compi\AppData\Local\Temp\ipykernel_20852\3573829142.py:6: DeprecationWarning: 
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),*
+
+
 ### Notes on v0.8.3
+- mainly modifications on iSpectrogram
+  +   added spec envelope and residue
+  +   freq labels and axis in RHS  (but still missing for some in LHS plots)
+    
+### Notes on v0.8.2
 - added the mel.py module in sp
 - added arguments (segwav) to PltSpgFtrs()
 - last loaded to main 31/01/2024
    
-### Notes on v0.8.2
 - the iSpectrogram() interactive spectrogram is reworked considerably
 - restructuring of the ./data directory, now structured with subdirs
 - a number of smaller bug fixes/patches
