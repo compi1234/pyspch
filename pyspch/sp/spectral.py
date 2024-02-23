@@ -1,5 +1,7 @@
 """ Utilities for Spectral Processing """
-
+# Modification History
+# 23/02/2024: enforced mel.mel_defaults() on both spg2mel() and melcepstrum() which were not in sync with each other
+#
 import math
 import numpy as np
 import librosa
@@ -9,6 +11,7 @@ DCT_NORM = 'ortho'
  
 from ..core.constants import EPS_FLOAT, LOG2DB
 from .frames import *
+from .mel import mel_defaults
 
 def check_mode(mode):
     if mode not in ('magnitude','power','dB'):
@@ -93,17 +96,18 @@ def spg2mel(S,n_mels=80,sample_rate=16000,fmin=None,fmax=None,mode='dB'):
     fmax   highest edge of highest filterband, if None, defaults to 0.5*sr with a max of 6500
 
     These are slightly different from the librosa defaults which are fmin (0Hz), fmax (0.5*sr) 
-    We chose to be a bit more conservative and not to design filterbands in frequency ranges that very unlikely to carry useful information
+    We chose to be a bit more conservative and not to design filterbands in frequency ranges that are very unlikely to carry useful information
     
     Modification History:
-    - last changed on 23/11/2023: fmin and fmax defaults  
+    - last changed on 23/11/2023 and 23/02/2024: fmin and fmax defaults  
         
     '''
 
     S = set_mode(S,mode,'power')
-    if fmin is None : fmin = 50.
-    if fmax is None : 
-        fmax = 0.5*sample_rate if sample_rate<13000 else 6500
+    #if fmin is None : fmin = 50.
+    #if fmax is None : 
+    #    fmax = 0.5*sample_rate if sample_rate<13000 else 6500
+    (fmin,fmax) = mel_defaults(sr=sample_rate,fmin=fmin, fmax=fmax)
     S_mel = librosa.feature.melspectrogram(
          S=S,n_mels=n_mels,sr=sample_rate,fmin=fmin,fmax=fmax,
                     )
@@ -144,7 +148,7 @@ def cepstrum(y=None,S=None,n_cep=None,sample_rate=16000,mode='dB'):
 
 
 
-def melcepstrum(y=None,S=None,n_cep=13,n_mels=80,sample_rate=16000,fmin=40.,fmax=None,mode='dB'):
+def melcepstrum(y=None,S=None,n_cep=13,n_mels=80,sample_rate=16000,fmin=None,fmax=None,mode='dB'):
     """
     cepstrum returns the non truncated cepstrum if n_cep is None, 
         otherwise the truncated cepstrum
@@ -165,7 +169,8 @@ def melcepstrum(y=None,S=None,n_cep=13,n_mels=80,sample_rate=16000,fmin=40.,fmax
     else:
         if S is None:
             raise ParameterError("Either `y` or `S` must be input.")
-        if fmax is None : fmax = 0.45*sample_rate 
+        #if fmax is None : fmax = 0.45*sample_rate 
+        (fmin,fmax) = mel_defaults(sr=sample_rate,fmin=fmin, fmax=fmax)
         spgmel = spg2mel(S,sample_rate=sample_rate,n_mels=n_mels,fmin=fmin,fmax=fmax,mode=mode)
         
     spgmel = set_mode(spgmel,mode,'dB')
