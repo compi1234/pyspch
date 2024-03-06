@@ -2,6 +2,7 @@ import os, sys, io, pkg_resources
 import numpy as np
 import pandas as pd
 import json
+import pickle
 from urllib.request import urlopen
 from urllib.parse import urlparse
 from pathlib import Path
@@ -13,7 +14,7 @@ from .sequence_data import make_seq1, make_seq1d
 
 def get_full_filename(fname,root=None):
     if root is None: root = "pkg_resources_data"
-    if root == "pkg_resources_data":
+    if (root == "pkg_resources_data") or (root == "pkg_data"):
         filename = pkg_resources.resource_filename('pyspch',"data/"+fname)
     else:
         filename =  root + fname  # maybe this is better: os.path.join(root,fname)
@@ -33,7 +34,9 @@ def load_data(name,root=None,**kwargs):
     Arguments:
         name       (str) filename of resource with extension or named resource
         root       (str) directory (local or https, default is None 
-                    the default None will refer to the data directory in the pyspch package
+                    the default None will refer to the data directory in the pyspch 
+                    package
+                    if you need the local directory specify root=""
                     only files in subdirs should be accessed
         **kwargs   (dict) passed to called reading routine
         
@@ -50,11 +53,13 @@ def load_data(name,root=None,**kwargs):
         reads a MATLAB data file
         returns a dictionary of MATLAB variables
     .lst, .txt
-        reads a text files
+        reads a text file
         returns data as 
             - list of lines
             - dataframe iff 'sep' is specifined as kwarg
-
+    .pkl
+        reads a pickle file
+        returns the data unpickled but further unprocessed
     
     '''
 
@@ -85,6 +90,11 @@ def load_data(name,root=None,**kwargs):
             #print('read txt')
             data = file_tools.read_txt(filename,**kwargs)
         return data
+    elif ext == ".pkl":
+        picklefile = file_tools.read_fobj(filename)    
+        data = pickle.load(picklefile)
+        picklefile.close()
+        return(data)
     elif ext == '':
         if name=='sequence1':
             data= make_seq1(**kwargs)
