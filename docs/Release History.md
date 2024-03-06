@@ -4,15 +4,16 @@
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
 - Deprecation warning ahead of pandas 3.0: *C:\Users\compi\AppData\Local\Temp\ipykernel_20852\3573829142.py:6: DeprecationWarning: 
 Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),*
-
+- pickled data files in sklearn may get unusable with future sklearn releases, usage needs to be reassessed
 
 ### Notes on v0.8.3
 - modifications on iSpectrogram
   +   added spec envelope and residue
   +   freq labels and axis in RHS  (but still missing for some in LHS plots)
   +   merged into main 21/02/2024
- - (23/02/2024) enforced consistency on mel_defaults throughout Sps
-   
+ - 23/02/2024: enforced consistency on mel_defaults throughout Sps
+ - 06/03/2024: add loading of pickle files to load_data()
+ -   
 ### Notes on v0.8.2
 - added the mel.py module in sp
 - added arguments (segwav) to PltSpgFtrs()
