@@ -3,7 +3,10 @@
 `dtw.py` contain a set of routines for dynamic time warping, including utility functions for plotting, etc.
 
 Created on Feb 13, 2023
-        
+Modifications:
+11/03/2024: small change in plot_trellis()
+    - Clipping strategy for better contrast
+    - added ftr_lines boolean choice for adding feature line plots 
 @author: compi
 """
 import numpy as np
@@ -164,10 +167,11 @@ def dtw(x,y,p="sqeuclidean",ld_func=None,trans="DTW",CLIP=False,result=None):
             bptrs[i,j] = bptr
             
     alignment = backtrace(bptrs)
-    # clip inf values in cd_matrix to something close to 2x max in the non infinite values
+    # clip inf values in cd_matrix to something close to max in the non infinite values
     if CLIP:
-        clip_val =np.max(cd_matrix[np.isfinite(cd_matrix)])
-        clip_val = Spch.next_power_of_10(2.*clip_val)
+        max_val =np.max(cd_matrix[np.isfinite(cd_matrix)])
+        clip_val = Spch.next_power_of_10(max_val)
+        if clip_val/2 > max_val: clip_val=clip_val/2
         cd_matrix = np.minimum(cd_matrix,clip_val)
     
     dtw_distance = cd_matrix[Nx-1,Ny-1]
@@ -345,7 +349,7 @@ def text_heatmap(data,ax=None,annot=False,cmap='Blues',vmin=None,vmax=None,edgec
                 ax.text(i,j,data[j][i],ha='center',va='center',size=text_size,fontweight=fontweight,color=text_color)
                 
 
-def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ftr_annot=False, bptrs=None,
+def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ftr_annot=False,ftr_lines=False, bptrs=None,
             ftr_args={},xy_args={},bptr_args={},trace_args={},
             width_ratios=None,height_ratios=None,ftr_scale=.2,fig_width=10.,fig_aspect=None,**kwargs):
     '''
@@ -359,22 +363,26 @@ def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ft
     The aspect ratio of the feature plots is close to 1.0 for small d and adjusted for large d,
         to account for approximately 20% of the plotting area
         
-    The small upper left square is fig.axes[0] and by default not used, but data can be added later on.
+    The figure axis will be arranged as 
+        | 0 | 1 |
+        | 2 | 3 |
+        The small upper left square, fig.axes[0], is by default not used, but data can be added later on.
     
     The layout is
             _____________________________________
             |         |                          |
-            |         |   x(Nx,d)    --->        |
+            |         |   x(Nx,D)    --->        |
             |         |                          |
             |---------+--------------------------|
             |         |                          |
-            | y(Ny,d) |                          | 
+            | y(Ny,D) |                          | 
             |    |    |   xy_mat(Nx,Ny).T        |                      
             |    |    |                          |            
             |    +    |                          |
             |---------+--------------------------|
 
-    
+        Remark that the y-axis is inverted, i.e. top down, in this layout
+        
     
     inputs:
     -------
@@ -395,6 +403,7 @@ def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ft
     xy_annot    boolean for adding annotations to the trellis
                 or array of correct size containing the annotations
     ftr_annot   boolean (default: False). If True, then expects to see features of right dimensions in x and y
+    ftr_lines   boolean (default: False). If True a lineplot is overlayed with heatmap for 1D features
 
     xy_args     **kwargs to be passed to the plotting of the xy dp-trellis
     ftr_args    **kwargs to be passed to the plotting of the x and y feature plots
@@ -514,19 +523,23 @@ def plot_trellis(fig=None,xy_mat=None,trace=None,x=None,y=None,xy_annot=False,ft
     # assure that color maps are identical for x and y feature plots 
     if Numeric_Data:
         vmin,vmax = min_max(x,y) 
+        vmax_abs = max(abs(vmin),abs(vmax))
     else:
         vmin = vmax = None
           
     if x is not None :
         text_heatmap(x.T,ax=ax_x,vmin=vmin,vmax=vmax,annot=ftr_annot,**_ftr_args,**kwargs)
         if Nx <10:
-            ax_x.xaxis.set_major_locator(ticker.MaxNLocator(Nx))
-
+            ax_x.xaxis.set_major_locator(ticker.MaxNLocator(Nx,integer=True))
+        if ftr_lines & (D==1):
+            ax_x.plot(x/(2.2*vmax_abs))
     if y is not None:
         text_heatmap(y,ax=ax_y,vmin=vmin,vmax=vmax,annot=ftr_annot,**_ftr_args,**kwargs) 
         if Ny < 10:
-            ax_y.yaxis.set_major_locator(ticker.MaxNLocator(Ny))
-
+            ax_y.yaxis.set_major_locator(ticker.MaxNLocator(Ny,integer=True))
+        if ftr_lines & (D==1):
+            ax_y.plot(y/(2.2*vmax_abs),np.arange(0,len(y)))
+            ax_y.invert_xaxis()
     # optionally add backpointers to the figure
     if bptrs is not None:
         for i in range(Nx):
