@@ -5,6 +5,8 @@ from .constants import *
 from .utils import *
 from .load_data import *
 from .SpchData import *
+from .utils_timit import *
+from .utils_clf import *
 #
 from . import audio
 from . import timit
