@@ -127,7 +127,7 @@ class SpchFig(Figure):
 #
 
 
-    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,invert_xy=False,color='blue',linewidth=1,**kwargs):
+    def add_line_plot(self,y,iax=0,x=None,x0=0.,dx=1.,xrange='tight',yrange=None,grid='False',title=None,xlabel=None,ylabel=None,xticks=True,yticks=True,invert_xy=False,color=None,linewidth=1,**kwargs):
         """
         Add a line plot to an existing axis
 
@@ -146,6 +146,7 @@ class SpchFig(Figure):
         grid :     False (default)
         xlabel :   default=None
         ylabel :   default=None
+        color :    default=None (mpl color cycling will be used in successive plots)
 
         """
 
