@@ -54,6 +54,7 @@ History:
 11/01/2022: added 'style' option for printing of logprobs in class=Discrete, module=print_model()
 20/03/2023: added 'llscore', 'bic' and ''ll_and_bic' methods to class GMM
 21/03/2023: bug_fix in GMM.print_model() avoid sqrt() of negative correlation coefficients
+10/04/2024: big_fix in print_model() for discrete observation models, now correctly printing stored labels
 """
 ##################################################################################
 ### The code below is to avoid memory leaks in sklearn KMEANS on windows machines 
@@ -134,14 +135,14 @@ class Prob():
     def predict_ftr_prob(self,X):
         if self.prob_style == "Probs": return(X)
         elif self.prob_style == "logProb": return np.exp(X)
-        elif self.prob_style == "Posteriors": return _posteriors_to_probs_(X)
-        elif self.prob_style == "logPosteriors": return _posteriors_to_probs_(np.exp(X))
+        elif self.prob_style == "Posteriors": return _posteriors_to_probs_(X,priors=self.class_prior_)
+        elif self.prob_style == "logPosteriors": return _posteriors_to_probs_(np.exp(X),priors=self.class_prior_)
         
     def predict_ftr_log_prob(self,X):
         if self.prob_style == "logProbs": return(X)
         elif self.prob_style == "Probs": return Spch.logf(X)  
-        elif self.prob_style == "Posteriors": return Spch.logf( _posteriors_to_probs_(X) )    
-        elif self.prob_style == "logPosteriors": return Spch.logf( _posteriors_to_probs_(np.exp(X)) )  
+        elif self.prob_style == "Posteriors": return Spch.logf( _posteriors_to_probs_(X,priors=self.class_prior_) )    
+        elif self.prob_style == "logPosteriors": return Spch.logf( _posteriors_to_probs_(np.exp(X),priors=self.class_prior_ )  )
 
     def predict_prob(self,X):
         return self.predict_ftr_prob(X)
@@ -151,14 +152,14 @@ class Prob():
     def predict_proba(self,X):
         if self.prob_style == "Posteriors": return(X)
         elif self.prob_style == "logPosteriors": return np.exp(X)
-        elif self.prob_style == "Probs": return _probs_to_posteriors_(X)
-        elif self.prob_style == "logProbs": return _probs_to_posteriors_(np.exp(X)) 
+        elif self.prob_style == "Probs": return _probs_to_posteriors_(X,priors=self.class_prior_)
+        elif self.prob_style == "logProbs": return _probs_to_posteriors_(np.exp(X),priors=self.class_prior_) 
         
     def predict_log_proba(self,X):
         if self.prob_style == "logPosteriors": return(X)
         elif self.prob_style == "Posteriors": return Spch.logf(X)      
-        elif self.prob_style == "Probs": return Spch.logf( _probs_to_posteriors_(X) )
-        elif self.prob_style == "logProbs": return Spch.logf( _probs_to_posteriors_(np.exp(X) ) )        
+        elif self.prob_style == "Probs": return Spch.logf( _probs_to_posteriors_(X,priors=self.class_prior_) )
+        elif self.prob_style == "logProbs": return Spch.logf( _probs_to_posteriors_(np.exp(X),priors=self.class_prior_ ) )        
         
 
 
@@ -282,6 +283,12 @@ class Discrete():
         return Spch.logf(self.predict_ftr_prob(X))        
     
     def print_model(self,labels=None,style='lin'):
+        """
+        You can override the labels stored in the model with specifying labels
+        If no labels are found, abstract indices will be displayed
+        """
+        if labels is None:
+            labels = self.labels
         if labels is None: 
             labels = []
             for j in range(self.n_features):

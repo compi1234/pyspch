@@ -4,7 +4,7 @@ import pyspch
 from pyspch.stats import GMM
 import pyspch.core as Spch
 
-######   Classifier Utilities   #######################################
+######   sklearn compatible Classifier Utilities   #######################################
 def train_GMM(X_train,y_train,classes=None,n_components=1,max_iter=10,Verbose=False,**kw_args):
     clf = GMM(classes=classes,n_components=n_components,max_iter=max_iter,**kw_args)                  
     clf.fit(X_train,y_train)
@@ -34,6 +34,23 @@ def train_MLP(X_train,y_train,classes=None,Verbose=False,
 
 
 def test_clf(clf,X_test,y_test,Verbose=False,priors=None):
+    '''
+    TEST module for an sklearn compatible classifier
+
+
+    parameters:
+    clf                 an sk-learn type classifier that
+                        has a .predict() function and has classes[] or classes_[] defined 
+    X                   nparray of test vectors
+    y                   nparray of reference labels
+    Verbose             prints 
+    priors              an nparray with priors overriding the training priors (optional, if predict() supports priors)
+    
+    returns:
+    accuracy            test set accuracy in percentage correct (float)
+    confusion_matrix    test set confusion matrix with label ordering as in class definitions
+    '''
+    
     try: # if classifier supports usage of priors
         if priors == 'uniform':
             priors = [1]*clf.n_classes
@@ -55,6 +72,8 @@ def test_clf(clf,X_test,y_test,Verbose=False,priors=None):
     conf_mat = skmetrics.confusion_matrix(y_test,y_pred,labels=classes)
     return(acc_test,conf_mat)
 
+# to be deprecated --  kept for compatibility
+#
 def test_GMM(clf_GMM,X_test,y_test,priors=None,norm=False,Verbose=False):
     try:
         if priors == 'uniform':

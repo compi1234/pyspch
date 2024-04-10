@@ -33,6 +33,11 @@ Modification History:
      - obs_indx:   index mapper from state index to observation class index
     this also effected a small change in the initialization of state names unless specified 
 
+26/03/2024:  bug fixes:
+    - in trellis.plot_trellis(): no backpointer label should be generated if backpointer state index is "-1"
+    - in hmm.viterbi_recursion():  for log-style, changed -inf to -np.log(prob_floor) in buffer initialization
+    - excluding zero-prob related backpointers in first column of trellis  (not solidly implemented)
+    - added .floor attribute in trellis() to implement the above
 """
 import sys, os
 from math import ceil, pow
@@ -115,7 +120,7 @@ class HMM():
         
         # initialize the observation model
         if obs_model is None:
-            self.obs_model = Densities.Prob()
+            self.obs_model = None # Densities.Prob()
         else:
             self.obs_model = obs_model
             # maybe the code below needs to be fixed; some models have classes_ others n_classes, others classes defined
@@ -190,24 +195,25 @@ class HMM():
             self.initmat = np.log(u.floor(self.initmat,self.prob_floor))       
             self.transmat = np.log(u.floor(self.transmat,self.prob_floor)) 
             
-    def print_model(self):
-        print("\nHMM STATE MODEL\n=================\n")
-        dfi = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states, index=["Pinit(.)"])
-        display(dfi)
-        states_str = self.states.astype('str')
-        dft = pd.DataFrame(self.transmat.T,columns=states_str,
-            index= ['P('+states_str[i]+'|.)' for i in range(0,self.n_states)])
-        display(dft) 
-        print("\nOBSERVATION MODEL\n=================\n")
+    def print_model(self,what="all"):
+        if (what == "all") | (what == "states"):
+            print("\nHMM STATE MODEL\n=================\n")
+            dfi = pd.DataFrame(self.initmat.reshape(1,-1),columns=self.states, index=["Pinit(.)"])
+            display(dfi)
+            states_str = self.states.astype('str')
+            dft = pd.DataFrame(self.transmat.T,columns=states_str,
+                index= ['P('+states_str[i]+'|.)' for i in range(0,self.n_states)])
+            display(dft) 
 
-
-        try:
-            self.obs_model.print_model(style=self.prob_style)
-        except: 
+        if (what == "all") | (what == "observations"):        
+            print("\nOBSERVATION MODEL\n=================\n")
             try:
-                self.obs_model.print_model()
-            except:
-                print("Nothing to print\n")
+                self.obs_model.print_model(style=self.prob_style)
+            except: 
+                try:
+                    self.obs_model.print_model()
+                except:
+                    print("Nothing to print\n")
             
     def observation_prob(self,X):
         """
@@ -246,11 +252,11 @@ class HMM():
         Returns:
         --------
         buffer :         shape(n_states,)     updated Viterbi buffer
-        backptr :        shape(n_sates,)      backpointers for current frame
+        backptr :        shape(n_states,)     backpointers for current frame
         """
         
         if(self.prob_style == "log"):
-            buffer = -np.ones(prev_buffer.shape)*np.inf
+            buffer = np.ones(prev_buffer.shape)*np.log(self.prob_floor)
             backptr = np.zeros(self.n_states,dtype=int)-1
             for to_state in range(0,self.n_states):
                 for from_state in range(0,self.n_states):
@@ -335,7 +341,8 @@ class Trellis():
         observations    processed observatons array, shape(n_samples,) or (n_samples,n_features)
         style           method applied        Viterbi (default), Forward (NIY)
         Normalize       column normalization  Boolean (default=False)
-
+        floor           floor value under which everything should be interpreted as zero probability
+        
         scale_vec       suggested scaling value per sample        float(n_samples)
         end_state       best admissible end state
         seq_prob        sequence probability in end_state
@@ -358,8 +365,14 @@ class Trellis():
         self.backptrs = np.zeros(self.probs.shape,dtype='int') - 1
         
         # scaling factor to be applied in last column of trellis
-        if self.hmm.prob_style == "lin": self.scale  = 1.0
-        else: self.scale = 0.0
+        # create a trellis floor value that is somewhat higher than the hmm floor ... very heuristic and not waterproof !
+        # 
+        if self.hmm.prob_style == "lin": 
+            self.scale  = 1.0
+            self.floor = hmm.prob_floor * 1000. 
+        else: 
+            self.scale = 0.0
+            self.floor = np.log(hmm.prob_floor * 1000.)
     
     def viterbi_pass(self,X):
         """
@@ -432,6 +445,10 @@ class Trellis():
             t_, b_ = self._step0(obs_probs) 
         else:
             t_ , b_ = self.hmm.viterbi_recursion(obs_probs,self.probs[self.n_samples-1,:])
+        
+        # pruning of backpointers in first column if prob is too small (quite heuristic)
+        for i in range(self.hmm.n_states):
+            if t_[i] < self.floor: b_[i] = -1
         self.obs_probs = np.r_[self.obs_probs,[obs_probs]]       
         self.probs = np.r_[self.probs,[self._col_norm(t_)]]
         self.backptrs = np.r_[self.backptrs,[b_]]
@@ -466,6 +483,7 @@ class Trellis():
         else:
             t_ = self.hmm.initmat * obs_probs
         b_ = np.arange(self.hmm.n_states)
+
         return t_, b_       
 
 
@@ -611,7 +629,8 @@ class Trellis():
                 for s in range(0,self.hmm.n_states):
 
                     if(not mask.T[s,j]):
-                        bplabel = self.hmm.states[self.backptrs.T[s,j]]
+                        if self.backptrs.T[s,j] == -1: bplabel = "" # No backpointer here !
+                        else: bplabel = self.hmm.states[self.backptrs.T[s,j]]
                         if (alignment[j] == s) & plot_alignment:
                             axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
                                 fontweight='heavy',fontsize=fontsize_backptrs,color="k",rotation=-15,
