@@ -55,6 +55,7 @@ History:
 20/03/2023: added 'llscore', 'bic' and ''ll_and_bic' methods to class GMM
 21/03/2023: bug_fix in GMM.print_model() avoid sqrt() of negative correlation coefficients
 10/04/2024: big_fix in print_model() for discrete observation models, now correctly printing stored labels
+18/04/2024: bug_fix in .fit() method for discrete models
 """
 ##################################################################################
 ### The code below is to avoid memory leaks in sklearn KMEANS on windows machines 
@@ -178,7 +179,7 @@ class Discrete():
         n_features      int       number of features
         n_categories    array of shape (n_features,) categories for each feature
         classes_        array of shape (n_classes,)  known labels for categories
-        feature_probs   list of arrays of shape (n_classes,n_categories of feature)
+        feature_prob_   list of arrays of shape (n_classes,n_categories of feature)
         
     '''
     
@@ -314,7 +315,7 @@ class Discrete():
             ax[j].legend(np.arange(self.n_classes))
             ax[j].set_title('Likelihoods for Feature %d'%j)
 
-    def fit(self,X,y,floor=1.e-3,index=False):
+    def fit(self,X,y,floor=1.e-3,index=True):
         '''
         fit to discrete density observation for a set of observations and labels
         if index==True, then observations are assumed to be observation indices
@@ -327,16 +328,17 @@ class Discrete():
             Xindx = X
         else: # expecting numeric labels in each category
             Xindx = self.lbl2indx(X)
-        self.feature_probs = []
+        self.feature_prob_ = []
         self.counts = []
+        n_obs, n_ftrs = Xindx.shape
         for j in range(self.n_features):
             XX = Xindx[:,j]
-            counts = np.zeros(self.n_categories[j],'int')
-            for i in XX:
-                counts[i] += 1
-            sum_of_counts = float(np.sum(counts))
-            self.feature_probs.append(counts.astype(float)/sum_of_counts)
-            self.counts.append(counts)
+            counts = np.zeros((self.n_classes,self.n_categories[j]),dtype='int')
+            for i in range(n_obs):
+                counts[y[i],XX[i]] += 1
+            sum_of_counts = np.sum(counts,axis=1).astype(float)
+            self.feature_prob_.append(counts.astype(float)/sum_of_counts[:,np.newaxis])
+            self.counts.append(sum_of_counts)
         return
 
         
