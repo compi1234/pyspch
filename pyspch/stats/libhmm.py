@@ -278,21 +278,30 @@ class HMM():
         return(buffer,backptr)
 
 
-    def align(self,X=None,end_states=None):
+    def vitalign(self,X=None,end_states=None):
         '''
         Viterbi alignment for the current HMM model and observation sequence X
         This method allows to list allowed end_states, default is last state defined in the model
+
+        Parameters:
+        -----------
+
+        
+        Returns:
+        --------
+        Alignment        shape(n_observations,)     array of state indices
+        Probability      float                      Viterbi Probability
         '''
         trellis = Trellis(self)
         trellis.viterbi_pass(X)
         seq_prob,end_state = trellis._finalize(end_states=end_states)
-        return  trellis.backtrace(end_state=end_state) 
+        return  ( trellis.backtrace(end_state=end_state) , seq_prob )
 
-    def viterbi_train(self,X):
-        y = []
-        for XX in X:
-            y.append(self.align(X=XX))
-        self.fit(X,y)
+#    def viterbi_train(self,X):
+#        y = []
+#        for XX in X:
+#            y.append(self.align(X=XX))
+#        self.fit(X,y)
         
     def fit(self,X,y,**kwargs):
         '''

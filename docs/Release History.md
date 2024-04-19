@@ -19,7 +19,8 @@ Pyarrow will become a required dependency of pandas in the next major release of
  - 18/03/2024:  utils_clf and utils_timit were added to core
                this is not a good permanent solution
  - 20/03/2024: add_line_plot() - color cycling is restored as default
- - 24/04/2024: small bug fixes in libhmm and probdist
+ - 24/03/2024: small bug fixes in libhmm and probdist
+ - 18/04/2024: added utils_x to core 
   
 ### Notes on v0.8.2
 - added the mel.py module in sp
