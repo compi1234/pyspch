@@ -35,7 +35,7 @@ Modification History:
 
 26/03/2024:  bug fixes:
     - in trellis.plot_trellis(): no backpointer label should be generated if backpointer state index is "-1"
-    - in hmm.viterbi_recursion():  for log-style, changed -inf to -np.log(prob_floor) in buffer initialization
+    - in hmm.viterbi_recursion():  for log-style, changed -inf to -np.log(prob_floor) in buffer initialization ==> THIS IS NOT GOOD - REVERSED !!
     - excluding zero-prob related backpointers in first column of trellis  (not solidly implemented)
     - added .floor attribute in trellis() to implement the above
 """
@@ -256,7 +256,7 @@ class HMM():
         """
         
         if(self.prob_style == "log"):
-            buffer = np.ones(prev_buffer.shape)*np.log(self.prob_floor)
+            buffer = np.ones(prev_buffer.shape)* 10.*np.log(self.prob_floor)
             backptr = np.zeros(self.n_states,dtype=int)-1
             for to_state in range(0,self.n_states):
                 for from_state in range(0,self.n_states):
@@ -381,7 +381,7 @@ class Trellis():
             self.floor = hmm.prob_floor * 1000. 
         else: 
             self.scale = 0.0
-            self.floor = np.log(hmm.prob_floor * 1000.)
+            self.floor = np.log(hmm.prob_floor) * 100.
     
     def viterbi_pass(self,X):
         """
@@ -455,9 +455,7 @@ class Trellis():
         else:
             t_ , b_ = self.hmm.viterbi_recursion(obs_probs,self.probs[self.n_samples-1,:])
         
-        # pruning of backpointers in first column if prob is too small (quite heuristic)
-        for i in range(self.hmm.n_states):
-            if t_[i] < self.floor: b_[i] = -1
+
         self.obs_probs = np.r_[self.obs_probs,[obs_probs]]       
         self.probs = np.r_[self.probs,[self._col_norm(t_)]]
         self.backptrs = np.r_[self.backptrs,[b_]]
@@ -491,8 +489,12 @@ class Trellis():
             t_ = self.hmm.initmat + obs_probs
         else:
             t_ = self.hmm.initmat * obs_probs
-        b_ = np.arange(self.hmm.n_states)
-
+        b_ = np.full(self.hmm.n_states,-1)
+        
+        # pruning of backpointers in first column if prob is too small (quite heuristic)
+        for i in range(self.hmm.n_states):
+            if self.hmm.initmat[i] > self.hmm.prob_floor: b_[i] = i
+                
         return t_, b_       
 
 
