@@ -23,16 +23,15 @@ def plot_probs( probs, labels,  fig, iax=2, x0=0.,dx = .01, title="", yrange=[0.
 
 # Helper routines for loading test samples
 def get_test_file(file_id, feature_args=None,
-                          root='https://homes.esat.kuleuven.be/~spchlab/data/',type=None):
+                          root='https://homes.esat.kuleuven.be/~spchlab/data/'):
     '''
     extracts waveform and metadata for a named file
     
     PARAMETERS:
     -----------
-    file_id         either number (0..5) or a filename in the TIMIT directory
+    file_id         either single digit (0..) for a predefined TIMIT test file or a filename in the root directory
     feature_args    signal processing specifications
     root            root directory (default is ./data/  on spchlab public html)
-    type            "TIMIT" or None
     
     RETURNS:
     --------
@@ -47,11 +46,15 @@ def get_test_file(file_id, feature_args=None,
     timit_test_files =  ['dr1/faks0/si2203',  'dr8/fcmh1/si1493', 'dr4/fadg0/si1279', 
                          'dr1/mdab0/sx409', 'dr4/mbns0/si1220',
                          'dr1/fcjf0/sx307', 'dr1/fdaw0/sx236', 'dr1/faks0/sx313'] 
-    if file_id in [0,1,2,3,4,5,6,7]:
-        name = "test/"+timit_test_files[file_id]
+
+    if file_id[:-1] == "timit":
+        timit_no = int(file_id[5])
+        name = "test/"+timit_test_files[timit_no]
+        type = "TIMIT"
     else:
+        type = None
         name = file_id
-        
+          
     if type == "TIMIT":
         dt = 1/16000
         xlat = 'timit61_timit41'
