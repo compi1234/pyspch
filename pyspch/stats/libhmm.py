@@ -35,9 +35,10 @@ Modification History:
 
 26/03/2024:  bug fixes:
     - in trellis.plot_trellis(): no backpointer label should be generated if backpointer state index is "-1"
-    - in hmm.viterbi_recursion():  for log-style, changed -inf to -np.log(prob_floor) in buffer initialization ==> THIS IS NOT GOOD - REVERSED !!
+    - in hmm.viterbi_recursion():  bug fixing for low probs in log-style
     - excluding zero-prob related backpointers in first column of trellis  (not solidly implemented)
     - added .floor attribute in trellis() to implement the above
+    - added logprob_floor attribute to class hmm
 """
 import sys, os
 from math import ceil, pow
@@ -117,6 +118,7 @@ class HMM():
             
         self.prob_style = prob_style
         self.prob_floor = prob_floor
+        self.logprob_floor = np.round(np.log(prob_floor))
         
         # initialize the observation model
         if obs_model is None:
@@ -150,7 +152,7 @@ class HMM():
         if (transmat is None):
             self.transmat = np.eye(self.n_states)
             if(self.prob_style == "log"):
-                self.transmat = u.logf(self.transmat,eps=self.prob_floor)
+                self.transmat = u.logf(self.transmat,logeps=self.logprob_floor)
         else:
             if(transmat.shape != (self.n_states,self.n_states)):
                 sys.exit("ERROR(init_hmm): transition matrix of wrong size is given")
@@ -160,7 +162,7 @@ class HMM():
             self.initmat = np.zeros(self.n_states)
             self.initmat[0] = 1.0
             if(self.prob_style == "log"):
-                self.initmat = u.logf(self.initmat,eps=self.prob_floor)
+                self.initmat = u.logf(self.initmat,logeps=self.logprob_floor)
         else:
             if(initmat.size != self.n_states):
                 sys.exit("ERROR(init_hmm): initial probability matrix of wrong size is given")
@@ -256,18 +258,24 @@ class HMM():
         """
         
         if(self.prob_style == "log"):
-            buffer = np.ones(prev_buffer.shape)* 10.*np.log(self.prob_floor)
-            backptr = np.zeros(self.n_states,dtype=int)-1
+            buffer = np.full(prev_buffer.shape,self.logprob_floor,dtype=float) 
+            backptr = np.full(self.n_states,-1,dtype=int)
             for to_state in range(0,self.n_states):
+                best_from_state = -1
                 for from_state in range(0,self.n_states):
                     new = self.transmat[from_state,to_state] + prev_buffer[from_state]
                     if( new > buffer[to_state] ):
                         buffer[to_state] = new
                         backptr[to_state] = from_state
                 buffer[to_state] = buffer[to_state] + X[to_state]
+                # auto-pruning of unreachable states 
+                if( buffer[to_state] < self.logprob_floor ):
+                    #buffer_to_state = self.logprob_floor
+                    backptr[to_state] = -1
+
         else:
             buffer = np.zeros(prev_buffer.shape)
-            backptr = np.zeros(self.n_states,dtype=int)-1
+            backptr = np.full(self.n_states,-1,dtype=int)
             for to_state in range(0,self.n_states):
                 for from_state in range(0,self.n_states):
                     new = self.transmat[from_state,to_state] * prev_buffer[from_state]
@@ -275,6 +283,11 @@ class HMM():
                         buffer[to_state] = new
                         backptr[to_state] = from_state
                 buffer[to_state] = buffer[to_state] * X[to_state]
+                # auto-pruning of unreachable states 
+                if( buffer[to_state] < self.prob_floor ):
+                    #buffer_to_state = self.prob_floor
+                    backptr[to_state] = -1
+                    
         return(buffer,backptr)
 
 
@@ -378,10 +391,10 @@ class Trellis():
         # 
         if self.hmm.prob_style == "lin": 
             self.scale  = 1.0
-            self.floor = hmm.prob_floor * 1000. 
+            self.floor = hmm.prob_floor 
         else: 
             self.scale = 0.0
-            self.floor = np.log(hmm.prob_floor) * 100.
+            self.floor = hmm.logprob_floor
     
     def viterbi_pass(self,X):
         """
@@ -423,13 +436,14 @@ class Trellis():
         if self.Normalize:
             if self.hmm.prob_style == "lin":
                 scale = np.max(col)
-                col = col/scale
+                col_norm = col/scale
                 self.scale = self.scale * scale
             else:
                 scale = np.max(col)
-                col = col - scale
+                col_norm = np.where(col>self.floor, col - scale, self.floor)
                 self.scale = self.scale + scale
-        return(col)       
+            return(col_norm) 
+        else: return(col)
         
     def _observation_step(self,X):
         '''
