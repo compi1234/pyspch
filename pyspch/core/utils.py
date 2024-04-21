@@ -67,9 +67,12 @@ def floor(x,FLOOR=EPS_FLOAT):
     """ array floor:  returns  max(x,FLOOR)  """
     return(np.maximum(x,FLOOR))
 
-def logf(x,eps=EPS_FLOAT):
-    """ array log with flooring """
-    return(np.log(np.maximum(x,eps)))
+def logf(x,eps=EPS_FLOAT,logeps=None):
+    """ array log with flooring either in log or float"""
+    if logeps is None:
+        return(np.log(np.maximum(x,eps)))
+    else:
+        return(np.maximum(np.log(x),logeps))
     
 def log10f(x,eps=EPS_FLOAT):
     """ array log10 with flooring """
