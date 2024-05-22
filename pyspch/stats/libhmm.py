@@ -39,6 +39,10 @@ Modification History:
     - excluding zero-prob related backpointers in first column of trellis  (not solidly implemented)
     - added .floor attribute in trellis() to implement the above
     - added logprob_floor attribute to class hmm
+
+22/05/2024:
+    - makes logprob_floor dominant over prob_floor
+    - make probabilities by default float64
 """
 import sys, os
 from math import ceil, pow
@@ -52,12 +56,12 @@ import seaborn as sns
 import copy
 
 #from pyspch.core.constants import EPS_FLOAT
-from ..core.constants import EPS_FLOAT
+from ..core.constants import EPS_FLOAT, EPS_LOG
 from ..core import utils as u
 from . import probdist as Densities
 
 PROB_FLOOR = EPS_FLOAT
-
+LOGPROB_FLOOR = EPS_LOG
 
 # HMM Master Class
 class HMM():
@@ -112,13 +116,20 @@ class HMM():
     ==========
     """
 
-    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,obs_indx=None,end_states=None,obs_model=None,n_classes=None,prob_style="lin",prob_floor=PROB_FLOOR):
+    def __init__(self,n_states=1,transmat=None,initmat=None,states=None,obs_indx=None,end_states=None,obs_model=None,n_classes=None,prob_style="lin",logprob_floor=EPS_LOG,prob_floor=None):
 
         self._Debug = False
             
         self.prob_style = prob_style
-        self.prob_floor = prob_floor
-        self.logprob_floor = np.round(np.log(prob_floor))
+
+        if logprob_floor is None:
+            if prob_floor is not None:
+                self.logprob_floor = np.log(prob_floor)
+            else:
+                self.logprob_floor = LOGPROB_FLOOR
+        else:
+            self.logprob_floor = logprob_floor
+        self.prob_floor = np.exp(self.logprob_floor)
         
         # initialize the observation model
         if obs_model is None:
@@ -156,7 +167,7 @@ class HMM():
         else:
             if(transmat.shape != (self.n_states,self.n_states)):
                 sys.exit("ERROR(init_hmm): transition matrix of wrong size is given")
-            self.transmat = transmat
+            self.transmat = transmat.astype('float64')
 
         if (initmat is None):
             self.initmat = np.zeros(self.n_states)
@@ -166,7 +177,7 @@ class HMM():
         else:
             if(initmat.size != self.n_states):
                 sys.exit("ERROR(init_hmm): initial probability matrix of wrong size is given")
-            self.initmat = initmat   
+            self.initmat = initmat.astype('float64')  
 
         if end_states is None:
             self.end_states = np.arange(self.n_states)
@@ -258,7 +269,7 @@ class HMM():
         """
         
         if(self.prob_style == "log"):
-            buffer = np.full(prev_buffer.shape,self.logprob_floor,dtype=float) 
+            buffer = np.full(prev_buffer.shape,self.logprob_floor,dtype='float64') 
             backptr = np.full(self.n_states,-1,dtype=int)
             for to_state in range(0,self.n_states):
                 best_from_state = -1
@@ -269,7 +280,7 @@ class HMM():
                         backptr[to_state] = from_state
                 buffer[to_state] = buffer[to_state] + X[to_state]
                 # auto-pruning of unreachable states 
-                if( buffer[to_state] < self.logprob_floor ):
+                if( buffer[to_state] <= self.logprob_floor ):
                     #buffer_to_state = self.logprob_floor
                     backptr[to_state] = -1
 
@@ -284,7 +295,7 @@ class HMM():
                         backptr[to_state] = from_state
                 buffer[to_state] = buffer[to_state] * X[to_state]
                 # auto-pruning of unreachable states 
-                if( buffer[to_state] < self.prob_floor ):
+                if( buffer[to_state] <= self.prob_floor ):
                     #buffer_to_state = self.prob_floor
                     backptr[to_state] = -1
                     
@@ -303,7 +314,7 @@ class HMM():
         Returns:
         --------
         Alignment        shape(n_observations,)     array of state indices
-        Probability      float                      Viterbi Probability
+        Probability      float64                      Viterbi Probability
         '''
         trellis = Trellis(self)
         trellis.viterbi_pass(X)
@@ -324,8 +335,8 @@ class HMM():
         self.obs_model.fit(np.concatenate(X),np.concatenate(y),**kwargs)
             
         # train initial and transition probabilities
-        init_counts = np.zeros(self.n_states,dtype='float')
-        trans_counts = np.zeros((self.n_states,self.n_states),dtype='float')         
+        init_counts = np.zeros(self.n_states,dtype='float64')
+        trans_counts = np.zeros((self.n_states,self.n_states),dtype='float64')         
         for (Xi,yi) in zip(X,y):
             init_counts[yi[0]] += 1.
             for j in range(1,Xi.shape[0]):
@@ -365,7 +376,7 @@ class Trellis():
         Normalize       column normalization  Boolean (default=False)
         floor           floor value under which everything should be interpreted as zero probability
         
-        scale_vec       suggested scaling value per sample        float(n_samples)
+        scale_vec       suggested scaling value per sample        float64(n_samples)
         end_state       best admissible end state
         seq_prob        sequence probability in end_state
 
