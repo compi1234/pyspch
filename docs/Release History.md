@@ -13,15 +13,19 @@ Pyarrow will become a required dependency of pandas in the next major release of
 - modifications on iSpectrogram
   +   added spec envelope and residue
   +   freq labels and axis in RHS  (but still missing for some in LHS plots)
-  +   merged into main 21/02/2024
+  +   merged into main 21/02/2024; saved as v0.8.3b
  - 23/02/2024: enforced consistency on mel_defaults throughout Sps
  - 06/03/2024: add loading of pickle files to load_data()
  - 18/03/2024:  utils_clf and utils_timit were added to core
                this is not a good permanent solution
  - 20/03/2024: add_line_plot() - color cycling is restored as default
  - 24/03/2024: small bug fixes in libhmm and probdist
- - 18/04/2024: added utils_x to core 
-  
+ - 18/04/2024: added utils_x to core
+ - 22/05/2024: make logprob_foor dominate prob_floor
+ - 22/05/2024: all probs are float64
+ - 29/05/2024: added .draw() method to hmm
+ - 21/08/2024: added arguments i1 and i2 to .plot_trellis() for partial plots 
+ 
 ### Notes on v0.8.2
 - added the mel.py module in sp
 - added arguments (segwav) to PltSpgFtrs()

@@ -44,9 +44,8 @@ Modification History:
     - makes logprob_floor dominant over prob_floor
     - make probabilities by default float64
 29/05/2024
-    - added .draw() method for hmm using the graphviz package
-21/08/2024
-    - added arguments i1 and i2 to trellis.plot_trellis() to allow for partial trellis plot
+    - added .draw() method for hmm
+    
 """
 import sys, os
 from math import ceil, pow
@@ -245,11 +244,6 @@ class HMM():
         with the PROBS flag set to TRUE transition probabilities are printed on the arcs
         PRINT_EPS puts a threshold on the (linear) probs to be shown
 
-        the returned graph can be 
-        - saved as .gv file  -> print(g)
-        - rendered as .pdf   -> g.render()
-        - visualized in jupyter lab -> display(g)
-
         '''
         g = Digraph(name,engine='dot',filename=name+'.gv')
         g.attr(size='20', splines="true", rankdir='LR', rank='same')
@@ -265,13 +259,13 @@ class HMM():
         for i in range(0,n):
             states.append("S"+str(i))
             if (i not in self.end_states) and ( I[i] <= PRINT_EPS) :
-                    g.node(states[i],label=str(self.states[i])) 
+                    g.node(states[i],label=self.states[i]) 
     
         # create all begin and end nodes
         g.attr('node',shape='doublecircle')
         for i in range(0,n):
             if (i in self.end_states) or (I[i]> PRINT_EPS):
-                g.node(states[i],label=str(self.states[i])) 
+                g.node(states[i],label=self.states[i]) 
         
         for i in range(0,n):
             for j in range(0,n):
@@ -655,13 +649,12 @@ class Trellis():
                 print("\nSequence Probability: %.2e\n" % self.seq_prob)
             
             
-    def plot_trellis_old(self,i1=None,i2=None,xticks=None,yticks=None,cmap=None,cmapf=None,
+    def plot_trellis(self,xticks=None,yticks=None,cmap=None,cmapf=None,
                      vmin=-10.,vmax=0.,fmt=".3f",fontsize=12,fontsize_backptrs=10,figsize=None,
                      plot_obs_probs=False,plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False):
         """
-        plot_trellis_old(): trellis plot with multiple single axis plots
+        plot_trellis(): trellis plot with multiple single axis plots
             observation probabilities are optionally added to the xticks
-            older version in which 'i1' and 'i2' are neglected
         """
 
         if xticks is None:
@@ -671,7 +664,7 @@ class Trellis():
 
         trellis = self.probs
         if plot_norm:
-            trellis_plot = copy.copy(trellis)
+            trellis_n = copy.copy(trellis)
             if self.hmm.prob_style == "lin":
                 fmax = np.amax(trellis,1)
                 for j in range(self.n_samples):
@@ -695,7 +688,7 @@ class Trellis():
             sns.heatmap(self.obs_probs.T,ax=axf, vmin=vmin,vmax=vmax, 
                     xticklabels=xticks,yticklabels=yticks,
                     cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.2,
-                    annot=plot_values,fmt=fmt,annot_kws={'fontsize':fontsize,'color':'k'},
+                    annot=plot_values,fmt=fmt,annot_kws={'fontsize':(fontsize-1),'color':'k'},
                        )
             axf.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
             axt.tick_params(axis='x',labelrotation=0.0,labeltop=False,labelbottom=False,bottom=False)
@@ -711,129 +704,25 @@ class Trellis():
         sns.heatmap(trellis_n.T,ax=axt,vmin=vmin,vmax=vmax, mask=mask.T,
                     xticklabels=xticks,yticklabels=yticks,
                     cmap=cmap,square=False,cbar=False, linewidth=0.2, linecolor='k',
-                    annot=annot,fmt=fmt,annot_kws={'fontsize':fontsize,'color':'k'},
+                    annot=annot,fmt=fmt,annot_kws={'fontsize':12,'color':'k'},
                     )
         axt.tick_params(axis='y',labelrotation=0.0,left=False)
 
-        alignment = self.backtrace()
         if(plot_backptrs):
+            alignment = self.backtrace()
             for j in range(0,self.n_samples):
                 for s in range(0,self.hmm.n_states):
+
                     if(not mask.T[s,j]):
                         if self.backptrs.T[s,j] == -1: bplabel = "" # No backpointer here !
                         else: bplabel = self.hmm.states[self.backptrs.T[s,j]]
-                        axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
+                        if (alignment[j] == s) & plot_alignment:
+                            axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
+                                fontweight='heavy',fontsize=fontsize_backptrs,color="k",rotation=-15,
+                                     bbox={'boxstyle':'larrow,pad=.3', 'alpha':0.75, 'facecolor':'white'})                        
+                        else:
+                            axt.text(j+0.08,s+0.08,bplabel,ha="left",va="top",
                                 fontweight='light',fontsize=fontsize_backptrs,color="k")
-                        
 
-        if(plot_alignment):
-            for j in range(0,self.n_samples):
-                for s in range(0,self.hmm.n_states):
-                    if (alignment[j] == s) :
-                        # 12/06/2024: printing state in alignment, not backptr
-                        axt.text(j+0.5,s+0.5,self.hmm.states[s],ha="center",va="center", #ha="left",va="top",
-                            fontweight='heavy',fontsize=fontsize_backptrs,color="k",rotation=0,
-                                 bbox={'boxstyle':'round4,pad=.5', 'alpha':0.25, 'facecolor':'white'})                        
-
-                            
-        plt.close()
-        return(fig)
-
-    def plot_trellis(self,i1=None,i2=None,xticks=None,yticks=None,cmap=None,cmapf=None,
-                     vmin=-10.,vmax=0.,fmt=".3f",fontsize=12,fontsize_backptrs=10,figsize=None,
-                     plot_obs_probs=False,plot_norm=False,plot_values=True,plot_backptrs=False,plot_alignment=False):
-        """
-        plot_trellis(): trellis plot with multiple single axis plots
-            observation probabilities are optionally added to the xticks
-    
-        """
-
-
-
-        trellis = self.probs
-        if plot_norm:
-            trellis_plot = copy.copy(trellis)
-            if self.hmm.prob_style == "lin":
-                fmax = np.amax(trellis,1)
-                for j in range(self.n_samples):
-                    trellis_plot[j,:] = trellis[j,:]/fmax[j]
-            else:
-                fmax = np.amax(trellis,1)
-                for j in range(self.n_samples):
-                    trellis_plot[j,:] = trellis[j,:]-fmax[j]            
-        else:
-            trellis_plot = trellis
-
-        # find frame range
-        if i1 is None: i1 = 0
-        if i2 is None: i2 = self.n_samples
-        if xticks is None:
-            xticks = np.array([str(i) for i in range(i1,i2)])
-        if yticks is None:
-            yticks = self.hmm.states
-
-        # select plotting range for all heatmap arrays
-        trellis_plot = trellis_plot[i1:i2,:]
-        obs_plot = self.obs_probs[i1:i2,:]
-        mask = trellis < vmin
-        mask_plot = mask[i1:i2,:]
-        if plot_values: annot = trellis[i1:i2,:]
-        else: annot=False
-
-        
-            
-        fig = plt.figure(figsize=figsize)
-        gs1 = gridspec.GridSpec(8, 1)
-        gs1.update( hspace=0.15)
-            
-        if plot_obs_probs:
-            if cmapf is None: cmapf = cmap
-            axf = plt.subplot(gs1[0:3, 0])
-            axt = plt.subplot(gs1[3:8, 0]) 
-            sns.heatmap(obs_plot.T,ax=axf, vmin=vmin,vmax=vmax, 
-                    xticklabels=xticks,yticklabels=yticks,
-                    cmap=cmapf,square=False,cbar=False, linecolor='k',linewidth=0.2,
-                    annot=plot_values,fmt=fmt,annot_kws={'fontsize':fontsize,'color':'k'},
-                       )
-            axf.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
-            axt.tick_params(axis='x',labelrotation=0.0,labeltop=False,labelbottom=False,bottom=False)
-            axf.tick_params(axis='y',labelrotation=0.0,left=False)
-        else:
-            axt = plt.subplot(gs1[0:8, 0]) 
-            axt.tick_params(axis='x',labelrotation=0.0,labeltop=True,labelbottom=False,bottom=False)
-            axt.tick_params(axis='y',labelrotation=0.0,left=False)
-            
-
-
-
-        
-        sns.heatmap(trellis_plot.T,ax=axt,vmin=vmin,vmax=vmax, mask=mask_plot.T,
-                    xticklabels=xticks,yticklabels=yticks,
-                    cmap=cmap,square=False,cbar=False, linewidth=0.2, linecolor='k',
-                    annot=annot.T,fmt=fmt,annot_kws={'fontsize':fontsize,'color':'k'},
-                    )
-        axt.tick_params(axis='y',labelrotation=0.0,left=False)
-
-        alignment = self.backtrace()
-        if(plot_backptrs):
-            for j in range(i1,i2):
-                for s in range(0,self.hmm.n_states):
-                    if(not mask.T[s,j]):
-                        if self.backptrs.T[s,j] == -1: bplabel = "" # No backpointer here !
-                        else: bplabel = self.hmm.states[self.backptrs.T[s,j]]
-                        axt.text(j-i1+0.08,s+0.08,bplabel,ha="left",va="top",
-                                fontweight='light',fontsize=fontsize_backptrs,color="k")
-                        
-
-        if(plot_alignment):
-            for j in range(i1,i2):
-                for s in range(0,self.hmm.n_states):
-                    if (alignment[j] == s) :
-                        # 12/06/2024: printing state in alignment, not backptr
-                        axt.text(j-i1+0.5,s+0.5,self.hmm.states[s],ha="center",va="center", #ha="left",va="top",
-                            fontweight='heavy',fontsize=fontsize_backptrs,color="k",rotation=0,
-                                 bbox={'boxstyle':'round4,pad=.5', 'alpha':0.25, 'facecolor':'white'})                        
-
-                            
         plt.close()
         return(fig)
