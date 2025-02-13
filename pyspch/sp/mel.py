@@ -2,6 +2,7 @@
 # a collection of routines (wrappers around librosa) for usage/demonstration of the mel scale
 # Modification History:
 #   23/02/2024: changing mel_defaults() interface, dropping n_fft as output
+#   14/01/2025: added melch2mel()
 #
 import librosa
 import matplotlib.pyplot as plt
@@ -61,37 +62,29 @@ def xch2f(ch,f0=100,ch0=1,dfdc=100):
     return(f)
 
                                     
-def _obs_mel_defaults(sr=8000):
-    '''
-    Returns full set of spectrogram + mel filterbank parameters in function of sampling frequency:
-    (n_fft,fmin,fmax)
-    
-    - n_fft is 256 pts up to 10kHz sampling ratte, 256 point above that
-    - fmin = 50Hz
-    - fmax = 6500Hz or 0.5*sr for lower sampling rates
-
-    Any of the defaults can be overwritten separately by passing it to this function
-    '''
-    n_fft = 256 if (sr <= 10000) else 512
-    fmin = 50.
-    fmax = 6500.0 if sr > 13000 else 0.5*sr
-    return(n_fft,fmin,fmax)
 
 def mel_defaults(sr=8000,fmin=None, fmax=None):
     '''
     Returns mel filterbank parameters (fmin,fmax) from a potentially underspecified 
     - fmin = 50Hz
-    - fmax = 6500Hz or 0.5*sr for lower sampling rates
+    - fmax = 6500Hz or sr/2 for lower sampling rates
 
     Any of the defaults can be overwritten separately by passing it to this function
     '''
-    fmin = 50.
-    fmax = 6500.0 if sr > 13000 else 0.5*sr
+    if fmin is None:
+        fmin = 50.
+    if fmax is None:
+        fmax = 6500.0 if sr > 13000. else 0.5*sr
+
     return(fmin,fmax)
 
 def mel_frequencies(n_mels=24,sr=8000,fmin=None,fmax=None,htk=False):
     '''
+    returns n_mels+2 frequencies:
+        low_edge(fmin)  cf[0] cf[1] ... cf[n_mels-1]  high_edge(fmax)
+        
     wrapper around librosa.mel_frequencies, with added functionality the pyspch defaults
+    sr is only relevant to define the default fmax
     '''
     # set default parameters if not specified
     (fmin, fmax) = mel_defaults(sr=sr,fmin=fmin,fmax=fmax)
@@ -105,20 +98,28 @@ def mel_filterbank(n_mels=24,sr=8000,n_fft=None,fmin=None,fmax=None,htk=False,no
     # compute edge and center frequencies of the mel filterbank with 50% overlap
     # freqs contains [ low_cutoff, ... all center frequencies ... , high_cutoff ]
     (fmin, fmax) = mel_defaults(sr=sr,fmin=fmin,fmax=fmax)
-    freqs = mel_frequencies(n_mels=n_mels,fmin=fmin,fmax=fmax,htk=htk)
+    freqs = mel_frequencies(n_mels=n_mels,sr=sr,fmin=fmin,fmax=fmax,htk=htk)
 
     # compute filterbank interpolation matrix    
-    if not n_fft:
+    if n_fft is None:
         n_fft = 256 if (sr <= 10000) else 512
     fbank=librosa.filters.mel(sr=sr,n_fft=n_fft,fmin=fmin,fmax=fmax,n_mels=n_mels,htk=htk,norm=norm)
     return(freqs,fbank)
 
-# convert mel channel index to Hz for center frequency
+# convert mel channel index to center frequency in Hz
 # this overrides librosa.mel_frequencies with our own defaults
 def melch2hz(ch,n_mels=24,sr=8000,n_fft=None,fmin=None,fmax=None,htk=False,norm=None):
-    freqs = mel_frequencies(n_mels=n_mels+2,fmin=fmin,fmax=fmax,htk=htk)
+    freqs = mel_frequencies(n_mels=n_mels+2,sr=sr,fmin=fmin,fmax=fmax,htk=htk)
+    freqs = freqs[1:len(freqs)-1]
     return(freqs[ch])
 
+# convert mel channel index to center frequency in mel
+# this overrides librosa.mel_frequencies with our own defaults
+def melch2mel(ch,n_mels=24,sr=8000,n_fft=None,fmin=None,fmax=None,htk=False,norm=None):
+    freqs = mel_frequencies(n_mels=n_mels+2,sr=sr,fmin=fmin,fmax=fmax,htk=htk)
+    freqs = freqs[1:len(freqs)-1]
+    return(hz2mel(freqs[ch]))
+    
 # plot the design center frequencies and bandwidth of mel filterbank
 def plot_filterbank_cf_bw(freqs,sr,colormap='hsv',Labels=True):
     mels = hz2mel(freqs)

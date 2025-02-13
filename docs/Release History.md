@@ -24,8 +24,9 @@ Pyarrow will become a required dependency of pandas in the next major release of
  - 22/05/2024: make logprob_foor dominate prob_floor
  - 22/05/2024: all probs are float64
  - 29/05/2024: added .draw() method to hmm
- - 21/08/2024: added arguments i1 and i2 to .plot_trellis() for partial plots 
- 
+ - 21/08/2024: added arguments i1 and i2 to .plot_trellis() for partial plots
+ - 14/01/2025: made spectrogram labeling defaults more consistent
+
 ### Notes on v0.8.2
 - added the mel.py module in sp
 - added arguments (segwav) to PltSpgFtrs()
