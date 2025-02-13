@@ -25,6 +25,12 @@
 #
 #  13/06/2023: prepare PlotSpgFtrs() for 2D layout
 #
+#  14/01/2025: improve consistency in dy/ylabel for spectrogram plots  PlotSpg and PlotSpgFtrs
+#    For labeling of the spectrogram, following defaults apply:
+#        - dy=None  assumes default Fourier spectrogram and with y-axis label 'Frequency (Hz)' (unless specified)
+#        - dy=1     results in an index based y-axis without label (unless specified)
+#        - for different types of spectrograms (mel) you NEED to specify BOTH dy and ylabel/spglabel appropriately
+#
 import os,sys,io 
 import scipy.signal
 
@@ -88,7 +94,11 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
         + 1 (TOP):     waveform data (optional)
         + 2:  one or several spectrograms (required)
 
-
+    For labeling of the spectrogram, following defaults apply:
+        - dy=None  assumes default Fourier spectrogram and with y-axis label 'Frequency (Hz)' (unless specified)
+        - dy=1     results in an index based y-axis without label (unless specified)
+        - for different types of spectrograms (mel) you NEED to specify BOTH dy and spglabel appropriately
+        
     If you need more control over the layout, then you need to use the lower level API
     
     Parameters:
@@ -119,7 +129,10 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
     nparam,nfr = spgdata.shape
     if frames is None: frames = [0,nfr]          
     frame_range = np.arange(frames[0],frames[1])
-    if dy==None: dy = (sample_rate/2)/(nparam-1)  #assume standard spectrogram
+    if dy is None: 
+        dy = (sample_rate/2)/(nparam-1)  #assumes Fourier spectrogram
+        if ylabel is None: 
+            ylabel = 'Frequency (Hz)'
             
     # 2. set up the figure and axis            
     if wavdata is None:
@@ -158,8 +171,8 @@ def PlotSpg(spgdata=None,wavdata=None,segwav=None,segspg=None,fig=None,
 # An Extended Plotting Routine for time aligned
 
 def PlotSpgFtrs(wavdata=None,spgdata=None,segwav=None,segdata=None,line_ftrs=None,img_ftrs=None,row_heights=None,
-            spglabel='Frequency (Hz)',line_labels=None, img_labels=None,
-            sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,**kwargs):
+            spglabel=None,line_labels=None, img_labels=None,
+            sample_rate=1.,shift=0.01,dy=None,frames=None,Legend=False,title=None,**kwargs):
     '''
     General Purpose multi-tier plotting routine of speech signals.
     The figure contains
@@ -167,6 +180,11 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segwav=None,segdata=None,line_ftrs=Non
      - segmentations (list, optional)
      - img features (list, optional)
      - line features (list, optional)
+
+    For labeling of the base spectrogram, following defaults apply:
+        - dy=None  assumes default Fourier spectrogram and with y-axis label 'Frequency (Hz)' (unless specified)
+        - dy=1     results in an index based y-axis without label (unless specified)
+        - for different types of spectrograms (mel) you NEED to specify BOTH dy and spglabel appropriately
     '''
     if (wavdata is None) or (spgdata is None):
         raise TypeError("PlotSpgFtrs: both wavdata and spgdata are mandatory")
@@ -177,7 +195,11 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segwav=None,segdata=None,line_ftrs=Non
     frame_range = np.arange(frames[0],frames[1])
     frame_times = frame_range*shift + 0.5*shift
     n_shift = int(shift*sample_rate)
-    if dy==None: dy = (sample_rate/2)/(nparam-1)  #assume standard spectrogram
+    if dy is None: 
+        dy = (sample_rate/2)/(nparam-1)  #assumes Fourier spectrogram
+        if spglabel is None: 
+            spglabel = 'Frequency (Hz)'
+
     sample_range = np.arange(frames[0]*n_shift,
                         min(frames[1]*n_shift+1,len(wavdata)) )
     # there should be check for singletons here
@@ -230,6 +252,7 @@ def PlotSpgFtrs(wavdata=None,spgdata=None,segwav=None,segdata=None,line_ftrs=Non
         irow += 1
         
     fig.get_axis([irow-1,0]).set_xlabel('Time (sec)') 
-
+    fig.suptitle(title)
+    
     return fig
 
