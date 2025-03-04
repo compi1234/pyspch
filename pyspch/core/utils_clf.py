@@ -39,12 +39,14 @@ def test_clf(clf,X_test,y_test,Verbose=False,priors=None):
 
 
     parameters:
-    clf                 an sk-learn type classifier that
+    clf                 an sklearn type classifier that
                         has a .predict() function and has classes[] or classes_[] defined 
     X                   nparray of test vectors
     y                   nparray of reference labels
     Verbose             prints 
     priors              an nparray with priors overriding the training priors (optional, if predict() supports priors)
+                        or a string specifying 'uniform' for uniform priors or 'training' for priors from training data
+                        setting priors='training' is equivalent to priors=None 
     
     returns:
     accuracy            test set accuracy in percentage correct (float)

@@ -107,7 +107,7 @@ def dct_diff(dct_a, dct_b):
 ##################################################
 # PART II: Labels and Segmentations
 ##################################################
-def lbls2seg(lbls,shift=0.01):
+def lbls2seg(lbls,shift=0.01,start_time=0.0):
     '''
     converts a label sequence (alignment) to a segmentation DataFrame
     This conversion may fail if some frames are not labeled
@@ -115,6 +115,7 @@ def lbls2seg(lbls,shift=0.01):
     Arguments:
     lbls       np.array of labels
     shift      frame shift (default=0.01)
+    start_time impose a start_time different than 0.0 (default=0.0)
     
     Output:
     segmentation dataframe with columns {'t0','t1','seg'}
@@ -125,10 +126,10 @@ def lbls2seg(lbls,shift=0.01):
     seg = [ lbls[0] ]
     for i in range(1,len(lbls)):
         if lbls[i] != lbls[i-1]:
-            t0.append( i*shift )
+            t0.append( i*shift +start_time )
             seg.append(lbls[i])
-            t1.append( i*shift )
-    t1.append( len(lbls) * shift )
+            t1.append( i*shift +start_time )
+    t1.append( len(lbls) * shift +start_time )
     return( pd.DataFrame({'t0':t0,'t1':t1,'seg':seg}) )   
 
 def seg2lbls(seg, shift=0.01, n_frames=None, end_time=None, pad_lbl=None):
