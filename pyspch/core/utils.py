@@ -122,7 +122,7 @@ def lbls2seg(lbls,shift=0.01,start_time=0.0):
     '''
 
     t1 = []
-    t0 = [ 0. ]
+    t0 = [ 0. + start_time ]
     seg = [ lbls[0] ]
     for i in range(1,len(lbls)):
         if lbls[i] != lbls[i-1]:
