@@ -237,13 +237,14 @@ class HMM():
                 except:
                     print("Nothing to print\n")
 
-    def draw(self,PROBS=False,PRINT_EPS=.00001,name='HMM'):
+    def draw(self,PROBS=False,fmt="{}",PRINT_EPS=.00001,name='HMM'):
         ''' 
         .draw() returns a graph of the HMM model using the graphviz library
         INIT and END nodes are shown as double circles
         REGULAR nodes are shown as single circles
         with the PROBS flag set to TRUE transition probabilities are printed on the arcs
         PRINT_EPS puts a threshold on the (linear) probs to be shown
+        fmt  is the printing formant for the values on the arcs
 
         the returned graph can be 
         - saved as .gv file  -> print(g)
@@ -277,7 +278,8 @@ class HMM():
             for j in range(0,n):
                 if(A[i,j] > PRINT_EPS):
                     if PROBS:
-                        g.edge(states[i],states[j],label=str(self.transmat[i,j]))
+#                        g.edge(states[i],states[j],label=str(self.transmat[i,j]))
+                        g.edge(states[i],states[j],label=fmt.format(self.transmat[i,j]))
                     else:
                         g.edge(states[i],states[j])
         return(g)
