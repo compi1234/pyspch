@@ -1,11 +1,13 @@
 sil     sil
 a       ah
+adjourned ah jh er n d
 also    ao l s ow
 alternative ao l t er n ah t ih v
 appreciated  ah p r iy sh iy ey t ih d
 an      ah n
 and     ah n d
 are     aa r
+ask     ae s k
 at      ae t
 bad     b ae d
 be      b iy
@@ -16,11 +18,13 @@ bricks  b r ih k s
 booed   b uw d
 by      b ay
 can     k ah n
+carry   k ae r iy
 circumspect s er k ah m s p eh k t
 clear    k l iy r
 computer  k ah m p y uw t er
 computers k ah m p y uw t er z
 done    d ah n
+don't   d ow n t
 dive    d ay v
 eating  iy tih ng
 eight   ey t
@@ -37,7 +41,12 @@ how     hh aw
 human   hh y uw m ah n
 in      ih n
 increases  ih n k r iy z ah z
+is      ih z
+is_1    ih s
 it      ih t
+like    l ay k
+me      m iy
+meeting m iy t ih ng
 miraculously  m er ae k y ah l ah s l iy
 misinterpret m ih s ih n t er p r ah t
 money   m ah n iy
@@ -46,15 +55,19 @@ nightly n ay t l iy
 nine    n ay n
 now     n aw
 oh      ow
+oily    oy l iy
 one     w ah n
 perhaps p er hh ae p s
 prestige  p r eh s t iy zh
+prestigious p r eh s t ih jh ah s
 processing p r aa s eh s ih ng
 pronunciation p r ow n ah n s iy ey sh ah n
 puts    p uw t s
+rag     r ae g
 reasons r iy z ah n z
 recognize  r eh k ah g n ay z
-security  s ij k y uh r ah t iy
+secure    s ih k y uh r
+security  s ih k y uh r ah t iy
 seemed  s iy m d
 seven   s eh v ah n
 six     s ih k s

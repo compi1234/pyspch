@@ -3,6 +3,7 @@ import pyspch
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import copy
 
 def plot_probs( probs, labels,  fig, iax=2, x0=0.,dx = .01, title="", yrange=[0.,1.],cmap="Greys", style="line",**kwargs):
     '''
@@ -25,6 +26,9 @@ def plot_probs( probs, labels,  fig, iax=2, x0=0.,dx = .01, title="", yrange=[0.
 def get_test_file(file_id, feature_args=None,
                           root='https://homes.esat.kuleuven.be/~spchlab/data/'):
     '''
+    3/6/2025: MAJOR BUG FIX in spg arguments !!!
+    14/6/2025: Bugs Fix for access of TIMIT example files in train directories
+    
     extracts waveform and metadata for a named file
     
     PARAMETERS:
@@ -43,13 +47,13 @@ def get_test_file(file_id, feature_args=None,
     wrd    wrd segmentation
     phn    phn segmentation
     '''
-    timit_test_files =  ['dr1/faks0/si2203',  'dr8/fcmh1/si1493', 'dr4/fadg0/si1279', 
-                         'dr1/mdab0/sx409', 'dr4/mbns0/si1220',
-                         'dr1/fcjf0/sx307', 'dr1/fdaw0/sx236', 'dr1/faks0/sx313'] 
+    timit_test_files =  ['test/dr1/faks0/si2203',  'test/dr8/fcmh1/si1493', 'test/dr4/fadg0/si1279', 
+                         'test/dr1/mdab0/sx409', 'test/dr4/mbns0/si1220',
+                         'train/dr1/fcjf0/sx307', 'train/dr1/fdaw0/sx236', 'train/dr1/fcjf0/sa2'] 
 
     if file_id[:-1] == "timit":
         timit_no = int(file_id[5])
-        name = "test/"+timit_test_files[timit_no]
+        name = timit_test_files[timit_no]
         type = "TIMIT"
     else:
         type = None
@@ -77,8 +81,14 @@ def get_test_file(file_id, feature_args=None,
     phn = pyspch.timit.read_seg_file(seg_root + name + ".phn",dt=dt,xlat=xlat)
     if phn is None: # try grapheme if no phn is available
             phn = pyspch.timit.read_seg_file(seg_root + name + ".gra",dt=dt)
-        
-    spg = pyspch.sp.feature_extraction(wavdata, sample_rate=sr)
+
+    # 3/6/2025: BUG FIX   spg feature args used to be taken as standard; not as preprocessing in the full pipeline
+    spg_args = copy.copy(feature_args)
+    spg_args['Deltas']= None
+    spg_args['Norm']=None
+    spg_args['n_mels']= None
+    spg_args['n_cep']=None
+    spg = pyspch.sp.feature_extraction(wavdata, **spg_args)
     ftrs = pyspch.sp.feature_extraction(wavdata, **feature_args)
     txt = ' '.join(wrd['seg'])
     
