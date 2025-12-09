@@ -26,7 +26,8 @@ Pyarrow will become a required dependency of pandas in the next major release of
  - 29/05/2024: added .draw() method to hmm
  - 21/08/2024: added arguments i1 and i2 to .plot_trellis() for partial plots
  - 14/01/2025: made spectrogram labeling defaults more consistent
-
+ - 03/06/2025: major BUG fix in utils_x.get_test_file() :  non standard signal processing parameters were not correctly passed for spg computations
+ - 
 ### Notes on v0.8.2
 - added the mel.py module in sp
 - added arguments (segwav) to PltSpgFtrs()
