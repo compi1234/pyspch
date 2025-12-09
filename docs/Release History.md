@@ -2,13 +2,17 @@
 
 ### TBD / work for future releases
 - package_resources will get deprecated with Python 3.11, but the usage of importlib.resources was not stable between 3.7 and 3.10 so it needs to be discouraged for the time being
-
 - Deprecation warning ahead of pandas 3.0: *C:\Users\compi\AppData\Local\Temp\ipykernel_20852\3573829142.py:6: DeprecationWarning: 
 Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),*
 - pickled data files in sklearn may get unusable with future sklearn releases, usage needs to be reassessed
 - utils_timit should be integrated core.timit
 - utils_clf   should be integrated in stats subpackage
 
+### Notes on v0.9.0
+- initial release on 09/12/2025; at this point it is 
+- this is the main dev for academic year 2025-2026
+- 
+  
 ### Notes on v0.8.3
 - modifications on iSpectrogram
   +   added spec envelope and residue
@@ -36,9 +40,7 @@ Pyarrow will become a required dependency of pandas in the next major release of
 - the iSpectrogram() interactive spectrogram is reworked considerably
 - restructuring of the ./data directory, now structured with subdirs
 - a number of smaller bug fixes/patches
-- added the mel.py module in sp
-- added arguments (segwav) to PltSpgFtrs()
-
+- frozen on 29/01/2024
 
 ### Notes on v08.01
 - This is an intermediate work-in-progress release (with inconsistent naming) frozen on 16/01/2024
